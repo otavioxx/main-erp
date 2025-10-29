@@ -1,4 +1,4 @@
-# dialogs/cliente_selection_dialog.py
+# dialogs/cliente_selection_dialog.py - VERSÃO MELHORADA COM DIMENSIONAMENTO INTELIGENTE
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTableWidget,
                              QTableWidgetItem, QHeaderView, QLineEdit,
                              QLabel, QDialogButtonBox, QFrame, QMessageBox)
@@ -7,25 +7,27 @@ from PyQt6.QtCore import Qt
 from models.cliente import Cliente
 from views.cliente_view import ClienteDialog
 from utils.helpers import aplicar_maiuscula_formulario
-
-# ✅ IMPORTAR O MIXIN
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
 
+# ✅ IMPORTAR O MIXIN DE DIMENSIONAMENTO
+from mixins.dialog_size_mixin import DialogSizeMixin
 
-# ✅ ADICIONAR O MIXIN COMO PRIMEIRA CLASSE BASE
-class ClienteSelectionDialog(TableScrollNavigationMixin, QDialog):
+
+# ✅ ADICIONAR MIXIN COMO PRIMEIRA CLASSE BASE
+class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.cliente_selecionado = None
         self.init_ui()
         aplicar_maiuscula_formulario(self)
         self.carregar_clientes()
+        
+        # ✅ CONFIGURAR TAMANHO INTELIGENTE
+        # Para diálogos com tabela, use "large"
+        self.setup_dialog_size_large()
 
     def init_ui(self):
         self.setWindowTitle("Selecionar Cliente")
-        self.setMinimumWidth(850)
-        self.setMinimumHeight(600)
-
         self.setWindowIcon(QIcon("icon.ico"))
 
         layout = QVBoxLayout()
@@ -41,7 +43,6 @@ class ClienteSelectionDialog(TableScrollNavigationMixin, QDialog):
         header_layout.addWidget(titulo)
         header_layout.addStretch()
 
-        # Adicionar label de ajuda para F1
         ajuda_label = QLabel("Pressione F1 para cadastrar novo cliente")
         ajuda_label.setStyleSheet("color: #666666; font-style: italic;")
         header_layout.addWidget(ajuda_label)
@@ -86,11 +87,10 @@ class ClienteSelectionDialog(TableScrollNavigationMixin, QDialog):
         layout.addWidget(self.tabela)
 
         # ✅ ATIVAR O SCROLL NAVIGATION MIXIN
-        # Deve ser chamado APÓS a configuração completa da tabela
         self.setup_scroll_navigation(
             tabela=self.tabela,
-            scroll_sensibilidade=1,      # 1 linha por scroll
-            auto_select_first=True       # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,
+            auto_select_first=True
         )
 
         buttons_frame = QFrame()

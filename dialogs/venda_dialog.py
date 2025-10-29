@@ -1,5 +1,6 @@
 """
 Dialog de Venda - Versão Final com Frame de Entrada Rápida - CORRIGIDO
+Com suporte a redimensionamento inteligente via DialogSizeMixin
 """
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
@@ -18,10 +19,11 @@ from utils.helpers import formatar_moeda, validar_quantidade, calcular_subtotal,
 from utils.venda_utils import VendaUtils
 from models.produto import Produto
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
+from mixins.dialog_size_mixin import DialogSizeMixin
 
 
-class ProdutoVendaDialog(TableScrollNavigationMixin, QDialog):
-    """Dialog para criação de vendas com frame de entrada rápida"""
+class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
+    """Dialog para criação de vendas com frame de entrada rápida e redimensionamento inteligente"""
 
     venda_realizada = pyqtSignal()
     venda_crediario_realizada = pyqtSignal(int)
@@ -34,11 +36,11 @@ class ProdutoVendaDialog(TableScrollNavigationMixin, QDialog):
         self.observacao = ""
         self._init_ui()
         self._configurar_comportamento_enter()
+        self._configurar_tamanho_dialog()
 
     def _init_ui(self):
         """Inicializa interface usando classes CSS semânticas"""
         self.setWindowTitle("Nova Venda")
-        self.setMinimumSize(1250, 850)
 
         layout = QVBoxLayout()
         layout.setSpacing(12)
@@ -64,6 +66,17 @@ class ProdutoVendaDialog(TableScrollNavigationMixin, QDialog):
 
         self.setLayout(layout)
         self._configurar_atalhos()
+
+    def _configurar_tamanho_dialog(self):
+        """Configura o tamanho inteligente do diálogo usando o mixin"""
+        self.setup_dialog_size(
+            min_width=700,           # Largura mínima adequada para a tabela
+            min_height=500,           # Altura mínima para ter espaço suficiente
+            default_width_percent=0.95,  # 85% da tela
+            default_height_percent=0.80, # 90% da tela
+            max_width_percent=0.85,      # Máximo 95% da tela
+            max_height_percent=0.85      # Máximo 95% da tela
+        )
 
     def _criar_header(self, layout):
         """Cria cabeçalho da dialog"""

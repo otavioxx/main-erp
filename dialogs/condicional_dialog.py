@@ -1,11 +1,12 @@
 """
 Dialog de Condicional - Versão com Frame de Entrada Rápida - CORRIGIDO
+Com suporte a redimensionamento inteligente via DialogSizeMixin
 """
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                              QTableWidget, QTableWidgetItem, QLabel,
                              QMessageBox, QHeaderView, QInputDialog, QFrame,
-                             QLineEdit, QGroupBox, QGridLayout)
+                             QLineEdit, QGroupBox, QGridLayout, QApplication)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QShortcut, QKeySequence
 
@@ -15,12 +16,13 @@ from dialogs.cliente_selection_dialog import ClienteSelectionDialog
 from dialogs.produto_selection_dialog import ProdutoSelectionDialog
 from dialogs.observacao_dialog import ObservacaoDialog
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
+from mixins.dialog_size_mixin import DialogSizeMixin
 from datetime import datetime, timedelta
 from utils.helpers import aplicar_maiuscula_formulario, formatar_moeda, aplicar_desconto_total, validar_quantidade, calcular_subtotal
 
 
-class CondicionalDialog(TableScrollNavigationMixin, QDialog):
-    """Dialog para criação de condicionais com frame de entrada rápida"""
+class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
+    """Dialog para criação de condicionais com frame de entrada rápida e redimensionamento inteligente"""
 
     condicional_salva = pyqtSignal()
 
@@ -31,14 +33,16 @@ class CondicionalDialog(TableScrollNavigationMixin, QDialog):
         self.cliente_selecionado = None
         self.desconto_total = 0.0
         self.observacao = ""
+        self._primeira_exibicao = True
         self._init_ui()
         aplicar_maiuscula_formulario(self)
+        self._configurar_tamanho_dialog()
+        self._configurar_comportamento_enter()
         self._carregar_dados()
 
     def _init_ui(self):
         """Inicializa interface usando classes CSS semânticas"""
         self.setWindowTitle("Editar Condicional" if self.condicional_id else "Nova Condicional")
-        self.setMinimumSize(1250, 850)
 
         layout = QVBoxLayout()
         layout.setSpacing(12)
@@ -64,7 +68,29 @@ class CondicionalDialog(TableScrollNavigationMixin, QDialog):
 
         self.setLayout(layout)
         self._configurar_atalhos()
-        self._configurar_comportamento_enter()
+
+    def showEvent(self, event):
+        """Chamado quando a janela é exibida - garante centralização"""
+        super().showEvent(event)
+        
+        # Na primeira exibição, centralizar a janela
+        if self._primeira_exibicao:
+            self._primeira_exibicao = False
+            # Usar QApplication para forçar processamento de eventos
+            QApplication.processEvents()
+            # Agora centralizar
+            self._center_on_screen()
+
+    def _configurar_tamanho_dialog(self):
+        """Configura o tamanho inteligente do diálogo usando o mixin"""
+        self.setup_dialog_size(
+            min_width=700,           # Largura mínima adequada para a tabela
+            min_height=500,           # Altura mínima para ter espaço suficiente
+            default_width_percent=0.95,  # 85% da tela
+            default_height_percent=0.80, # 90% da tela
+            max_width_percent=0.85,      # Máximo 95% da tela
+            max_height_percent=0.85      # Máximo 95% da tela
+        )
 
     def _criar_header(self, layout):
         """Cria cabeçalho da dialog"""
@@ -646,55 +672,55 @@ class CondicionalDialog(TableScrollNavigationMixin, QDialog):
             self.observacao = dialog.get_observacao()
 
     def _processar_produto(self, produto):
-            """Processa produto selecionado com validações"""
-            # Validações
-            if produto.preco_venda <= 0:
-                QMessageBox.warning(
-                    self, "Produto inválido",
-                    f"O produto '{produto.nome}' possui preço de venda 0 e não pode ser vendido."
-                )
-                return
+        """Processa produto selecionado com validações"""
+        # Validações
+        if produto.preco_venda <= 0:
+            QMessageBox.warning(
+                self, "Produto inválido",
+                f"O produto '{produto.nome}' possui preço de venda 0 e não pode ser vendido."
+            )
+            return
 
-            if produto.estoque <= 0:
-                QMessageBox.warning(
-                    self, "Produto sem estoque",
-                    f"O produto '{produto.nome}' está sem estoque e não pode ser vendido."
-                )
-                return
+        if produto.estoque <= 0:
+            QMessageBox.warning(
+                self, "Produto sem estoque",
+                f"O produto '{produto.nome}' está sem estoque e não pode ser vendido."
+            )
+            return
 
-            # Solicitar quantidade
-            quantidade, ok = QInputDialog.getInt(
-                self, "Quantidade",
-                f"Quantidade:",
-                value=1, min=1, max=produto.estoque, step=1
+        # Solicitar quantidade
+        quantidade, ok = QInputDialog.getInt(
+            self, "Quantidade",
+            f"Quantidade:",
+            value=1, min=1, max=produto.estoque, step=1
+        )
+
+        if ok and validar_quantidade(quantidade, produto.estoque):
+            # Solicitar preço de venda
+            preco_venda, ok_preco = QInputDialog.getDouble(
+                self, "Preço de Venda",
+                f"Preço de venda:",
+                value=produto.preco_venda, min=0.01, decimals=2
             )
 
-            if ok and validar_quantidade(quantidade, produto.estoque):
-                # Solicitar preço de venda
-                preco_venda, ok_preco = QInputDialog.getDouble(
-                    self, "Preço de Venda",
-                    f"Preço de venda:",
-                    value=produto.preco_venda, min=0.01, decimals=2
+            if ok_preco:
+                # Criar uma cópia do produto com o novo preço
+                from models.produto import Produto
+                produto_condicional = Produto(
+                    id=produto.id,
+                    nome=produto.nome,
+                    preco_custo=produto.preco_custo,
+                    preco_venda=preco_venda,  # Usar o preço confirmado
+                    estoque=produto.estoque,
+                    fornecedor_id=produto.fornecedor_id,
+                    ativo=produto.ativo,
+                    tamanho=produto.tamanho,
+                    cor=produto.cor,
+                    ea=produto.ea,
+                    referencia=produto.referencia
                 )
 
-                if ok_preco:
-                    # Criar uma cópia do produto com o novo preço
-                    from models.produto import Produto
-                    produto_condicional = Produto(
-                        id=produto.id,
-                        nome=produto.nome,
-                        preco_custo=produto.preco_custo,
-                        preco_venda=preco_venda,  # Usar o preço confirmado
-                        estoque=produto.estoque,
-                        fornecedor_id=produto.fornecedor_id,
-                        ativo=produto.ativo,
-                        tamanho=produto.tamanho,
-                        cor=produto.cor,
-                        ea=produto.ea,
-                        referencia=produto.referencia
-                    )
-
-                    self._adicionar_produto(produto_condicional, quantidade)
+                self._adicionar_produto(produto_condicional, quantidade)
 
     def _adicionar_produto(self, produto, quantidade):
         """Adiciona produto à condicional"""

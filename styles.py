@@ -29,10 +29,10 @@ class CoresPaleta:
     background_tertiary: str = "#252525"  # Mais escuro
 
     # Cores de texto
-    text_primary: str = "#e0e0e0"  # Ligeiramente mais claro
-    text_secondary: str = "#b8b8b8"  # Mais claro
-    text_muted: str = "#888888"
-    text_disabled: str = "#555555"  # Mais escuro
+    text_primary: str = "#b9b9b9"  # Ligeiramente mais claro
+    text_secondary: str = "#a09f9f"  # Mais claro
+    text_muted: str = "#707070"
+    text_disabled: str = "#2E2D2D"  # Mais escuro
 
     # Cores de acento
     accent_primary: str = "#1A4968"

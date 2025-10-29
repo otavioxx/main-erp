@@ -1,12 +1,15 @@
-# \erp\dialogs\frete_desconto_dialog.py
+# \erp\dialogs\frete_desconto_dialog.py - VERSÃO MELHORADA
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                              QLabel, QGroupBox, QFormLayout)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QKeySequence, QShortcut
 from utils.helpers import SelectAllDoubleSpinBox, formatar_moeda
 
+# ✅ IMPORTAR MIXIN DE DIMENSIONAMENTO
+from mixins.dialog_size_mixin import DialogSizeMixin
 
-class FreteDescontoDialog(QDialog):
+
+class FreteDescontoDialog(DialogSizeMixin, QDialog):
     """Dialog para definir frete e desconto do pedido"""
 
     def __init__(self, frete_atual=0.0, desconto_atual=0.0, subtotal_produtos=0.0, parent=None):
@@ -15,6 +18,10 @@ class FreteDescontoDialog(QDialog):
         self.desconto_atual = desconto_atual
         self.subtotal_produtos = subtotal_produtos
         self._init_ui()
+        
+        # ✅ CONFIGURAR TAMANHO COMPACTO (é um diálogo pequeno)
+        self.setup_dialog_size_compact()
+        
         self._conectar_sinais()
         self._configurar_atalhos()
         self._calcular_total()
@@ -23,8 +30,7 @@ class FreteDescontoDialog(QDialog):
         """Inicializa a interface"""
         self.setWindowTitle("Frete e Desconto")
         self.setModal(True)
-        self.setFixedSize(400, 400)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
+        # ❌ REMOVER setFixedSize - deixar o mixin controlar
 
         layout = QVBoxLayout()
         layout.setSpacing(15)

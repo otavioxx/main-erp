@@ -1,11 +1,12 @@
 """
 Dialog de Pedido - Modificado para incluir desconto e campos Cor, Tamanho, Referência - CORRIGIDO
+Com suporte a redimensionamento inteligente via DialogSizeMixin
 """
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                              QTableWidget, QTableWidgetItem, QLabel,
                              QMessageBox, QHeaderView, QInputDialog, QFrame,
-                             QLineEdit, QGroupBox)
+                             QLineEdit, QGroupBox, QApplication)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QShortcut, QKeySequence
 from utils.helpers import formatar_moeda, calcular_subtotal
@@ -14,11 +15,12 @@ from models.pedido import Pedido
 from dialogs.observacao_dialog import ObservacaoDialog
 from dialogs.frete_desconto_dialog import FreteDescontoDialog
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
+from mixins.dialog_size_mixin import DialogSizeMixin
 from utils.helpers import aplicar_maiuscula_formulario
 
 
-class PedidoDialog(TableScrollNavigationMixin, QDialog):
-    """Dialog para criação/edição de pedidos"""
+class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
+    """Dialog para criação/edição de pedidos com redimensionamento inteligente"""
 
     pedido_realizado = pyqtSignal()
 
@@ -30,14 +32,15 @@ class PedidoDialog(TableScrollNavigationMixin, QDialog):
         self.valor_desconto = 0.0
         self.pedido_editando = pedido
         self.observacao = ""
+        self._primeira_exibicao = True
         self._init_ui()
         aplicar_maiuscula_formulario(self)
+        self._configurar_tamanho_dialog()
         self._carregar_dados_existentes()
 
     def _init_ui(self):
         """Inicializa interface otimizada"""
         self.setWindowTitle("Pedido")
-        self.setMinimumSize(1250, 850)
 
         layout = QVBoxLayout()
         layout.setSpacing(12)
@@ -60,6 +63,29 @@ class PedidoDialog(TableScrollNavigationMixin, QDialog):
 
         self.setLayout(layout)
         self._configurar_atalhos()
+
+    def showEvent(self, event):
+        """Chamado quando a janela é exibida - garante centralização"""
+        super().showEvent(event)
+        
+        # Na primeira exibição, centralizar a janela
+        if self._primeira_exibicao:
+            self._primeira_exibicao = False
+            # Usar QApplication para forçar processamento de eventos
+            QApplication.processEvents()
+            # Agora centralizar
+            self._center_on_screen()
+
+    def _configurar_tamanho_dialog(self):
+        """Configura o tamanho inteligente do diálogo usando o mixin"""
+        self.setup_dialog_size(
+            min_width=700,           # Largura mínima adequada para a tabela
+            min_height=500,           # Altura mínima para ter espaço suficiente
+            default_width_percent=0.95,  # 85% da tela
+            default_height_percent=0.80, # 90% da tela
+            max_width_percent=0.85,      # Máximo 95% da tela
+            max_height_percent=0.85      # Máximo 95% da tela
+        )
 
     def _criar_header(self, layout):
         """Cria cabeçalho"""
@@ -644,10 +670,6 @@ class PedidoDialog(TableScrollNavigationMixin, QDialog):
     def remover_produto(self):
         """Método público para compatibilidade"""
         self._remover_produto()
-
-    def definir_frete(self):
-        """Método público para compatibilidade"""
-        self._definir_frete()
 
     def calcular_total(self):
         """Método público para compatibilidade"""
