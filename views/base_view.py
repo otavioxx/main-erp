@@ -130,6 +130,8 @@ class BaseTableView(QWidget):
         header = self.tabela.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
 
+        header.setSectionsClickable(False)
+
         for i, width in enumerate(self.COLUMN_WIDTHS):
             if width is not None:
                 self.tabela.setColumnWidth(i, width)

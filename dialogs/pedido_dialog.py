@@ -184,7 +184,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.tabela_produtos.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_produtos.setAlternatingRowColors(True)
         self.tabela_produtos.verticalHeader().setVisible(False)
-        self.tabela_produtos.setSortingEnabled(True)
+        self.tabela_produtos.setSortingEnabled(False)
 
         self.setup_scroll_navigation(
             tabela=self.tabela_produtos,

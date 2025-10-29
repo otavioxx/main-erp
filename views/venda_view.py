@@ -223,7 +223,7 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         self.tabela_vendas.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_vendas.setAlternatingRowColors(True)
         self.tabela_vendas.verticalHeader().setVisible(False)
-        self.tabela_vendas.setSortingEnabled(True)
+        self.tabela_vendas.setSortingEnabled(False)
 
         self.setup_scroll_navigation(
             tabela=self.tabela_vendas,
