@@ -39,7 +39,7 @@ class StatusBarWidget(QWidget):
 
         # Versão da aplicação
         self.label_version = QLabel("Digital Solutios - MainERP v0.03")
-        self.label_version.setStyleSheet("color: #666; font-size: 11px;")
+        self.label_version.setStyleSheet("color: #999; font-size: 11px;")
         layout.addWidget(self.label_version)
 
 class MainWindow(QMainWindow):
@@ -95,13 +95,13 @@ class MainWindow(QMainWindow):
         # Adicionar o widget personalizado à status bar
         self.status_bar.addPermanentWidget(self.status_widget, 1)
 
-        # Estilo da status bar - mais escuro
+        # Estilo da status bar - adaptado ao tema claro
         self.status_bar.setStyleSheet("""
             QStatusBar {
-                background-color: #1a1a1a;
-                border-top: 1px solid #333;
+                background-color: #f5f5f5;
+                border-top: 1px solid #d0d0d0;
                 font-size: 12px;
-                color: #ddd;
+                color: #333;
             }
             QStatusBar::item {
                 border: none;
@@ -115,8 +115,8 @@ class MainWindow(QMainWindow):
         nav_frame.setFixedWidth(200)  # Largura fixa para a barra lateral
         nav_frame.setStyleSheet("""
             QFrame.nav-bar {
-                background-color: #252525;
-                border-right: 1px solid #3c3c3c;
+                background-color: #f9f9f9;
+                border-right: 1px solid #e0e0e0;
             }
         """)
 
@@ -134,7 +134,7 @@ class MainWindow(QMainWindow):
                 font-weight: bold;
                 color: #1A4968;
                 padding: 10px;
-                border-bottom: 2px solid #3c3c3c;
+                border-bottom: 2px solid #e0e0e0;
                 margin-bottom: 10px;
             }
         """)
@@ -164,7 +164,7 @@ class MainWindow(QMainWindow):
             btn.setStyleSheet("""
                 QPushButton.nav-button {
                     background-color: transparent;
-                    color: #b0b0b0;
+                    color: #666;
                     border: none;
                     padding: 12px 8px;
                     text-align: left;
@@ -173,8 +173,8 @@ class MainWindow(QMainWindow):
                     border-radius: 4px;
                 }
                 QPushButton.nav-button:hover {
-                    background-color: #3a3a3a;
-                    color: #dcdcdc;
+                    background-color: #eeeeee;
+                    color: #1a1a1a;
                 }
                 QPushButton.nav-button:checked {
                     background-color: #1A4968;

@@ -31,7 +31,7 @@ class ConfigERP:
 
     # === CONFIGURAÇÕES VISUAIS ===
     # Tema padrão (você pode mudar facilmente)
-    TEMA_PADRAO = "dark_clean"  # ou "dark_blue", "high_contrast"
+    TEMA_PADRAO = "light_clean"  # ou "dark_clean", "dark_blue", "high_contrast"
 
     # Fonte padrão
     FONTE_FAMILIA = "Segoe UI"

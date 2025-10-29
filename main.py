@@ -13,7 +13,7 @@ from config import obter_config
 
 # Importações movidas para o topo para evitar problemas
 from database import Database
-from styles import aplicar_tema_dark_clean
+from styles import aplicar_tema_light_clean
 from views.main_window import MainWindow
 
 
@@ -300,10 +300,10 @@ def main():
     configurar_caminhos()
 
     # Agora importa após configurar os caminhos
-    global Database, MainWindow, aplicar_tema_dark_clean, obter_config
+    global Database, MainWindow, aplicar_tema_light_clean, obter_config
     from config import obter_config
     from database import Database
-    from styles import aplicar_tema_dark_clean
+    from styles import aplicar_tema_light_clean
     from views.main_window import MainWindow
 
     config = obter_config()
@@ -343,7 +343,7 @@ def main():
         app.installTranslator(translator)
 
     # Aplicar tema
-    aplicar_tema_dark_clean(app)
+    aplicar_tema_light_clean(app)
 
     # SPLASH COM DURAÇÃO ESTENDIDA E MENSAGENS DE PROGRESSO
     SPLASH_MIN_DURATION = 6.0  # Mínimo de 6 segundos

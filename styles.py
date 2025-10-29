@@ -16,6 +16,7 @@ class Tema(Enum):
     DARK_CLEAN = "dark_clean"
     DARK_BLUE = "dark_blue"
     HIGH_CONTRAST = "high_contrast"
+    LIGHT_CLEAN = "light_clean"
 
 
 @dataclass
@@ -92,6 +93,30 @@ class GerenciadorTemas:
             accent_hover="#ffff66",
             selection_bg="#ffff00",
             selection_text="#000000",
+        ),
+        Tema.LIGHT_CLEAN: CoresPaleta(
+            background_primary="#f5f5f5",
+            background_secondary="#ffffff",
+            background_tertiary="#f9f9f9",
+            text_primary="#1a1a1a",
+            text_secondary="#333333",
+            text_muted="#666666",
+            text_disabled="#999999",
+            accent_primary="#1A4968",
+            accent_hover="#0c5991",
+            accent_pressed="#024f83",
+            border_primary="#d0d0d0",
+            border_secondary="#e0e0e0",
+            border_focus="#1A4968",
+            success="#4caf50",
+            success_border="#45a049",
+            warning="#ff9800",
+            warning_border="#fb8c00",
+            danger="#f44336",
+            danger_border="#da190b",
+            selection_bg="#1A4968",
+            selection_text="#ffffff",
+            hover_bg="#eeeeee",
         ),
     }
 
@@ -737,3 +762,8 @@ def aplicar_tema_high_contrast(
     """Aplica o tema High Contrast"""
     aplicar_estilos(app, Tema.HIGH_CONTRAST, fonte_customizada)
     # https://coolors.co/
+
+
+def aplicar_tema_light_clean(app, fonte_customizada: Optional[ConfiguracaoFonte] = None):
+    """Aplica o tema Light Clean"""
+    aplicar_estilos(app, Tema.LIGHT_CLEAN, fonte_customizada)
