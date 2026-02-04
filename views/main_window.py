@@ -211,7 +211,7 @@ class MainWindow(QMainWindow):
             print(f"Erro ao configurar maiúscula global: {e}")
 
     def closeEvent(self, event):
-        """Exibe diálogo de backup antes de fechar a aplicação"""
+        """Fecha o sistema, mostrando diálogo de backup apenas se necessário"""
         # Limpa timers
         if hasattr(self, 'status_widget'):
             timers_to_stop = [
@@ -226,31 +226,78 @@ class MainWindow(QMainWindow):
         # Impede fechamento automático
         event.ignore()
         
-        # Cria e mostra diálogo de backup
-        backup_dialog = BackupDialog(self)
-        backup_dialog.setWindowTitle(f"Backup - {self.windowTitle()}")
-        
-        # Conectar sinais
-        backup_dialog.backup_realizado.connect(self._backup_concluido)
-        backup_dialog.fechar_sem_backup.connect(self._fechar_sem_backup)
-        
-        # Mostrar diálogo modalmente
-        result = backup_dialog.exec()
-        
-        # Se o diálogo foi aceito (backup feito) ou rejeitado (fechar sem backup)
-        if result in [QDialog.DialogCode.Accepted, QDialog.DialogCode.Rejected]:
-            # Fecha a aplicação
+        # VERIFICAÇÃO DA DATA DO ÚLTIMO BACKUP
+        # Se backup foi feito nos últimos 7 dias, fecha direto sem mostrar nada
+        if not BackupDialog.should_show_dialog():
+            # Último backup foi recente (menos de 7 dias)
+            # Fecha a aplicação SILENCIOSAMENTE
+            print("✅ Backup recente detectado, fechando sistema...")
             QApplication.instance().quit()
-        else:
-            # Usuário cancelou o diálogo, mantém aplicação aberta
-            pass
+            return
+        
+        # Se backup antigo (7+ dias) ou nunca feito, mostra diálogo
+        self._mostrar_dialogo_backup()
+
+    def _mostrar_dialogo_backup(self):
+        """Mostra o diálogo de backup (apenas quando necessário)"""
+        try:
+            # Criar diálogo de backup
+            backup_dialog = BackupDialog(self)
+            backup_dialog.setWindowTitle(f"Backup - {self.windowTitle()}")
+            
+            # Conectar sinais
+            backup_dialog.backup_realizado.connect(self._backup_concluido)
+            backup_dialog.fechar_sem_backup.connect(self._fechar_sem_backup)
+            
+            # Mostrar diálogo modalmente
+            result = backup_dialog.exec()
+            
+            # Verificar o resultado
+            if result == QDialog.DialogCode.Accepted:
+                # Backup foi feito e diálogo fechado automaticamente
+                print("✅ Backup realizado, fechando sistema...")
+                QApplication.instance().quit()
+            elif result == QDialog.DialogCode.Rejected:
+                # Usuário clicou em "Fechar sem Backup"
+                print("⚠ Programa fechado sem backup")
+                QApplication.instance().quit()
+            else:
+                # Usuário cancelou o diálogo (clicou no X), manter aplicação aberta
+                print("✖ Fechamento cancelado pelo usuário")
+                # A aplicação continua aberta
+                
+        except Exception as e:
+            print(f"Erro ao mostrar diálogo de backup: {e}")
+            # Fallback: perguntar se quer fechar mesmo assim
+            self._perguntar_fechamento_direto()
 
     def _backup_concluido(self, backup_path):
-        """Chamado quando backup é concluído"""
+        """Chamado quando backup é concluído com sucesso"""
         print(f"✅ Backup criado com sucesso: {backup_path}")
-        # Aqui você pode adicionar log ou outras ações
         
+        # Aqui você pode adicionar log no sistema
+        try:
+            from datetime import datetime
+            log_msg = f"Backup realizado: {datetime.now().strftime('%d/%m/%Y %H:%M')} - {backup_path}"
+            
+            # Salvar log se tiver um sistema de logs
+            if hasattr(self, 'salvar_log'):
+                self.salvar_log('backup', log_msg)
+                
+        except Exception as e:
+            print(f"Erro ao registrar backup: {e}")
+
     def _fechar_sem_backup(self):
         """Chamado quando usuário escolhe fechar sem backup"""
         print("⚠ Programa fechado sem backup")
-        # Aqui você pode adicionar log ou outras ações
+        
+        # Aqui você pode adicionar log no sistema
+        try:
+            from datetime import datetime
+            log_msg = f"Sistema fechado sem backup: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
+            
+            if hasattr(self, 'salvar_log'):
+                self.salvar_log('sistema', log_msg)
+                
+        except Exception as e:
+            print(f"Erro ao registrar fechamento: {e}")

@@ -9,13 +9,13 @@ from PyQt6.QtCore import Qt, pyqtSignal, QThread
 from PyQt6.QtGui import QIcon, QGuiApplication
 import os
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 import zipfile
 import json
 
 
 class BackupConfig:
-    """Classe simples para salvar/ler o último caminho de backup"""
+    """Classe para gerenciar configurações de backup"""
     
     CONFIG_FILE = "backup_settings.json"
     
@@ -44,6 +44,59 @@ class BackupConfig:
             return True
         except:
             return False
+    
+    @classmethod
+    def get_last_backup_date(cls):
+        """Retorna a data do último backup realizado"""
+        if os.path.exists(cls.CONFIG_FILE):
+            try:
+                with open(cls.CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    last_date_str = data.get('last_backup_date', '')
+                    if last_date_str:
+                        return datetime.fromisoformat(last_date_str)
+            except:
+                pass
+        return None
+    
+    @classmethod
+    def save_last_backup_date(cls, date=None):
+        """Salva a data do último backup"""
+        try:
+            if os.path.exists(cls.CONFIG_FILE):
+                with open(cls.CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            else:
+                data = {}
+            
+            if date is None:
+                date = datetime.now()
+            
+            data['last_backup_date'] = date.isoformat()
+            
+            with open(cls.CONFIG_FILE, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            return True
+        except:
+            return False
+    
+    @classmethod
+    def should_show_backup_dialog(cls, days_threshold=7):
+        """
+        Verifica se deve mostrar o diálogo de backup.
+        Retorna True se o último backup foi há mais de 'days_threshold' dias
+        ou se nunca foi feito backup.
+        """
+        last_backup_date = cls.get_last_backup_date()
+        
+        if last_backup_date is None:
+            # Nunca foi feito backup
+            return True
+        
+        # Calcula a diferença em dias
+        days_since_last_backup = (datetime.now() - last_backup_date).days
+        
+        return days_since_last_backup >= days_threshold
 
 
 class BackupThread(QThread):
@@ -101,20 +154,27 @@ Tamanho: {os.path.getsize(self.source_db) / (1024*1024):.2f} MB
 
 class BackupDialog(QDialog):
     """Diálogo para realizar backup do sistema ao fechar"""
-    
+    BackupConfig = BackupConfig 
     backup_realizado = pyqtSignal(str)  # Sinal emitido quando backup é feito
     fechar_sem_backup = pyqtSignal()    # Sinal para fechar sem backup
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, force_show=False):
+        """
+        Inicializa o diálogo de backup.
+        
+        Args:
+            parent: Widget pai
+            force_show: Se True, mostra o diálogo independentemente da data do último backup
+        """
         super().__init__(parent)
         self.db_path = "erp.db"  # Caminho padrão do banco de dados
         self.backup_thread = None
+        self.force_show = force_show  # Flag para forçar exibição
         
         # Carregar último caminho salvo
         self.destination_folder = BackupConfig.get_last_path()
         
         self._init_ui()
-        # REMOVA a chamada para _centralizar_janela() do __init__
         
     def showEvent(self, event):
         """Centraliza quando o diálogo é exibido"""
@@ -127,21 +187,31 @@ class BackupDialog(QDialog):
         super().resizeEvent(event)
         self._centralizar_janela()
     
-    def _centralizar_janela(self):
-        """Centraliza a janela na tela"""
-        # Força o cálculo do tamanho da janela
-        self.adjustSize()
+    @staticmethod
+    def should_show_dialog(force_show=False):
+        """
+        Verifica se deve mostrar o diálogo de backup.
         
-        # Obtém a geometria da tela
-        screen = QGuiApplication.primaryScreen().geometry()
+        Args:
+            force_show: Se True, ignora a verificação de data
         
-        # Calcula a posição central
-        x = (screen.width() - self.width()) // 2
-        y = (screen.height() - self.height()) // 2
+        Returns:
+            True se deve mostrar o diálogo, False caso contrário
+        """
+        if force_show:
+            return True
         
-        # Move a janela para a posição calculada
-        self.move(x, y)
+        return BackupConfig.should_show_backup_dialog(days_threshold=7)
+    
+    def _get_days_since_last_backup(self):
+        """Retorna quantos dias se passaram desde o último backup"""
+        last_backup_date = BackupConfig.get_last_backup_date()
         
+        if last_backup_date is None:
+            return None  # Nunca foi feito backup
+        
+        return (datetime.now() - last_backup_date).days
+    
     def _init_ui(self):
         """Inicializa interface do diálogo"""
         self.setWindowTitle("Backup do Sistema")
@@ -160,10 +230,16 @@ class BackupDialog(QDialog):
         layout.addWidget(titulo)
         
         # Mensagem informativa
-        mensagem = QLabel(
+        last_backup_info = self._get_last_backup_info()
+        mensagem_text = (
             "O sistema será fechado. Deseja realizar backup do banco de dados antes de sair?\n\n"
             "É recomendado fazer backup regularmente para evitar perda de dados."
         )
+        
+        if last_backup_info:
+            mensagem_text += f"\n\n{last_backup_info}"
+        
+        mensagem = QLabel(mensagem_text)
         mensagem.setWordWrap(True)
         mensagem.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(mensagem)
@@ -273,22 +349,42 @@ class BackupDialog(QDialog):
         layout.addLayout(button_layout)
         
         self.setLayout(layout)
+    
+    def _get_last_backup_info(self):
+        """Retorna informações sobre o último backup"""
+        last_backup_date = BackupConfig.get_last_backup_date()
         
-        # Centralizar janela
-        self._centralizar_janela()
+        if last_backup_date is None:
+            return "⚠️ Nunca foi feito backup do sistema!"
+        
+        days_since = self._get_days_since_last_backup()
+        
+        if days_since is not None:
+            if days_since == 0:
+                return "✅ Backup realizado hoje"
+            elif days_since == 1:
+                return "✅ Backup realizado ontem"
+            elif days_since < 7:
+                return f"✅ Backup realizado há {days_since} dias"
+            else:
+                return f"⚠️ O último backup foi há {days_since} dias (recomenda-se fazer backup a cada 7 dias)"
+        
+        return ""
     
     def _centralizar_janela(self):
         """Centraliza a janela na tela"""
-        if self.parent():
-            parent_geometry = self.parent().geometry()
-            x = parent_geometry.x() + (parent_geometry.width() - self.width()) // 2
-            y = parent_geometry.y() + (parent_geometry.height() - self.height()) // 2
-            self.move(x, y)
-        else:
-            screen = QGuiApplication.primaryScreen().geometry()
-            x = (screen.width() - self.width()) // 2
-            y = (screen.height() - self.height()) // 2
-            self.move(x, y)
+        # Força o cálculo do tamanho da janela
+        self.adjustSize()
+        
+        # Obtém a geometria da tela
+        screen = QGuiApplication.primaryScreen().geometry()
+        
+        # Calcula a posição central
+        x = (screen.width() - self.width()) // 2
+        y = (screen.height() - self.height()) // 2
+        
+        # Move a janela para a posição calculada
+        self.move(x, y)
     
     def _selecionar_pasta(self):
         """Abre diálogo para selecionar pasta de destino"""
@@ -307,11 +403,21 @@ class BackupDialog(QDialog):
     
     def _fechar_sem_backup(self):
         """Fecha o programa sem fazer backup"""
+        days_since = self._get_days_since_last_backup()
+        
+        warning_msg = "Tem certeza que deseja fechar sem fazer backup?\n\n"
+        
+        if days_since is None:
+            warning_msg += "⚠️ NUNCA foi feito backup do sistema!\nQualquer dado poderá ser perdido permanentemente."
+        elif days_since >= 7:
+            warning_msg += f"⚠️ O último backup foi há {days_since} dias.\nQualquer dado não salvo poderá ser perdido."
+        else:
+            warning_msg += "Qualquer dado não salvo poderá ser perdido."
+        
         reply = QMessageBox.question(
             self,
             "Confirmar Fechamento",
-            "Tem certeza que deseja fechar sem fazer backup?\n\n"
-            "Qualquer dado não salvo poderá ser perdido.",
+            warning_msg,
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
@@ -382,6 +488,9 @@ class BackupDialog(QDialog):
     
     def _backup_concluido(self, backup_path):
         """Chamado quando o backup é concluído com sucesso"""
+        # Salvar a data do backup
+        BackupConfig.save_last_backup_date()
+        
         self.progress_bar.setValue(100)
         self.status_label.setText("✓ Backup concluído com sucesso!")
         self.status_label.setStyleSheet("color: #28a745; font-weight: bold;")
