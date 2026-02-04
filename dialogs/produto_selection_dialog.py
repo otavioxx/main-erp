@@ -44,6 +44,7 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.produto_selecionado = None
+        self.produtos_atualmente_exibidos = []  # NOVO: guarda produtos exibidos atualmente
         self._init_ui()
 
         aplicar_maiuscula_formulario(self)
@@ -192,7 +193,10 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
 
     def _mostrar_produtos(self, produtos):
         """CORREÇÃO: Exibe produtos na tabela com ordenação numérica correta"""
-
+        
+        # CORREÇÃO: Guarda os produtos atualmente exibidos
+        self.produtos_atualmente_exibidos = produtos
+        
         # CORREÇÃO: Desabilitar ordenação durante preenchimento
         self.tabela_produtos.setSortingEnabled(False)
 
@@ -278,28 +282,74 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
         return any(texto_busca in campo for campo in campos)
 
     def _selecionar_produto(self):
-        """Seleciona produto atual"""
+        """CORREÇÃO: Seleciona produto atual usando produtos_atualmente_exibidos"""
         row = self.tabela_produtos.currentRow()
         if row == -1:
             QMessageBox.warning(self, "Seleção", "Selecione um produto")
             return
-
-        produto_id = int(self.tabela_produtos.item(row, 0).text())
+        
+        # CORREÇÃO: Verifica se a linha existe na tabela
+        if row >= self.tabela_produtos.rowCount():
+            QMessageBox.warning(self, "Erro", "Linha selecionada não é mais válida")
+            return
+        
+        # CORREÇÃO: Agora pega o ID da célula na linha atual
+        item_id = self.tabela_produtos.item(row, 0)
+        if not item_id:
+            QMessageBox.warning(self, "Erro", "Não foi possível obter o ID do produto")
+            return
+        
+        try:
+            produto_id = int(item_id.text())
+        except ValueError:
+            QMessageBox.warning(self, "Erro", "ID do produto inválido")
+            return
+        
+        # CORREÇÃO: Procura nos produtos atualmente exibidos, não na lista original
+        # Isso garante que o produto correto seja encontrado mesmo após filtro/ordenação
         self.produto_selecionado = next(
-            (p for p in self.produtos if p.id == produto_id), None
+            (p for p in self.produtos_atualmente_exibidos if p.id == produto_id), None
         )
-
+        
+        if not self.produto_selecionado:
+            # Fallback: tenta encontrar na lista original
+            self.produto_selecionado = next(
+                (p for p in self.produtos if p.id == produto_id), None
+            )
+        
         if self.produto_selecionado:
             self.accept()
+        else:
+            QMessageBox.warning(self, "Erro", f"Produto ID {produto_id} não encontrado")
 
     def _selecionar_e_fechar(self, index):
-        """Seleciona ao duplo clique"""
+        """CORREÇÃO: Seleciona ao duplo clique usando produtos_atualmente_exibidos"""
         row = index.row()
-        produto_id = int(self.tabela_produtos.item(row, 0).text())
+        
+        # CORREÇÃO: Verifica se a linha é válida
+        if row >= self.tabela_produtos.rowCount():
+            return
+        
+        item_id = self.tabela_produtos.item(row, 0)
+        if not item_id:
+            return
+        
+        try:
+            produto_id = int(item_id.text())
+        except ValueError:
+            return
+        
+        # CORREÇÃO: Procura nos produtos atualmente exibidos
         self.produto_selecionado = next(
-            (p for p in self.produtos if p.id == produto_id), None
+            (p for p in self.produtos_atualmente_exibidos if p.id == produto_id), None
         )
-
+        
+        if not self.produto_selecionado:
+            # Fallback
+            self.produto_selecionado = next(
+                (p for p in self.produtos if p.id == produto_id), None
+            )
+        
         if self.produto_selecionado:
             self.accept()
 
