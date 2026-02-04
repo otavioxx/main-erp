@@ -1,49 +1,39 @@
 """
-Sistema de Estilos Modular para PyQt6 - VERSÃO ATUALIZADA
-Tema Dark Clean com suporte a customização e status bar escura
+Sistema de Estilos Modular para PyQt6 - VERSÃO SIMPLIFICADA
+Tema Dark Clean único com suporte a customização e status bar escura
 """
 
 from dataclasses import dataclass
-from enum import Enum
-from typing import Dict, Optional
+from typing import Optional
 
 from PyQt6.QtGui import QColor, QFont, QPalette
 
 
-class Tema(Enum):
-    """Temas disponíveis"""
-
-    DARK_CLEAN = "dark_clean"
-    DARK_BLUE = "dark_blue"
-    HIGH_CONTRAST = "high_contrast"
-    LIGHT_CLEAN = "light_clean"
-
-
 @dataclass
 class CoresPaleta:
-    """Classe para organizar as cores do tema"""
-
+    """Classe para organizar as cores do tema dark"""
+    
     # Cores primárias - mais escuras
     background_primary: str = "#1a1a1a"  # Mais escuro
     background_secondary: str = "#202020"  # Mais escuro
     background_tertiary: str = "#252525"  # Mais escuro
-
+    
     # Cores de texto
     text_primary: str = "#b9b9b9"  # Ligeiramente mais claro
     text_secondary: str = "#a09f9f"  # Mais claro
     text_muted: str = "#707070"
     text_disabled: str = "#2E2D2D"  # Mais escuro
-
+    
     # Cores de acento
     accent_primary: str = "#1A4968"
     accent_hover: str = "#0c5991"
     accent_pressed: str = "#024f83"
-
+    
     # Cores de borda - mais escuras
     border_primary: str = "#333333"  # Mais escuro
     border_secondary: str = "#404040"  # Mais escuro
     border_focus: str = "#025a94"
-
+    
     # Cores semânticas
     success: str = "#2d5a2d"
     success_border: str = "#3d6b3d"
@@ -51,7 +41,7 @@ class CoresPaleta:
     warning_border: str = "#6b5d3d"
     danger: str = "#5a2d2d"
     danger_border: str = "#6b3d3d"
-
+    
     # Cores de seleção
     selection_bg: str = "#025a94"
     selection_text: str = "#ffffff"
@@ -60,7 +50,7 @@ class CoresPaleta:
 
 class ConfiguracaoFonte:
     """Configurações de fonte"""
-
+    
     def __init__(self, familia: str = "Segoe UI", tamanho_base: int = 12):
         self.familia = familia
         self.tamanho_base = tamanho_base
@@ -70,76 +60,13 @@ class ConfiguracaoFonte:
         self.tamanho_titulo = tamanho_base + 11
 
 
-class GerenciadorTemas:
-    """Gerenciador central de temas"""
-
-    _temas: Dict[Tema, CoresPaleta] = {
-        Tema.DARK_CLEAN: CoresPaleta(),
-        Tema.DARK_BLUE: CoresPaleta(
-            accent_primary="#0078d4",
-            accent_hover="#106ebe",
-            accent_pressed="#005a9e",
-            border_focus="#0078d4",
-        ),
-        Tema.HIGH_CONTRAST: CoresPaleta(
-            background_primary="#000000",
-            background_secondary="#1a1a1a",
-            background_tertiary="#333333",
-            text_primary="#ffffff",
-            text_secondary="#ffffff",
-            border_primary="#ffffff",
-            border_secondary="#ffffff",
-            accent_primary="#ffff00",
-            accent_hover="#ffff66",
-            selection_bg="#ffff00",
-            selection_text="#000000",
-        ),
-        Tema.LIGHT_CLEAN: CoresPaleta(
-            background_primary="#f5f5f5",
-            background_secondary="#ffffff",
-            background_tertiary="#f9f9f9",
-            text_primary="#1a1a1a",
-            text_secondary="#333333",
-            text_muted="#666666",
-            text_disabled="#999999",
-            accent_primary="#1A4968",
-            accent_hover="#0c5991",
-            accent_pressed="#024f83",
-            border_primary="#d0d0d0",
-            border_secondary="#e0e0e0",
-            border_focus="#1A4968",
-            success="#4caf50",
-            success_border="#45a049",
-            warning="#ff9800",
-            warning_border="#fb8c00",
-            danger="#f44336",
-            danger_border="#da190b",
-            selection_bg="#1A4968",
-            selection_text="#ffffff",
-            hover_bg="#eeeeee",
-        ),
-    }
-
-    @classmethod
-    def obter_cores(cls, tema: Tema) -> CoresPaleta:
-        """Obtém as cores para um tema específico"""
-        return cls._temas.get(tema, cls._temas[Tema.DARK_CLEAN])
-
-    @classmethod
-    def registrar_tema_customizado(cls, nome: str, cores: CoresPaleta):
-        """Permite registrar um tema personalizado"""
-        tema_custom = Tema(nome)
-        cls._temas[tema_custom] = cores
-        return tema_custom
-
-
 class ConstrutorEstilos:
     """Construtor de estilos CSS baseado em template"""
-
+    
     def __init__(self, cores: CoresPaleta, fonte: ConfiguracaoFonte):
         self.cores = cores
         self.fonte = fonte
-
+    
     def _estilo_widget_base(self) -> str:
         """Estilo base para todos os widgets"""
         return f"""
@@ -151,7 +78,7 @@ class ConstrutorEstilos:
             outline: none;
         }}
         """
-
+    
     def _estilo_botoes(self) -> str:
         """Estilos para botões"""
         return f"""
@@ -166,55 +93,55 @@ class ConstrutorEstilos:
             min-width: 70px;
             min-height: 24px;
         }}
-
+        
         QPushButton:hover {{
             background-color: {self.cores.hover_bg};
             border-color: {self.cores.border_primary};
         }}
-
+        
         QPushButton:pressed {{
             background-color: {self.cores.background_secondary};
         }}
-
+        
         QPushButton:disabled {{
             background-color: {self.cores.background_secondary};
             color: {self.cores.text_disabled};
             border-color: {self.cores.border_primary};
         }}
-
+        
         QPushButton[class="success"] {{
             background-color: {self.cores.success};
             border-color: {self.cores.success_border};
         }}
-
+        
         QPushButton[class="danger"] {{
             background-color: {self.cores.danger};
             border-color: {self.cores.danger_border};
         }}
-
+        
         QPushButton[class="warning"] {{
             background-color: {self.cores.warning};
             border-color: {self.cores.warning_border};
             color: {self.cores.text_primary};
         }}
-
+        
         QPushButton[class="primary"] {{
             background-color: {self.cores.accent_primary};
             border-color: {self.cores.accent_hover};
             color: {self.cores.selection_text};
         }}
-
+        
         QPushButton[class="primary"]:hover {{
             background-color: {self.cores.accent_hover};
         }}
-
+        
         QPushButton[class="secondary"] {{
             background-color: {self.cores.hover_bg};
             border-color: {self.cores.border_primary};
             color: {self.cores.text_primary};
         }}
         """
-
+    
     def _estilo_combobox(self) -> str:
         """Estilos para ComboBox estilo Windows 11"""
         return f"""
@@ -228,17 +155,17 @@ class ConstrutorEstilos:
             min-height: 24px;
             selection-background-color: {self.cores.selection_bg};
         }}
-
+        
         QComboBox:hover {{
             background-color: {self.cores.hover_bg};
             border-color: {self.cores.border_primary};
         }}
-
+        
         QComboBox:focus {{
             border: 1px solid {self.cores.border_focus};
             background-color: {self.cores.hover_bg};
         }}
-
+        
         QComboBox::drop-down {{
             subcontrol-origin: padding;
             subcontrol-position: top right;
@@ -248,7 +175,7 @@ class ConstrutorEstilos:
             border-bottom-right-radius: 4px;
             background-color: transparent;
         }}
-
+        
         QComboBox::down-arrow {{
             width: 0;
             height: 0;
@@ -257,7 +184,7 @@ class ConstrutorEstilos:
             border-top: 6px solid {self.cores.text_secondary};
             margin: 8px;
         }}
-
+        
         QComboBox QAbstractItemView {{
             background-color: {self.cores.background_tertiary};
             border: 1px solid {self.cores.border_secondary};
@@ -267,24 +194,24 @@ class ConstrutorEstilos:
             selection-color: {self.cores.selection_text};
             outline: none;
         }}
-
+        
         QComboBox QAbstractItemView::item {{
             height: 28px;
             padding: 4px 8px;
             border-radius: 2px;
             margin: 1px;
         }}
-
+        
         QComboBox QAbstractItemView::item:hover {{
             background-color: {self.cores.hover_bg};
         }}
-
+        
         QComboBox QAbstractItemView::item:selected {{
             background-color: {self.cores.selection_bg};
             color: {self.cores.selection_text};
         }}
         """
-
+    
     def _estilo_tabelas(self) -> str:
         """Estilos para tabelas com hover melhorado"""
         return f"""
@@ -299,38 +226,38 @@ class ConstrutorEstilos:
             font-size: {self.fonte.tamanho_pequeno}px;
             outline: 0;
         }}
-
+        
         QTableWidget::item {{
             padding: 4px 6px;
             border-bottom: 1px solid {self.cores.border_primary};
             border-right: none;
         }}
-
+        
         QTableWidget::item:selected {{
             background-color: {self.cores.selection_bg};
             color: {self.cores.selection_text};
         }}
-
+        
         /* HOVER: Destaca toda a linha quando o mouse passa sobre qualquer célula */
         QTableWidget::item:hover {{
             background-color: {self.cores.hover_bg};
         }}
-
+        
         /* Hover mais suave para linhas alternadas */
         QTableWidget::item:alternate:hover {{
             background-color: #2f2f2f;
         }}
-
+        
         /* Quando a linha está selecionada E tem hover */
         QTableWidget::item:selected:hover {{
             background-color: {self.cores.accent_hover};
         }}
-
+        
         /* Estilo específico para células inativas com hover */
         QTableWidget::item[class="inativo"]:hover {{
             background-color: #3a2525;
         }}
-
+        
         QHeaderView::section {{
             background-color: {self.cores.background_tertiary};
             color: {self.cores.text_secondary};
@@ -341,11 +268,11 @@ class ConstrutorEstilos:
             font-weight: 500;
             font-size: {self.fonte.tamanho_pequeno}px;
         }}
-
+        
         QHeaderView::section:hover {{
             background-color: {self.cores.hover_bg};
         }}
-
+        
         /* Melhorar a visualização da barra de scroll da tabela */
         QTableWidget QScrollBar:vertical {{
             background-color: {self.cores.background_primary};
@@ -353,18 +280,18 @@ class ConstrutorEstilos:
             width: 12px;
             border-radius: 6px;
         }}
-
+        
         QTableWidget QScrollBar::handle:vertical {{
             background-color: {self.cores.border_secondary};
             border-radius: 6px;
             min-height: 20px;
         }}
-
+        
         QTableWidget QScrollBar::handle:vertical:hover {{
             background-color: {self.cores.text_disabled};
         }}
         """
-
+    
     def _estilo_inputs(self) -> str:
         """Estilos para campos de entrada"""
         return f"""
@@ -379,20 +306,19 @@ class ConstrutorEstilos:
             selection-color: {self.cores.selection_text};
             min-height: 24px;
         }}
-
+        
         QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {{
             border: 1px solid {self.cores.border_focus};
             background-color: {self.cores.hover_bg};
         }}
-
+        
         QSpinBox::up-button, QSpinBox::down-button,
         QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {{
             width: 0px;
             border: none;
         }}
-
         """
-
+    
     def _estilo_tabs(self) -> str:
         """Estilos para abas"""
         return f"""
@@ -402,7 +328,7 @@ class ConstrutorEstilos:
             background-color: {self.cores.background_secondary};
             margin: 4px;
         }}
-
+        
         QTabBar::tab {{
             background-color: transparent;
             color: {self.cores.text_secondary};
@@ -413,19 +339,19 @@ class ConstrutorEstilos:
             font-weight: 400;
             font-size: {self.fonte.tamanho_base}px;
         }}
-
+        
         QTabBar::tab:selected {{
             color: {self.cores.accent_primary};
             border-bottom: 2px solid {self.cores.accent_primary};
             font-weight: 500;
         }}
-
+        
         QTabBar::tab:hover {{
             color: {self.cores.text_primary};
             background-color: {self.cores.background_tertiary};
         }}
         """
-
+    
     def _estilo_controles(self) -> str:
         """Estilos para checkboxes, radiobuttons, etc."""
         return f"""
@@ -435,28 +361,28 @@ class ConstrutorEstilos:
             font-size: {self.fonte.tamanho_pequeno}px;
             background-color: transparent;
         }}
-
+        
         QCheckBox::indicator, QRadioButton::indicator {{
             width: 16px;
             height: 16px;
             border: 1px solid {self.cores.border_primary};
-            background-color: transparent; /* transparente */
+            background-color: transparent;
         }}
-
+        
         QCheckBox::indicator {{
             border-radius: 3px;
         }}
-
+        
         QRadioButton::indicator {{
             border-radius: 9px;
         }}
-
+        
         QCheckBox::indicator:checked, QRadioButton::indicator:checked {{
             background-color: {self.cores.accent_primary};
             border: 1px solid {self.cores.accent_primary};
         }}
         """
-
+    
     def _estilo_scrollbars(self) -> str:
         """Estilos para barras de rolagem - versão melhorada"""
         return f"""
@@ -467,19 +393,19 @@ class ConstrutorEstilos:
             margin: 0px;
             padding: 0px;
         }}
-
+        
         /* Barras horizontais */
         QScrollBar:horizontal {{
             height: 8px;
             border-radius: 4px;
         }}
-
+        
         /* Barras verticais */
         QScrollBar:vertical {{
             width: 8px;
             border-radius: 4px;
         }}
-
+        
         /* Handle (a parte que arrastamos) */
         QScrollBar::handle:horizontal, QScrollBar::handle:vertical {{
             background-color: {self.cores.border_primary};
@@ -487,15 +413,15 @@ class ConstrutorEstilos:
             min-height: 20px;
             min-width: 20px;
         }}
-
+        
         QScrollBar::handle:horizontal:hover, QScrollBar::handle:vertical:hover {{
             background-color: {self.cores.text_disabled};
         }}
-
+        
         QScrollBar::handle:horizontal:pressed, QScrollBar::handle:vertical:pressed {{
             background-color: {self.cores.accent_primary};
         }}
-
+        
         /* Botões de seta (normalmente escondidos em designs modernos) */
         QScrollBar::add-line, QScrollBar::sub-line {{
             background: none;
@@ -503,35 +429,35 @@ class ConstrutorEstilos:
             height: 0px;
             width: 0px;
         }}
-
+        
         QScrollBar::add-page, QScrollBar::sub-page {{
             background: none;
         }}
-
+        
         /* Estilo específico para áreas de texto */
         QTextEdit QScrollBar:vertical, QTextEdit QScrollBar:horizontal,
         QPlainTextEdit QScrollBar:vertical, QPlainTextEdit QScrollBar:horizontal {{
             background-color: {self.cores.background_primary};
         }}
-
+        
         /* Estilo para tabelas */
         QTableWidget QScrollBar:vertical, QTableWidget QScrollBar:horizontal {{
             background-color: {self.cores.background_secondary};
         }}
-
+        
         /* Estilo para listas */
         QListWidget QScrollBar:vertical, QListWidget QScrollBar:horizontal {{
             background-color: {self.cores.background_secondary};
         }}
-
+        
         /* Estilo para tree views */
         QTreeWidget QScrollBar:vertical, QTreeWidget QScrollBar:horizontal {{
             background-color: {self.cores.background_secondary};
         }}
         """
-
+    
     def _estilo_status_bar(self) -> str:
-        """Estilos específicos para status bar - NOVO"""
+        """Estilos específicos para status bar"""
         return f"""
         QStatusBar {{
             background-color: {self.cores.background_primary};
@@ -540,11 +466,11 @@ class ConstrutorEstilos:
             color: {self.cores.text_secondary};
             padding: 2px 5px;
         }}
-
+        
         QStatusBar::item {{
             border: none;
         }}
-
+        
         /* Estilos para indicadores de teclas na status bar */
         QLabel[class="key-indicator"] {{
             font-size: 10px;
@@ -554,7 +480,7 @@ class ConstrutorEstilos:
             min-width: 25px;
             text-align: center;
         }}
-
+        
         QLabel[class="key-indicator-active"] {{
             color: #ffffff;
             font-weight: bold;
@@ -564,7 +490,7 @@ class ConstrutorEstilos:
             min-width: 25px;
             text-align: center;
         }}
-
+        
         QLabel[class="key-indicator-inactive"] {{
             color: {self.cores.text_disabled};
             background: {self.cores.background_tertiary};
@@ -573,6 +499,76 @@ class ConstrutorEstilos:
             border-radius: 12px;
             min-width: 25px;
             text-align: center;
+        }}
+        """
+    
+    def _estilo_sidebar(self) -> str:
+        """Estilos específicos para barra lateral (sidebar)"""
+        return f"""
+        /* Estilos para a barra lateral principal */
+        QFrame[class="sidebar"], 
+        QWidget[class="sidebar"] {{
+            background-color: {self.cores.background_secondary};
+            border-right: 1px solid {self.cores.border_primary};
+        }}
+        
+        /* Título da sidebar */
+        QLabel[class="sidebar-title"] {{
+            font-size: 34px;
+            font-weight: bold;
+            color: {self.cores.accent_primary};
+            padding: 10px;
+            border-bottom: 2px solid {self.cores.border_primary};
+            margin-bottom: 15px;
+            background-color: transparent;
+        }}
+        
+        /* Botões de navegação na sidebar */
+        QPushButton[class="nav-button"] {{
+            background-color: transparent;
+            color: {self.cores.text_secondary};
+            border: none;
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 6px;
+            margin: 2px 5px;
+        }}
+        
+        QPushButton[class="nav-button"]:hover {{
+            background-color: {self.cores.hover_bg};
+            color: {self.cores.text_primary};
+        }}
+        
+        QPushButton[class="nav-button"]:checked {{
+            background-color: {self.cores.accent_primary};
+            color: {self.cores.selection_text};
+            font-weight: 600;
+        }}
+        
+        QPushButton[class="nav-button"]:pressed {{
+            background-color: {self.cores.accent_pressed};
+        }}
+        
+        /* Status bar */
+        QStatusBar[class="main-statusbar"] {{
+            background-color: {self.cores.background_primary};
+            border-top: 1px solid {self.cores.border_primary};
+            font-size: 11px;
+            color: {self.cores.text_secondary};
+            padding: 2px 5px;
+        }}
+        
+        /* Widget da status bar */
+        QWidget[class="statusbar-widget"] {{
+            background-color: transparent;
+        }}
+        
+        QLabel[class="version-label"] {{
+            color: {self.cores.text_muted};
+            font-size: 11px;
+            background-color: transparent;
         }}
         """
 
@@ -590,7 +586,7 @@ class ConstrutorEstilos:
             background-color: {self.cores.background_secondary};
             padding-bottom: 8px;
         }}
-
+        
         QGroupBox::title {{
             subcontrol-origin: margin;
             subcontrol-position: top left;
@@ -600,24 +596,24 @@ class ConstrutorEstilos:
             margin-left: 5px;
             font-weight: 500;
         }}
-
+        
         QMenu {{
             background-color: {self.cores.background_tertiary};
             border: 1px solid {self.cores.border_secondary};
             border-radius: 4px;
             padding: 4px;
         }}
-
+        
         QMenu::item {{
             padding: 6px 16px;
             border-radius: 2px;
             font-size: {self.fonte.tamanho_pequeno}px;
         }}
-
+        
         QMenu::item:selected {{
             background-color: {self.cores.accent_primary};
         }}
-
+        
         QToolTip {{
             background-color: {self.cores.background_tertiary};
             color: {self.cores.text_primary};
@@ -626,26 +622,26 @@ class ConstrutorEstilos:
             padding: 6px;
             font-size: {self.fonte.tamanho_pequeno}px;
         }}
-
+        
         QLabel {{
             font-size: {self.fonte.tamanho_pequeno}px;
             color: {self.cores.text_secondary};
             font-weight: 400;
             background-color: transparent;
         }}
-
+        
         QLabel[class="title"] {{
             font-size: {self.fonte.tamanho_titulo}px;
             font-weight: 500;
             color: {self.cores.text_primary};
             padding: 2px 0px;
         }}
-
+        
         QLabel[class="highlight"] {{
             font-weight: bold;
             color: {self.cores.accent_primary};
         }}
-
+        
         QLabel[class="muted"] {{
             font-size: {self.fonte.tamanho_pequeno}px;
             color: {self.cores.text_muted};
@@ -653,34 +649,35 @@ class ConstrutorEstilos:
             font-weight: 400;
             background-color: transparent;
         }}
-
+        
         /* Estilos para status de cadastros */
         QTableWidgetItem[class="inativo"] {{
             background-color: #4a2a2a;
             color: #ff6b6b;
         }}
-
+        
         QTableWidgetItem[class="pendente"] {{
             background-color: #4a3a2a;
             color: #ff8c42;
         }}
-
+        
         QTableWidgetItem[class="concluido"] {{
             background-color: #2a4a2a;
             color: #51cf66;
         }}
-
+        
         QTableWidgetItem[class="novo"] {{
             background-color: #4a2a4a;
             color: #ff6b9d;
         }}
         """
-
+    
     def construir_stylesheet(self) -> str:
         """Constrói o stylesheet completo"""
         return "".join(
             [
                 self._estilo_widget_base(),
+                self._estilo_sidebar(),  # INCLUA O ESTILO DA SIDEBAR
                 self._estilo_botoes(),
                 self._estilo_tabelas(),
                 self._estilo_inputs(),
@@ -688,7 +685,7 @@ class ConstrutorEstilos:
                 self._estilo_tabs(),
                 self._estilo_controles(),
                 self._estilo_scrollbars(),
-                self._estilo_status_bar(),  # NOVO
+                self._estilo_status_bar(),
                 self._estilo_extras(),
             ]
         )
@@ -711,59 +708,35 @@ def configurar_paleta_qt(app, cores: CoresPaleta):
     app.setPalette(palette)
 
 
-def aplicar_estilos(
-    app,
-    tema: Tema = Tema.DARK_CLEAN,
-    fonte_customizada: Optional[ConfiguracaoFonte] = None,
-    cores_customizadas: Optional[CoresPaleta] = None,
-):
+def aplicar_tema_dark(app, fonte_customizada: Optional[ConfiguracaoFonte] = None):
     """
-    Aplica estilos à aplicação PyQt6
-
+    Aplica o tema dark à aplicação PyQt6
+    
     Args:
         app: Instância da aplicação PyQt6
-        tema: Tema a ser aplicado
         fonte_customizada: Configuração personalizada de fonte
-        cores_customizadas: Cores personalizadas (sobrescreve o tema)
     """
     # Configuração da fonte
     if fonte_customizada is None:
         fonte_customizada = ConfiguracaoFonte()
-
+    
     fonte = QFont(fonte_customizada.familia, fonte_customizada.tamanho_base)
     app.setFont(fonte)
-
-    # Obter cores do tema ou usar cores customizadas
-    cores = cores_customizadas or GerenciadorTemas.obter_cores(tema)
-
+    
+    # Usar cores padrão do tema dark
+    cores = CoresPaleta()
+    
     # Configurar paleta nativa
     configurar_paleta_qt(app, cores)
-
+    
     # Construir e aplicar stylesheet
     construtor = ConstrutorEstilos(cores, fonte_customizada)
     stylesheet = construtor.construir_stylesheet()
     app.setStyleSheet(stylesheet)
 
 
-# Funções de conveniência para temas específicos
-def aplicar_tema_dark_clean(app, fonte_customizada: Optional[ConfiguracaoFonte] = None):
-    """Aplica o tema Dark Clean"""
-    aplicar_estilos(app, Tema.DARK_CLEAN, fonte_customizada)
-
-
-def aplicar_tema_dark_blue(app, fonte_customizada: Optional[ConfiguracaoFonte] = None):
-    """Aplica o tema Dark Blue"""
-    aplicar_estilos(app, Tema.DARK_BLUE, fonte_customizada)
-
-
-def aplicar_tema_high_contrast(
-    app, fonte_customizada: Optional[ConfiguracaoFonte] = None
-):
-    """Aplica o tema High Contrast"""
-    aplicar_estilos(app, Tema.HIGH_CONTRAST, fonte_customizada)
-    # https://coolors.co/
-
-
-def aplicar_tema_light_clean(app, fonte_customizada: Optional[ConfiguracaoFonte] = None):
-    """Aplica o tema Light Clean"""
-    aplicar_estilos(app, Tema.LIGHT_CLEAN, fonte_customizada)
+def aplicar_estilos(app, fonte_customizada: Optional[ConfiguracaoFonte] = None):
+    """
+    Função principal para aplicar estilos (mantida para compatibilidade)
+    """
+    aplicar_tema_dark(app, fonte_customizada)

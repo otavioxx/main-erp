@@ -38,8 +38,8 @@ class StatusBarWidget(QWidget):
         layout.setSpacing(15)
 
         # Versão da aplicação
-        self.label_version = QLabel("Digital Solutios - MainERP v0.03")
-        self.label_version.setStyleSheet("color: #999; font-size: 11px;")
+        self.label_version = QLabel("Digital Solutions - MainERP v0.03")
+        self.label_version.setProperty("class", "version-label")
         layout.addWidget(self.label_version)
 
 class MainWindow(QMainWindow):
@@ -95,49 +95,29 @@ class MainWindow(QMainWindow):
         # Adicionar o widget personalizado à status bar
         self.status_bar.addPermanentWidget(self.status_widget, 1)
 
-        # Estilo da status bar - adaptado ao tema claro
-        self.status_bar.setStyleSheet("""
-            QStatusBar {
-                background-color: #f5f5f5;
-                border-top: 1px solid #d0d0d0;
-                font-size: 12px;
-                color: #333;
-            }
-            QStatusBar::item {
-                border: none;
-            }
-        """)
+        # REMOVA O STYLESHEET INLINE - será aplicado pelo tema
+        # Apenas defina classes para estilização via CSS
+        self.status_bar.setProperty("class", "main-statusbar")
+        self.status_widget.setProperty("class", "statusbar-widget")
 
     def _criar_barra_navegacao(self):
         """Cria a barra de navegação vertical"""
         nav_frame = QFrame()
-        nav_frame.setProperty("class", "nav-bar")
-        nav_frame.setFixedWidth(200)  # Largura fixa para a barra lateral
-        nav_frame.setStyleSheet("""
-            QFrame.nav-bar {
-                background-color: #f9f9f9;
-                border-right: 1px solid #e0e0e0;
-            }
-        """)
-
+        nav_frame.setProperty("class", "sidebar")
+        nav_frame.setFixedWidth(220)  # Largura fixa para a barra lateral
+        
+        # REMOVA O STYLESHEET INLINE - será aplicado pelo tema
+        # Apenas defina classes para estilização via CSS
+        
         nav_layout = QVBoxLayout(nav_frame)
         nav_layout.setSpacing(5)
         nav_layout.setContentsMargins(5, 15, 5, 15)
 
         # Título da aplicação
         titulo = QLabel("MainERP")
-        titulo.setProperty("class", "nav-title")
+        titulo.setProperty("class", "sidebar-title")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        titulo.setStyleSheet("""
-            QLabel.nav-title {
-                font-size: 40px;
-                font-weight: bold;
-                color: #1A4968;
-                padding: 10px;
-                border-bottom: 2px solid #e0e0e0;
-                margin-bottom: 10px;
-            }
-        """)
+        # REMOVA O STYLESHEET INLINE
         nav_layout.addWidget(titulo)
 
         # Grupo de botões de navegação
@@ -161,30 +141,7 @@ class MainWindow(QMainWindow):
             btn.setProperty("class", "nav-button")
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setStyleSheet("""
-                QPushButton.nav-button {
-                    background-color: transparent;
-                    color: #666;
-                    border: none;
-                    padding: 12px 8px;
-                    text-align: left;
-                    font-size: 14px;
-                    font-weight: 500;
-                    border-radius: 4px;
-                }
-                QPushButton.nav-button:hover {
-                    background-color: #eeeeee;
-                    color: #1a1a1a;
-                }
-                QPushButton.nav-button:checked {
-                    background-color: #1A4968;
-                    color: #ffffff;
-                    font-weight: bold;
-                }
-                QPushButton.nav-button:pressed {
-                    background-color: #0c5991;
-                }
-            """)
+            # REMOVA O STYLESHEET INLINE - será aplicado pelo tema
             self.nav_button_group.addButton(btn)
             self.nav_buttons.append(btn)
             nav_layout.addWidget(btn)
