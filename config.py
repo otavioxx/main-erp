@@ -19,9 +19,6 @@ class ConfigERP:
     # Pasta onde ficam os relatórios
     PASTA_RELATORIOS = "relatorios"
 
-    # Pasta onde ficam os backups (se usar)
-    PASTA_BACKUP = "backup"
-
     # Arquivo de log
     ARQUIVO_LOG = "erp.log"
 
@@ -35,7 +32,7 @@ class ConfigERP:
 
     # Fonte padrão
     FONTE_FAMILIA = "Segoe UI"
-    FONTE_TAMANHO =13
+    FONTE_TAMANHO = 13
 
     # === CONFIGURAÇÕES REGIONAIS ===
     TIMEZONE = "America/Sao_Paulo"
@@ -53,12 +50,7 @@ class ConfigERP:
     @classmethod
     def criar_pastas_necessarias(cls):
         """Cria pastas necessárias se não existirem"""
-        pastas = [
-            cls.PASTA_RELATORIOS,
-            cls.PASTA_BACKUP,
-            "icons",
-            "assets"
-        ]
+        pastas = [cls.PASTA_RELATORIOS, "icons", "assets"]
 
         for pasta in pastas:
             Path(pasta).mkdir(exist_ok=True)
@@ -81,8 +73,10 @@ class ConfigERP:
 
 # === CONFIGURAÇÕES ESPECÍFICAS POR AMBIENTE ===
 
+
 class ConfigDesenvolvimento(ConfigERP):
     """Configurações para desenvolvimento"""
+
     DEBUG_MODE = True
     LOG_LEVEL = "DEBUG"
     ARQUIVO_LOG = "erp_dev.log"
@@ -90,11 +84,13 @@ class ConfigDesenvolvimento(ConfigERP):
 
 class ConfigProducao(ConfigERP):
     """Configurações para uso normal"""
+
     DEBUG_MODE = False
     LOG_LEVEL = "WARNING"
 
 
 # === FUNÇÃO PARA OBTER CONFIGURAÇÃO ATUAL ===
+
 
 def obter_config():
     """
