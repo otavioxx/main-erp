@@ -1,0 +1,427 @@
+"""
+Diálogo de Backup - Exibido ao fechar o sistema
+"""
+
+from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
+                             QLabel, QMessageBox, QFileDialog, QGroupBox,
+                             QDialogButtonBox, QProgressBar)
+from PyQt6.QtCore import Qt, pyqtSignal, QThread
+from PyQt6.QtGui import QIcon, QGuiApplication
+import os
+import shutil
+from datetime import datetime
+import zipfile
+import json
+
+
+class BackupConfig:
+    """Classe simples para salvar/ler o último caminho de backup"""
+    
+    CONFIG_FILE = "backup_settings.json"
+    
+    @classmethod
+    def get_last_path(cls):
+        """Retorna o último caminho salvo ou Desktop por padrão"""
+        if os.path.exists(cls.CONFIG_FILE):
+            try:
+                with open(cls.CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    last_path = data.get('last_backup_path', '')
+                    if last_path and os.path.exists(last_path):
+                        return last_path
+            except:
+                pass
+        # Retorna Desktop se não houver configuração válida
+        return os.path.join(os.path.expanduser("~"), "Desktop")
+    
+    @classmethod
+    def save_last_path(cls, path):
+        """Salva o último caminho usado"""
+        try:
+            data = {'last_backup_path': path}
+            with open(cls.CONFIG_FILE, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            return True
+        except:
+            return False
+
+
+class BackupThread(QThread):
+    """Thread para executar backup em segundo plano"""
+    progress_changed = pyqtSignal(int)
+    backup_completed = pyqtSignal(str)
+    backup_error = pyqtSignal(str)
+    
+    def __init__(self, source_db, destination_path):
+        super().__init__()
+        self.source_db = source_db
+        self.destination_path = destination_path
+        
+    def run(self):
+        try:
+            if not os.path.exists(self.source_db):
+                self.backup_error.emit(f"Arquivo não encontrado: {self.source_db}")
+                return
+            
+            # Criar nome do arquivo com timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_filename = f"backup_erp_{timestamp}.zip"
+            full_backup_path = os.path.join(self.destination_path, backup_filename)
+            
+            self.progress_changed.emit(10)
+            
+            # Criar arquivo zip
+            with zipfile.ZipFile(full_backup_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                # Adicionar arquivo do banco de dados
+                zipf.write(self.source_db, os.path.basename(self.source_db))
+                self.progress_changed.emit(50)
+                
+                # Adicionar arquivo de configuração se existir
+                config_file = "config.ini"
+                if os.path.exists(config_file):
+                    zipf.write(config_file, os.path.basename(config_file))
+                
+                self.progress_changed.emit(80)
+                
+                # Adicionar README com informações do backup
+                readme_content = f"""Backup do Sistema ERP
+Data: {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}
+Arquivo do banco: {os.path.basename(self.source_db)}
+Tamanho: {os.path.getsize(self.source_db) / (1024*1024):.2f} MB
+"""
+                zipf.writestr("README.txt", readme_content)
+                self.progress_changed.emit(90)
+            
+            self.progress_changed.emit(100)
+            self.backup_completed.emit(full_backup_path)
+            
+        except Exception as e:
+            self.backup_error.emit(f"Erro ao criar backup: {str(e)}")
+
+
+class BackupDialog(QDialog):
+    """Diálogo para realizar backup do sistema ao fechar"""
+    
+    backup_realizado = pyqtSignal(str)  # Sinal emitido quando backup é feito
+    fechar_sem_backup = pyqtSignal()    # Sinal para fechar sem backup
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.db_path = "erp.db"  # Caminho padrão do banco de dados
+        self.backup_thread = None
+        
+        # Carregar último caminho salvo
+        self.destination_folder = BackupConfig.get_last_path()
+        
+        self._init_ui()
+        
+    def _init_ui(self):
+        """Inicializa interface do diálogo"""
+        self.setWindowTitle("Backup do Sistema")
+        self.setMinimumSize(500, 300)
+        self.setWindowIcon(QIcon("icon.ico") if os.path.exists("icon.ico") else QIcon())
+        
+        layout = QVBoxLayout()
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Título
+        titulo = QLabel("BACKUP DO SISTEMA ERP")
+        titulo.setProperty("class", "title")
+        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        titulo.setStyleSheet("font-size: 18px; font-weight: bold; color: #1A4968;")
+        layout.addWidget(titulo)
+        
+        # Mensagem informativa
+        mensagem = QLabel(
+            "O sistema será fechado. Deseja realizar backup do banco de dados antes de sair?\n\n"
+            "É recomendado fazer backup regularmente para evitar perda de dados."
+        )
+        mensagem.setWordWrap(True)
+        mensagem.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(mensagem)
+        
+        layout.addSpacing(10)
+        
+        # Informações do arquivo
+        info_group = QGroupBox("Informações do Backup")
+        info_layout = QVBoxLayout()
+        
+        # Caminho do banco
+        db_info = QLabel(f"<b>Arquivo do banco:</b> {os.path.abspath(self.db_path)}")
+        db_info.setWordWrap(True)
+        info_layout.addWidget(db_info)
+        
+        # Tamanho do arquivo
+        tamanho = "Não encontrado"
+        if os.path.exists(self.db_path):
+            size_mb = os.path.getsize(self.db_path) / (1024 * 1024)
+            tamanho = f"{size_mb:.2f} MB"
+        
+        tamanho_label = QLabel(f"<b>Tamanho:</b> {tamanho}")
+        info_layout.addWidget(tamanho_label)
+        
+        # Data da última modificação
+        if os.path.exists(self.db_path):
+            mod_time = datetime.fromtimestamp(os.path.getmtime(self.db_path))
+            data_mod = mod_time.strftime("%d/%m/%Y %H:%M")
+            data_label = QLabel(f"<b>Última modificação:</b> {data_mod}")
+            info_layout.addWidget(data_label)
+        
+        info_group.setLayout(info_layout)
+        layout.addWidget(info_group)
+        
+        # Caminho de destino
+        destino_group = QGroupBox("Local de Salvamento")
+        destino_layout = QVBoxLayout()
+        
+        self.caminho_label = QLabel(f"<b>Pasta selecionada:</b> {self.destination_folder}")
+        self.caminho_label.setWordWrap(True)
+        self.caminho_label.setStyleSheet("padding: 8px; background-color: #f5f5f5; border-radius: 4px;")
+        destino_layout.addWidget(self.caminho_label)
+        
+        # Botão para selecionar pasta
+        btn_pasta = QPushButton("Selecionar Pasta...")
+        btn_pasta.clicked.connect(self._selecionar_pasta)
+        destino_layout.addWidget(btn_pasta, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        destino_group.setLayout(destino_layout)
+        layout.addWidget(destino_group)
+        
+        # Barra de progresso (inicialmente escondida)
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        self.progress_bar.setTextVisible(True)
+        layout.addWidget(self.progress_bar)
+        
+        # Mensagem de status
+        self.status_label = QLabel("")
+        self.status_label.setVisible(False)
+        self.status_label.setWordWrap(True)
+        layout.addWidget(self.status_label)
+        
+        layout.addStretch()
+        
+        # Botões
+        button_layout = QHBoxLayout()
+        
+        # Botão Fechar sem Backup
+        self.btn_fechar = QPushButton("Fechar sem Backup")
+        self.btn_fechar.clicked.connect(self._fechar_sem_backup)
+        self.btn_fechar.setStyleSheet("""
+            QPushButton {
+                padding: 8px 16px;
+                background-color: #dc3545;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #c82333;
+            }
+        """)
+        
+        # Botão Realizar Backup
+        self.btn_backup = QPushButton("Realizar Backup")
+        self.btn_backup.clicked.connect(self._iniciar_backup)
+        self.btn_backup.setStyleSheet("""
+            QPushButton {
+                padding: 8px 16px;
+                background-color: #28a745;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+        """)
+        
+        button_layout.addWidget(self.btn_fechar)
+        button_layout.addStretch()
+        button_layout.addWidget(self.btn_backup)
+        
+        layout.addLayout(button_layout)
+        
+        self.setLayout(layout)
+        
+        # Centralizar janela
+        self._centralizar_janela()
+    
+    def _centralizar_janela(self):
+        """Centraliza a janela na tela"""
+        if self.parent():
+            parent_geometry = self.parent().geometry()
+            x = parent_geometry.x() + (parent_geometry.width() - self.width()) // 2
+            y = parent_geometry.y() + (parent_geometry.height() - self.height()) // 2
+            self.move(x, y)
+        else:
+            screen = QGuiApplication.primaryScreen().geometry()
+            x = (screen.width() - self.width()) // 2
+            y = (screen.height() - self.height()) // 2
+            self.move(x, y)
+    
+    def _selecionar_pasta(self):
+        """Abre diálogo para selecionar pasta de destino"""
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            "Selecionar Pasta para Backup",
+            self.destination_folder,
+            QFileDialog.Option.ShowDirsOnly
+        )
+        
+        if folder:
+            self.destination_folder = folder
+            self.caminho_label.setText(f"<b>Pasta selecionada:</b> {self.destination_folder}")
+            # Salvar o novo caminho
+            BackupConfig.save_last_path(folder)
+    
+    def _fechar_sem_backup(self):
+        """Fecha o programa sem fazer backup"""
+        reply = QMessageBox.question(
+            self,
+            "Confirmar Fechamento",
+            "Tem certeza que deseja fechar sem fazer backup?\n\n"
+            "Qualquer dado não salvo poderá ser perdido.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self.fechar_sem_backup.emit()
+            self.accept()
+    
+    def _iniciar_backup(self):
+        """Inicia o processo de backup"""
+        # Validar se o arquivo do banco existe
+        if not os.path.exists(self.db_path):
+            QMessageBox.critical(
+                self,
+                "Erro",
+                f"Arquivo do banco de dados não encontrado:\n{self.db_path}"
+            )
+            return
+        
+        # Validar pasta de destino
+        if not os.path.exists(self.destination_folder):
+            try:
+                os.makedirs(self.destination_folder)
+            except Exception as e:
+                QMessageBox.critical(
+                    self,
+                    "Erro",
+                    f"Não foi possível criar a pasta de destino:\n{str(e)}"
+                )
+                return
+        
+        # Salvar o caminho atual (caso tenha sido alterado mas não salvo)
+        BackupConfig.save_last_path(self.destination_folder)
+        
+        # Desabilitar botões durante o backup
+        self.btn_backup.setEnabled(False)
+        self.btn_fechar.setEnabled(False)
+        
+        # Mostrar barra de progresso
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(0)
+        
+        # Mostrar status
+        self.status_label.setVisible(True)
+        self.status_label.setText("Iniciando backup...")
+        self.status_label.setStyleSheet("color: #007bff; font-weight: bold;")
+        
+        # Criar e iniciar thread de backup
+        self.backup_thread = BackupThread(self.db_path, self.destination_folder)
+        self.backup_thread.progress_changed.connect(self._atualizar_progresso)
+        self.backup_thread.backup_completed.connect(self._backup_concluido)
+        self.backup_thread.backup_error.connect(self._backup_erro)
+        self.backup_thread.start()
+    
+    def _atualizar_progresso(self, valor):
+        """Atualiza a barra de progresso"""
+        self.progress_bar.setValue(valor)
+        
+        # Atualizar mensagem de status baseada no progresso
+        if valor < 30:
+            self.status_label.setText("Preparando arquivos...")
+        elif valor < 60:
+            self.status_label.setText("Comprimindo dados...")
+        elif valor < 90:
+            self.status_label.setText("Criando arquivo de backup...")
+        else:
+            self.status_label.setText("Finalizando backup...")
+    
+    def _backup_concluido(self, backup_path):
+        """Chamado quando o backup é concluído com sucesso"""
+        self.progress_bar.setValue(100)
+        self.status_label.setText("✓ Backup concluído com sucesso!")
+        self.status_label.setStyleSheet("color: #28a745; font-weight: bold;")
+        
+        # Habilitar botões novamente
+        self.btn_backup.setText("Abrir Pasta")
+        self.btn_backup.setEnabled(True)
+        self.btn_backup.disconnect()
+        self.btn_backup.clicked.connect(lambda: self._abrir_pasta(backup_path))
+        
+        self.btn_fechar.setEnabled(True)
+        self.btn_fechar.setText("Fechar Programa")
+        self.btn_fechar.disconnect()
+        self.btn_fechar.clicked.connect(self.accept)
+        
+        # Emitir sinal de backup realizado
+        self.backup_realizado.emit(backup_path)
+        
+        # Auto-fechar após 2 segundos
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(2000, self.accept)
+    
+    def _backup_erro(self, mensagem_erro):
+        """Chamado quando ocorre erro no backup"""
+        self.status_label.setText("✗ Erro durante o backup!")
+        self.status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
+        
+        # Habilitar botões novamente
+        self.btn_backup.setEnabled(True)
+        self.btn_fechar.setEnabled(True)
+        
+        QMessageBox.critical(
+            self,
+            "Erro no Backup",
+            f"Ocorreu um erro durante o backup:\n\n{mensagem_erro}"
+        )
+    
+    def _abrir_pasta(self, backup_path):
+        """Abre a pasta onde o backup foi salvo"""
+        try:
+            if os.name == 'nt':  # Windows
+                os.startfile(os.path.dirname(backup_path))
+            elif os.name == 'posix':  # Linux/Mac
+                import subprocess
+                subprocess.Popen(['xdg-open', os.path.dirname(backup_path)])
+        except Exception as e:
+            QMessageBox.warning(
+                self,
+                "Aviso",
+                f"Não foi possível abrir a pasta:\n{str(e)}"
+            )
+    
+    def closeEvent(self, event):
+        """Intercepta o fechamento da janela"""
+        if self.backup_thread and self.backup_thread.isRunning():
+            reply = QMessageBox.question(
+                self,
+                "Backup em Andamento",
+                "O backup ainda está em andamento. Deseja cancelar e fechar?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No
+            )
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                self.backup_thread.terminate()
+                event.accept()
+            else:
+                event.ignore()
+        else:
+            event.accept()

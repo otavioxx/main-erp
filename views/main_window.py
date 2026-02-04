@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (QMainWindow, QLabel, QWidget, QVBoxLayout,
-                             QHBoxLayout, QPushButton, QButtonGroup, QFrame,
+                             QHBoxLayout, QPushButton, QDialog, QApplication, QButtonGroup, QFrame,
                              QStackedWidget, QStatusBar)
 from PyQt6.QtGui import QAction
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
@@ -9,6 +9,7 @@ from datetime import datetime
 import os
 from database import Database
 
+from dialogs.backup_dialog import BackupDialog
 from views.cliente_view import ClienteView
 from views.produto_view import ProdutoView
 from views.fornecedor_view import FornecedorView
@@ -210,7 +211,8 @@ class MainWindow(QMainWindow):
             print(f"Erro ao configurar maiúscula global: {e}")
 
     def closeEvent(self, event):
-        """Limpa timers ao fechar a aplicação"""
+        """Exibe diálogo de backup antes de fechar a aplicação"""
+        # Limpa timers
         if hasattr(self, 'status_widget'):
             timers_to_stop = [
                 'timer_datetime', 'timer_keys', 'timer_system', 'timer_db'
@@ -220,5 +222,35 @@ class MainWindow(QMainWindow):
                     timer = getattr(self.status_widget, timer_name)
                     if timer.isActive():
                         timer.stop()
+        
+        # Impede fechamento automático
+        event.ignore()
+        
+        # Cria e mostra diálogo de backup
+        backup_dialog = BackupDialog(self)
+        backup_dialog.setWindowTitle(f"Backup - {self.windowTitle()}")
+        
+        # Conectar sinais
+        backup_dialog.backup_realizado.connect(self._backup_concluido)
+        backup_dialog.fechar_sem_backup.connect(self._fechar_sem_backup)
+        
+        # Mostrar diálogo modalmente
+        result = backup_dialog.exec()
+        
+        # Se o diálogo foi aceito (backup feito) ou rejeitado (fechar sem backup)
+        if result in [QDialog.DialogCode.Accepted, QDialog.DialogCode.Rejected]:
+            # Fecha a aplicação
+            QApplication.instance().quit()
+        else:
+            # Usuário cancelou o diálogo, mantém aplicação aberta
+            pass
 
-        event.accept()
+    def _backup_concluido(self, backup_path):
+        """Chamado quando backup é concluído"""
+        print(f"✅ Backup criado com sucesso: {backup_path}")
+        # Aqui você pode adicionar log ou outras ações
+        
+    def _fechar_sem_backup(self):
+        """Chamado quando usuário escolhe fechar sem backup"""
+        print("⚠ Programa fechado sem backup")
+        # Aqui você pode adicionar log ou outras ações
