@@ -3,10 +3,13 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
                              QLineEdit, QLabel, QMessageBox, QFileDialog,
                              QTextEdit, QGroupBox, QFormLayout, QFrame,
                              QTabWidget, QScrollArea)
-from PyQt6.QtGui import QPixmap, QFont
+from PyQt6.QtGui import QPixmap, QFont, QIcon
 from PyQt6.QtCore import Qt
 from models.empresa import Empresa
 from dialogs.config_selection_dialog import ConfigSelectionDialog
+from dialogs.backup_dialog import BackupDialog
+from dialogs.restore_backup_dialog import RestoreBackupDialog
+
 
 class ConfigView(QWidget):
     def __init__(self):
@@ -220,6 +223,46 @@ class ConfigView(QWidget):
         self.action_frame.setLayout(action_layout)
         layout.addWidget(self.action_frame)
 
+        # Grupo de Backup/Restauração (sempre visível)
+        backup_group = QGroupBox("🔄 Backup e Restauração")
+        backup_group.setProperty("class", "clean-group")
+        backup_layout = QVBoxLayout()
+        backup_layout.setContentsMargins(15, 20, 15, 15)
+        
+        # Descrição
+        desc_label = QLabel(
+            "Faça backup regularmente para proteger seus dados.\n"
+            "A restauração substituirá todos os dados atuais."
+        )
+        desc_label.setWordWrap(True)
+        desc_label.setStyleSheet("color: #666; font-style: italic; margin-bottom: 15px;")
+        backup_layout.addWidget(desc_label)
+        
+        # Botões em linha
+        btn_layout = QHBoxLayout()
+        
+        # Botão Criar Backup
+        btn_backup = QPushButton("💾 Criar Backup")
+        btn_backup.setProperty("class", "primary")
+        btn_backup.setFixedWidth(150)
+        btn_backup.clicked.connect(self._criar_backup)
+        
+        # Botão Restaurar Backup
+        btn_restore = QPushButton("📁 Restaurar Backup")
+        btn_restore.setProperty("class", "warning")
+        btn_restore.setFixedWidth(150)
+        btn_restore.clicked.connect(self._restaurar_backup)
+        
+        btn_layout.addWidget(btn_backup)
+        btn_layout.addSpacing(10)
+        btn_layout.addWidget(btn_restore)
+        btn_layout.addStretch()
+        
+        backup_layout.addLayout(btn_layout)
+        backup_group.setLayout(backup_layout)
+        
+        layout.addWidget(backup_group)
+
         self.setLayout(layout)
 
     def atualizar_logo(self):
@@ -355,3 +398,55 @@ class ConfigView(QWidget):
     def mostrar_configuracoes_avancadas(self):
         dialog = ConfigSelectionDialog(self)
         dialog.exec()
+
+    # ========== MÉTODOS DE BACKUP/RESTAURAÇÃO ==========
+
+    def _criar_backup(self):
+        """Abre diálogo para criar backup manual"""
+        try:
+            dialog = BackupDialog(self)
+            dialog.setWindowTitle("Criar Backup Manual")
+            dialog.backup_realizado.connect(self._backup_concluido)
+            dialog.exec()
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro ao abrir diálogo de backup: {str(e)}")
+
+    def _restaurar_backup(self):
+        """Abre diálogo para restaurar backup"""
+        try:
+            dialog = RestoreBackupDialog(self)
+            dialog.setWindowTitle("Restaurar Backup")
+            dialog.restore_completed.connect(self._restauracao_concluida)
+            dialog.exec()
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro ao abrir diálogo de restauração: {str(e)}")
+
+    def _backup_concluido(self, backup_path):
+        """Chamado quando backup é criado com sucesso"""
+        if backup_path:  # Pode ser string vazia
+            QMessageBox.information(
+                self,
+                "✅ Backup Criado",
+                f"Backup criado com sucesso:\n\n{backup_path}"
+            )
+
+    def _restauracao_concluida(self):
+        """Chamado quando restauração é concluída"""
+        reply = QMessageBox.question(
+            self,
+            "🔄 Reinício Necessário",
+            "A restauração foi concluída com sucesso!\n\n"
+            "O sistema precisa ser reiniciado para aplicar as alterações.\n"
+            "Deseja reiniciar agora?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes
+        )
+        
+        if reply == QMessageBox.StandardButton.Yes:
+            self._reiniciar_sistema()
+
+    def _reiniciar_sistema(self):
+        """Reinicia o sistema após restauração"""
+        # Emite código especial para reinício (100)
+        from PyQt6.QtWidgets import QApplication
+        QApplication.instance().exit(100)

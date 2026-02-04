@@ -114,6 +114,33 @@ class BackupDialog(QDialog):
         self.destination_folder = BackupConfig.get_last_path()
         
         self._init_ui()
+        # REMOVA a chamada para _centralizar_janela() do __init__
+        
+    def showEvent(self, event):
+        """Centraliza quando o diálogo é exibido"""
+        super().showEvent(event)
+        # Centraliza depois que a janela já tem seu tamanho calculado
+        self._centralizar_janela()
+        
+    def resizeEvent(self, event):
+        """Recentraliza quando redimensionado (opcional)"""
+        super().resizeEvent(event)
+        self._centralizar_janela()
+    
+    def _centralizar_janela(self):
+        """Centraliza a janela na tela"""
+        # Força o cálculo do tamanho da janela
+        self.adjustSize()
+        
+        # Obtém a geometria da tela
+        screen = QGuiApplication.primaryScreen().geometry()
+        
+        # Calcula a posição central
+        x = (screen.width() - self.width()) // 2
+        y = (screen.height() - self.height()) // 2
+        
+        # Move a janela para a posição calculada
+        self.move(x, y)
         
     def _init_ui(self):
         """Inicializa interface do diálogo"""
