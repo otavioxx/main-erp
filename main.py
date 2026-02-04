@@ -75,27 +75,17 @@ def verificar_banco_dados():
     return db
 
 
-def carregar_icone_aplicacao():
-    """Carrega o ícone da aplicação com fallbacks"""
+def carregar_icone_aplicacao() -> QIcon:
+    """
+    Retorna o ícone oficial da aplicação (icon.ico),
+    compatível com PyInstaller e ambiente de desenvolvimento.
+    """
     base_path = obter_caminho_base()
+    caminho = os.path.join(base_path, "icon.ico")
 
-    possiveis_caminhos = [
-        os.path.join(base_path, "icon.ico"),
-        os.path.join(base_path, "icons", "icon.ico"),
-        os.path.join(base_path, "assets", "icon.ico"),
-        os.path.join(base_path, "resources", "icon.ico"),
-        os.path.join(base_path, "icon.png"),
-        os.path.join(base_path, "icons", "icon.png"),
-    ]
+    if os.path.exists(caminho):
+        return QIcon(caminho)
 
-    for caminho in possiveis_caminhos:
-        if os.path.exists(caminho):
-            try:
-                return QIcon(caminho)
-            except:
-                continue
-
-    # Fallback: ícone padrão do Qt
     return QIcon()
 
 
