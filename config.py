@@ -50,7 +50,7 @@ class ConfigERP:
     @classmethod
     def criar_pastas_necessarias(cls):
         """Cria pastas necessárias se não existirem"""
-        pastas = [cls.PASTA_RELATORIOS, "icons", "assets"]
+        pastas = [cls.PASTA_RELATORIOS, "icons"]
 
         for pasta in pastas:
             Path(pasta).mkdir(exist_ok=True)
