@@ -215,7 +215,7 @@ class BackupDialog(QDialog):
     def _init_ui(self):
         """Inicializa interface do diálogo"""
         self.setWindowTitle("Backup do Sistema")
-        self.setMinimumSize(500, 300)
+        self.setMinimumSize(500, 500)  # Menor altura sem a barra de progresso
         self.setWindowIcon(QIcon("icon.ico") if os.path.exists("icon.ico") else QIcon())
         
         layout = QVBoxLayout()
@@ -264,13 +264,6 @@ class BackupDialog(QDialog):
         tamanho_label = QLabel(f"<b>Tamanho:</b> {tamanho}")
         info_layout.addWidget(tamanho_label)
         
-        # Data da última modificação
-        if os.path.exists(self.db_path):
-            mod_time = datetime.fromtimestamp(os.path.getmtime(self.db_path))
-            data_mod = mod_time.strftime("%d/%m/%Y %H:%M")
-            data_label = QLabel(f"<b>Última modificação:</b> {data_mod}")
-            info_layout.addWidget(data_label)
-        
         info_group.setLayout(info_layout)
         layout.addWidget(info_group)
         
@@ -291,16 +284,11 @@ class BackupDialog(QDialog):
         destino_group.setLayout(destino_layout)
         layout.addWidget(destino_group)
         
-        # Barra de progresso (inicialmente escondida)
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setVisible(False)
-        self.progress_bar.setTextVisible(True)
-        layout.addWidget(self.progress_bar)
-        
-        # Mensagem de status
+        # Mensagem de status (sem barra de progresso)
         self.status_label = QLabel("")
         self.status_label.setVisible(False)
         self.status_label.setWordWrap(True)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.status_label)
         
         layout.addStretch()
@@ -313,11 +301,11 @@ class BackupDialog(QDialog):
         self.btn_fechar.clicked.connect(self._fechar_sem_backup)
         self.btn_fechar.setStyleSheet("""
             QPushButton {
-                padding: 8px 16px;
+                padding: 10px 20px;
                 background-color: #dc3545;
                 color: white;
                 border: none;
-                border-radius: 4px;
+                border-radius: 6px;
                 font-weight: bold;
             }
             QPushButton:hover {
@@ -330,11 +318,11 @@ class BackupDialog(QDialog):
         self.btn_backup.clicked.connect(self._iniciar_backup)
         self.btn_backup.setStyleSheet("""
             QPushButton {
-                padding: 8px 16px;
+                padding: 10px 20px;
                 background-color: #28a745;
                 color: white;
                 border: none;
-                border-radius: 4px;
+                border-radius: 6px;
                 font-weight: bold;
             }
             QPushButton:hover {
@@ -456,71 +444,52 @@ class BackupDialog(QDialog):
         self.btn_backup.setEnabled(False)
         self.btn_fechar.setEnabled(False)
         
-        # Mostrar barra de progresso
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setValue(0)
-        
-        # Mostrar status
+        # Mostrar status de processamento
         self.status_label.setVisible(True)
-        self.status_label.setText("Iniciando backup...")
-        self.status_label.setStyleSheet("color: #007bff; font-weight: bold;")
+        self.status_label.setText("⏳ Criando backup...")
+        self.status_label.setStyleSheet("color: #007bff; font-weight: bold; font-size: 14px;")
         
         # Criar e iniciar thread de backup
         self.backup_thread = BackupThread(self.db_path, self.destination_folder)
-        self.backup_thread.progress_changed.connect(self._atualizar_progresso)
         self.backup_thread.backup_completed.connect(self._backup_concluido)
         self.backup_thread.backup_error.connect(self._backup_erro)
         self.backup_thread.start()
-    
-    def _atualizar_progresso(self, valor):
-        """Atualiza a barra de progresso"""
-        self.progress_bar.setValue(valor)
-        
-        # Atualizar mensagem de status baseada no progresso
-        if valor < 30:
-            self.status_label.setText("Preparando arquivos...")
-        elif valor < 60:
-            self.status_label.setText("Comprimindo dados...")
-        elif valor < 90:
-            self.status_label.setText("Criando arquivo de backup...")
-        else:
-            self.status_label.setText("Finalizando backup...")
     
     def _backup_concluido(self, backup_path):
         """Chamado quando o backup é concluído com sucesso"""
         # Salvar a data do backup
         BackupConfig.save_last_backup_date()
         
-        self.progress_bar.setValue(100)
-        self.status_label.setText("✓ Backup concluído com sucesso!")
-        self.status_label.setStyleSheet("color: #28a745; font-weight: bold;")
+        self.status_label.setText("✅ Backup concluído com sucesso!")
+        self.status_label.setStyleSheet("color: #28a745; font-weight: bold; font-size: 14px;")
         
-        # Habilitar botões novamente
-        self.btn_backup.setText("Abrir Pasta")
-        self.btn_backup.setEnabled(True)
-        self.btn_backup.disconnect()
-        self.btn_backup.clicked.connect(lambda: self._abrir_pasta(backup_path))
+        # Atualizar informações sobre o último backup
+        last_backup_info = self._get_last_backup_info()
         
-        self.btn_fechar.setEnabled(True)
-        self.btn_fechar.setText("Fechar Programa")
-        self.btn_fechar.disconnect()
-        self.btn_fechar.clicked.connect(self.accept)
+        # Mostrar mensagem de confirmação
+        QMessageBox.information(
+            self,
+            "Backup Concluído",
+            f"Backup realizado com sucesso!\n\n"
+            f"Arquivo: {os.path.basename(backup_path)}\n"
+            f"Local: {os.path.dirname(backup_path)}\n\n"
+            f"{last_backup_info}"
+        )
         
         # Emitir sinal de backup realizado
         self.backup_realizado.emit(backup_path)
         
-        # Auto-fechar após 2 segundos
-        from PyQt6.QtCore import QTimer
-        QTimer.singleShot(2000, self.accept)
+        # Fechar diálogo
+        self.accept()
     
     def _backup_erro(self, mensagem_erro):
         """Chamado quando ocorre erro no backup"""
-        self.status_label.setText("✗ Erro durante o backup!")
-        self.status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
-        
         # Habilitar botões novamente
         self.btn_backup.setEnabled(True)
         self.btn_fechar.setEnabled(True)
+        
+        # Esconder status
+        self.status_label.setVisible(False)
         
         QMessageBox.critical(
             self,
