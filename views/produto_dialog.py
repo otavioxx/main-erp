@@ -4,8 +4,10 @@ Dialog de Produto - Otimizado para novo sistema de estilos com Cadastro em Lote
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                              QLineEdit, QLabel, QDialogButtonBox, QDoubleSpinBox,
-                             QSpinBox, QCheckBox, QGroupBox, QFrame, QMessageBox)
+                             QSpinBox, QCheckBox, QGroupBox, QFrame, QMessageBox,
+                             QWidget)
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QKeyEvent
 from models.produto import Produto
 from models.fornecedor import Fornecedor
 from dialogs.fornecedor_selection_dialog import FornecedorSelectionDialog
@@ -21,9 +23,11 @@ class ProdutoDialog(QDialog):
         self.fornecedor_nome = ""
         self.produto_original = None  # Para armazenar dados do produto original
         self.ultimo_produto_salvo_id = None  # Para armazenar ID do último produto salvo no lote
+        self.campos_navegacao = []  # Lista de campos para navegação com Tab/Enter
         self._init_ui()
 
         aplicar_maiuscula_formulario(self)
+        self._configurar_navegacao()
 
     def _init_ui(self):
         """Inicializa interface otimizada"""
@@ -64,6 +68,7 @@ class ProdutoDialog(QDialog):
         self.nome_edit = SelectAllLineEdit(self.produto.nome)
         self.nome_edit.setPlaceholderText("Nome completo do produto")
         self.nome_edit.setMinimumHeight(35)
+        self.campos_navegacao.append(self.nome_edit)
         info_layout.addWidget(self.nome_edit)
 
         # Layout horizontal para campos menores
@@ -75,6 +80,7 @@ class ProdutoDialog(QDialog):
         self.tamanho_edit = SelectAllLineEdit(self.produto.tamanho or "")
         self.tamanho_edit.setPlaceholderText("P, M, G, etc.")
         self.tamanho_edit.setMinimumHeight(35)
+        self.campos_navegacao.append(self.tamanho_edit)
         tamanho_layout.addWidget(self.tamanho_edit)
 
         # Cor
@@ -83,6 +89,7 @@ class ProdutoDialog(QDialog):
         self.cor_edit = SelectAllLineEdit(self.produto.cor or "")
         self.cor_edit.setPlaceholderText("Azul, Verde, etc.")
         self.cor_edit.setMinimumHeight(35)
+        self.campos_navegacao.append(self.cor_edit)
         cor_layout.addWidget(self.cor_edit)
 
         row1_layout.addLayout(tamanho_layout)
@@ -98,6 +105,7 @@ class ProdutoDialog(QDialog):
         self.ea_edit = SelectAllLineEdit(self.produto.ea or "")
         self.ea_edit.setPlaceholderText("Unidade, Peça, etc.")
         self.ea_edit.setMinimumHeight(35)
+        self.campos_navegacao.append(self.ea_edit)
         ea_layout.addWidget(self.ea_edit)
 
         # Referência
@@ -106,6 +114,7 @@ class ProdutoDialog(QDialog):
         self.referencia_edit = SelectAllLineEdit(self.produto.referencia or "")
         self.referencia_edit.setPlaceholderText("Código de referência")
         self.referencia_edit.setMinimumHeight(35)
+        self.campos_navegacao.append(self.referencia_edit)
         ref_layout.addWidget(self.referencia_edit)
 
         row2_layout.addLayout(ea_layout)
@@ -130,6 +139,7 @@ class ProdutoDialog(QDialog):
         self.preco_custo_spin.setValue(self.produto.preco_custo)
         self.preco_custo_spin.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
         self.preco_custo_spin.setMinimumHeight(35)
+        self.campos_navegacao.append(self.preco_custo_spin)
         valores_layout.addWidget(self.preco_custo_spin)
 
         # Preço venda
@@ -139,6 +149,7 @@ class ProdutoDialog(QDialog):
         self.preco_venda_spin.setValue(self.produto.preco_venda)
         self.preco_venda_spin.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
         self.preco_venda_spin.setMinimumHeight(35)
+        self.campos_navegacao.append(self.preco_venda_spin)
         valores_layout.addWidget(self.preco_venda_spin)
 
         # Estoque (apenas para edição)
@@ -149,6 +160,7 @@ class ProdutoDialog(QDialog):
             self.estoque_spin.setValue(self.produto.estoque)
             self.estoque_spin.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
             self.estoque_spin.setMinimumHeight(35)
+            self.campos_navegacao.append(self.estoque_spin)
             valores_layout.addWidget(self.estoque_spin)
 
         grupo_valores.setLayout(valores_layout)
@@ -222,9 +234,69 @@ class ProdutoDialog(QDialog):
             QDialogButtonBox.StandardButton.Ok |
             QDialogButtonBox.StandardButton.Cancel
         )
-        buttons.accepted.connect(self.accept)
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Salvar")
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Cancelar")
+        buttons.accepted.connect(self._salvar_produto)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+
+    def _configurar_navegacao(self):
+        """Configura navegação entre campos com Enter"""
+        # Conecta o evento returnPressed para cada campo
+        for i, campo in enumerate(self.campos_navegacao):
+            if isinstance(campo, QLineEdit):
+                # Remove conexões existentes de returnPressed
+                try:
+                    campo.returnPressed.disconnect()
+                except:
+                    pass
+                # Conecta para navegar para próximo campo
+                campo.returnPressed.connect(lambda idx=i: self._navegar_para_proximo(idx))
+            elif isinstance(campo, (QDoubleSpinBox, QSpinBox)):
+                # Para spinboxes, precisamos sobrescrever keyPressEvent
+                campo.keyPressEvent = self._criar_key_press_event_spinbox(campo, i)
+
+    def _navegar_para_proximo(self, indice_atual):
+        """Navega para o próximo campo na lista"""
+        proximo_indice = indice_atual + 1
+        
+        if proximo_indice < len(self.campos_navegacao):
+            proximo_campo = self.campos_navegacao[proximo_indice]
+            proximo_campo.setFocus()
+            if isinstance(proximo_campo, QLineEdit):
+                proximo_campo.selectAll()
+        else:
+            # Se for o último campo, vai para o botão "Selecionar Fornecedor"
+            self.btn_selecionar_fornecedor.setFocus()
+
+    def _criar_key_press_event_spinbox(self, spinbox, indice):
+        """Cria um keyPressEvent personalizado para spinboxes"""
+        def keyPressEvent(event):
+            if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+                self._navegar_para_proximo(indice)
+                event.accept()
+            else:
+                # Chama o comportamento padrão
+                super(type(spinbox), spinbox).keyPressEvent(event)
+        
+        return keyPressEvent
+
+    def keyPressEvent(self, event):
+        """Override do keyPressEvent para desabilitar Enter global"""
+        if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+            # Verifica se o foco está em algum widget que não seja os botões
+            widget_focado = self.focusWidget()
+            
+            # Se o foco estiver nos botões do QDialogButtonBox, permite o Enter
+            if isinstance(widget_focado, QPushButton):
+                # Permite o comportamento padrão (acionar o botão)
+                super().keyPressEvent(event)
+            else:
+                # Para outros widgets, apenas ignora o Enter
+                # A navegação já é tratada nos próprios widgets
+                event.ignore()
+        else:
+            super().keyPressEvent(event)
 
     def _selecionar_fornecedor(self):
         """Abre dialog para selecionar fornecedor"""
@@ -311,8 +383,8 @@ class ProdutoDialog(QDialog):
             self.nome_edit.setFocus()
             self.nome_edit.selectAll()
 
-    def accept(self):
-        """Override do método accept para salvar os dados antes de fechar"""
+    def _salvar_produto(self):
+        """Salva o produto - chamado apenas pelo botão Salvar"""
         try:
             # Valida se o nome foi preenchido
             if not self.nome_edit.text().strip():
