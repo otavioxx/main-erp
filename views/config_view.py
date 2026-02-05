@@ -224,19 +224,10 @@ class ConfigView(QWidget):
         layout.addWidget(self.action_frame)
 
         # Grupo de Backup/Restauração (sempre visível)
-        backup_group = QGroupBox("🔄 Backup e Restauração")
+        backup_group = QGroupBox("Backup e Restauração")
         backup_group.setProperty("class", "clean-group")
         backup_layout = QVBoxLayout()
         backup_layout.setContentsMargins(15, 20, 15, 15)
-        
-        # Descrição
-        desc_label = QLabel(
-            "Faça backup regularmente para proteger seus dados.\n"
-            "A restauração substituirá todos os dados atuais."
-        )
-        desc_label.setWordWrap(True)
-        desc_label.setStyleSheet("color: #666; font-style: italic; margin-bottom: 15px;")
-        backup_layout.addWidget(desc_label)
         
         # Botões em linha
         btn_layout = QHBoxLayout()
