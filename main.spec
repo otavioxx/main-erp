@@ -9,7 +9,10 @@ a = Analysis(
     ['main.py'],
     pathex=['.'],
     binaries=[],
-    datas=[],
+    datas=[
+        ('icon.ico', '.'),
+        ('icon.png', '.'),
+    ],
     hiddenimports=collect_submodules('reportlab.graphics.barcode'),
     hookspath=[],
     runtime_hooks=[],

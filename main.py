@@ -287,16 +287,16 @@ def reiniciar_aplicacao():
     """Reinicia a aplicação após restauração de backup"""
     import subprocess
     import time
-    
+
     print("🔄 Reiniciando aplicação...")
-    
+
     # Obter o caminho do executável Python e do script
     python = sys.executable
     script_path = os.path.abspath(__file__)
-    
+
     # Pequeno delay para garantir que tudo foi fechado
     time.sleep(1)
-    
+
     # Reabrir a aplicação
     try:
         print(f"🔄 Executando: {python} {script_path}")
@@ -307,7 +307,7 @@ def reiniciar_aplicacao():
         QMessageBox.information(
             None,
             "Reinício Necessário",
-            "Por favor, reinicie o sistema manualmente para completar a restauração."
+            "Por favor, reinicie o sistema manualmente para completar a restauração.",
         )
         sys.exit(0)
 
@@ -452,15 +452,16 @@ def main():
     # Executar aplicação
     try:
         result = app.exec()
-        
+
         # Verificar se é um código de reinício (100)
         if result == 100:
             # Fechar tudo e reiniciar
             reiniciar_aplicacao()
-        
+
         sys.exit(result)
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         input("Pressione Enter para sair...")
 
@@ -471,5 +472,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Erro fatal: {e}")
         import traceback
+
         traceback.print_exc()
         input("Pressione Enter para sair...")
