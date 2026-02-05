@@ -239,7 +239,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         self.tabela_duplicatas = QTableWidget()
         
         # Altura desejada
-        altura_desejada = 21
+        altura_desejada = 22
         
         # 1. Configurar altura primeiro
         vheader = self.tabela_duplicatas.verticalHeader()

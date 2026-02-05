@@ -292,7 +292,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         vheader = self.tabela_produtos.verticalHeader()
         
         # ALTURA DESEJADA (ajuste este valor)
-        altura_desejada = 21
+        altura_desejada = 22
         
         vheader.setDefaultSectionSize(altura_desejada)
         vheader.setMinimumSectionSize(altura_desejada)

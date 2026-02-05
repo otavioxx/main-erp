@@ -268,7 +268,7 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         vheader = self.tabela_vendas.verticalHeader()
         
         # ALTURA DESEJADA (use o mesmo valor da tabela de produtos)
-        altura_desejada = 21
+        altura_desejada = 22
         
         vheader.setDefaultSectionSize(altura_desejada)
         vheader.setMinimumSectionSize(altura_desejada)

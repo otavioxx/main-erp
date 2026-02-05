@@ -290,7 +290,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
         vheader = self.tabela_condicionais.verticalHeader()
-        altura_desejada = 21
+        altura_desejada = 22
         
         vheader.setDefaultSectionSize(altura_desejada)
         vheader.setMinimumSectionSize(altura_desejada)

@@ -331,7 +331,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
         vheader = self.tabela_produtos.verticalHeader()
-        altura_desejada = 21
+        altura_desejada = 22
         
         vheader.setDefaultSectionSize(altura_desejada)
         vheader.setMinimumSectionSize(altura_desejada)
