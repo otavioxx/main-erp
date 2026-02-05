@@ -38,6 +38,27 @@ from utils.helpers import (
     validar_data,
 )
 
+class NumericTableWidgetItem(QTableWidgetItem):
+    """Item de tabela que ordena numericamente ao invés de alfabeticamente"""
+
+    def __init__(self, text=""):
+        super().__init__(text)
+
+    def __lt__(self, other):
+        """Sobrescreve a comparação para ordenação numérica"""
+        try:
+            # Tenta extrair valor numérico do UserRole primeiro
+            self_value = self.data(Qt.ItemDataRole.UserRole)
+            other_value = other.data(Qt.ItemDataRole.UserRole)
+
+            if self_value is not None and other_value is not None:
+                return float(self_value) < float(other_value)
+
+            # Se não tem UserRole, tenta converter o texto
+            return float(self.text()) < float(other.text())
+        except (ValueError, TypeError):
+            # Se não conseguir converter para número, usa ordenação de string
+            return self.text() < other.text()
 
 class RecebimentoView(TableScrollNavigationMixin, QWidget):
     """View de gestão de recebimentos otimizada para performance"""
@@ -539,29 +560,35 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         total_parcelas = self._parcelas_cache.get(venda_id, 1)
         parcela_formatada = f"{numero_parcela}/{total_parcelas}"
 
-        # Preencher células básicas
-        cells = [
-            (0, str(id_dup), Qt.AlignmentFlag.AlignCenter, None),
-            (1, str(cliente_nome) if cliente_nome else "N/A", None, None),
-            (3, str(venda_id), Qt.AlignmentFlag.AlignCenter, None),
-            (4, parcela_formatada, Qt.AlignmentFlag.AlignCenter, None),
-            (
-                5,
-                formatar_moeda(float(valor)) if valor else "0.00",
-                (Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter),
-                None,
-            ),
-        ]
+        # 1. ID - usar NumericTableWidgetItem para ordenação numérica correta
+        item_id = NumericTableWidgetItem(str(id_dup))
+        item_id.setData(Qt.ItemDataRole.UserRole, id_dup)  # Armazenar valor numérico
+        item_id.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.tabela_duplicatas.setItem(row, 0, item_id)
 
-        for col, text, align, color in cells:
-            item = QTableWidgetItem(text)
-            if align:
-                item.setTextAlignment(align)
-            if color:
-                item.setForeground(QBrush(color))
-            self.tabela_duplicatas.setItem(row, col, item)
+        # 2. Cliente
+        cliente_item = QTableWidgetItem(str(cliente_nome) if cliente_nome else "N/A")
+        self.tabela_duplicatas.setItem(row, 1, cliente_item)
 
-        # Status (coluna 2)
+        # 3. Venda ID - também usar NumericTableWidgetItem
+        venda_item = NumericTableWidgetItem(str(venda_id))
+        venda_item.setData(Qt.ItemDataRole.UserRole, venda_id)
+        venda_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.tabela_duplicatas.setItem(row, 3, venda_item)
+
+        # 4. Parcela
+        parcela_item = QTableWidgetItem(parcela_formatada)
+        parcela_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.tabela_duplicatas.setItem(row, 4, parcela_item)
+
+        # 5. Valor - usar NumericTableWidgetItem para ordenação numérica
+        valor_num = float(valor) if valor else 0
+        valor_item = NumericTableWidgetItem(formatar_moeda(valor_num))
+        valor_item.setData(Qt.ItemDataRole.UserRole, valor_num)
+        valor_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self.tabela_duplicatas.setItem(row, 5, valor_item)
+
+        # 6. Status (coluna 2)
         status_text = status.capitalize()
         if status == "pago" and forma_pagamento:
             status_text = f"{status_text} ({forma_pagamento})"
@@ -576,7 +603,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
         self.tabela_duplicatas.setItem(row, 2, status_item)
 
-        # Vencimento (coluna 6)
+        # 7. Vencimento (coluna 6)
         vencimento = (
             formatar_data(data_vencimento, "%Y-%m-%d", "%d/%m/%Y")
             if data_vencimento
@@ -599,7 +626,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
         self.tabela_duplicatas.setItem(row, 6, venc_item)
 
-        # Pagamento (coluna 7)
+        # 8. Pagamento (coluna 7)
         pagamento = (
             formatar_data(data_pagamento, "%Y-%m-%d", "%d/%m/%Y")
             if data_pagamento
