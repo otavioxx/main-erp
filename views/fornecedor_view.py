@@ -186,7 +186,7 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
         layout.addWidget(container)
 
     def _configurar_tabela_fornecedores(self):
-        """Configura a tabela de fornecedores de forma otimizada"""
+        """Configura a tabela de fornecedores - VERSÃO SIMPLIFICADA"""
         self.tabela_fornecedores.setColumnCount(6)
         self.tabela_fornecedores.setHorizontalHeaderLabels(
             ["ID", "Nome", "CNPJ", "Telefone", "Email", "Observação"]
@@ -205,7 +205,41 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
         # Larguras otimizadas
         larguras_colunas = [50, 200, 130, 110, 250, 350]
         for i, largura in enumerate(larguras_colunas):
-            self.tabela_fornecedores.setColumnWidth(i, largura)
+            if largura > 0:  # Aplica apenas larguras positivas
+                self.tabela_fornecedores.setColumnWidth(i, largura)
+        
+        # ========== CONFIGURAÇÃO DE ALTURA ==========
+        # Configurar VERTICAL HEADER para altura fixa
+        vheader = self.tabela_fornecedores.verticalHeader()
+        altura_desejada = 21
+        
+        vheader.setDefaultSectionSize(altura_desejada)
+        vheader.setMinimumSectionSize(altura_desejada)
+        vheader.setMaximumSectionSize(altura_desejada)
+        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        vheader.setCascadingSectionResizes(False)
+        vheader.setStretchLastSection(False)
+        vheader.setVisible(False)
+        
+        # Função para aplicar altura quando dados forem carregados
+        def aplicar_altura_quando_necessario():
+            try:
+                if hasattr(self, 'tabela_fornecedores') and self.tabela_fornecedores:
+                    for row in range(self.tabela_fornecedores.rowCount()):
+                        self.tabela_fornecedores.setRowHeight(row, altura_desejada)
+            except:
+                pass
+        
+        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+        try:
+            if hasattr(self.tabela_fornecedores, 'model'):
+                model = self.tabela_fornecedores.model()
+                model.rowsInserted.connect(
+                    lambda parent, first, last: aplicar_altura_quando_necessario()
+                )
+        except:
+            pass
+        # ========== FIM DA CONFIGURAÇÃO ==========
 
         # Configurações gerais da tabela
         self.tabela_fornecedores.setSelectionBehavior(
@@ -218,13 +252,12 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
             QTableWidget.EditTrigger.NoEditTriggers
         )
         self.tabela_fornecedores.setAlternatingRowColors(True)
-        self.tabela_fornecedores.verticalHeader().setVisible(False)
         self.tabela_fornecedores.setSortingEnabled(True)
 
         self.setup_scroll_navigation(
             tabela=self.tabela_fornecedores,
-            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
-            auto_select_first=True,  # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,
+            auto_select_first=True,
         )
 
     # ========== MÉTODOS DE CARREGAMENTO E FILTROS ==========

@@ -293,7 +293,7 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
         layout.addWidget(container)
 
     def _configurar_tabela_clientes(self):
-        """Configura a tabela de clientes de forma otimizada"""
+        """Configura a tabela de clientes - VERSÃO COM ALTURA FIXA"""
         self.tabela_clientes.setColumnCount(7)
         self.tabela_clientes.setHorizontalHeaderLabels(
             ["ID", "Nome", "CPF/CNPJ", "Endereço", "Telefone", "Email", "Observação"]
@@ -313,7 +313,41 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
         # Larguras otimizadas
         larguras_colunas = [50, 200, 130, 250, 110, 200, 200]
         for i, largura in enumerate(larguras_colunas):
-            self.tabela_clientes.setColumnWidth(i, largura)
+            if largura > 0:  # Aplica apenas larguras positivas
+                self.tabela_clientes.setColumnWidth(i, largura)
+        
+        # ========== CONFIGURAÇÃO DE ALTURA ==========
+        # Configurar VERTICAL HEADER para altura fixa
+        vheader = self.tabela_clientes.verticalHeader()
+        altura_desejada = 21
+        
+        vheader.setDefaultSectionSize(altura_desejada)
+        vheader.setMinimumSectionSize(altura_desejada)
+        vheader.setMaximumSectionSize(altura_desejada)
+        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        vheader.setCascadingSectionResizes(False)
+        vheader.setStretchLastSection(False)
+        vheader.setVisible(False)
+        
+        # Função para aplicar altura quando dados forem carregados
+        def aplicar_altura_quando_necessario():
+            try:
+                if hasattr(self, 'tabela_clientes') and self.tabela_clientes:
+                    for row in range(self.tabela_clientes.rowCount()):
+                        self.tabela_clientes.setRowHeight(row, altura_desejada)
+            except:
+                pass
+        
+        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+        try:
+            if hasattr(self.tabela_clientes, 'model'):
+                model = self.tabela_clientes.model()
+                model.rowsInserted.connect(
+                    lambda parent, first, last: aplicar_altura_quando_necessario()
+                )
+        except:
+            pass
+        # ========== FIM DA CONFIGURAÇÃO ==========
 
         # Configurações gerais da tabela
         self.tabela_clientes.setSelectionBehavior(
@@ -324,7 +358,6 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
         )
         self.tabela_clientes.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_clientes.setAlternatingRowColors(True)
-        self.tabela_clientes.verticalHeader().setVisible(False)
         self.tabela_clientes.setSortingEnabled(True)
 
         self.setup_scroll_navigation(

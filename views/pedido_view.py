@@ -248,7 +248,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
         layout.addWidget(container)
 
     def _criar_tabela_pedidos(self):
-        """Configura tabela de pedidos - ATUALIZADA para incluir desconto"""
+        """Configura tabela de pedidos - VERSÃO COM ALTURA FIXA"""
         self.tabela_pedidos = QTableWidget()
         self.tabela_pedidos.setColumnCount(8)  # AUMENTADO para incluir desconto
         self.tabela_pedidos.setHorizontalHeaderLabels(
@@ -272,14 +272,48 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Data
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Status
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Recebimento
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Desconto - NOVO
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Desconto
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Frete
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)  # Total
 
         # LARGURAS AJUSTADAS para incluir desconto
         larguras = [50, 150, 100, 90, 100, 80, 70, 80]
         for i, largura in enumerate(larguras):
-            self.tabela_pedidos.setColumnWidth(i, largura)
+            if largura > 0:  # Aplica apenas larguras positivas
+                self.tabela_pedidos.setColumnWidth(i, largura)
+        
+        # ========== CONFIGURAÇÃO DE ALTURA ==========
+        # Configurar VERTICAL HEADER para altura fixa
+        vheader = self.tabela_pedidos.verticalHeader()
+        altura_desejada = 21
+        
+        vheader.setDefaultSectionSize(altura_desejada)
+        vheader.setMinimumSectionSize(altura_desejada)
+        vheader.setMaximumSectionSize(altura_desejada)
+        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        vheader.setCascadingSectionResizes(False)
+        vheader.setStretchLastSection(False)
+        vheader.setVisible(False)
+        
+        # Função para aplicar altura quando dados forem carregados
+        def aplicar_altura_quando_necessario():
+            try:
+                if hasattr(self, 'tabela_pedidos') and self.tabela_pedidos:
+                    for row in range(self.tabela_pedidos.rowCount()):
+                        self.tabela_pedidos.setRowHeight(row, altura_desejada)
+            except:
+                pass
+        
+        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+        try:
+            if hasattr(self.tabela_pedidos, 'model'):
+                model = self.tabela_pedidos.model()
+                model.rowsInserted.connect(
+                    lambda parent, first, last: aplicar_altura_quando_necessario()
+                )
+        except:
+            pass
+        # ========== FIM DA CONFIGURAÇÃO ==========
 
         # Configurações gerais
         self.tabela_pedidos.setSelectionBehavior(
@@ -288,7 +322,6 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
         self.tabela_pedidos.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.tabela_pedidos.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_pedidos.setAlternatingRowColors(True)
-        self.tabela_pedidos.verticalHeader().setVisible(False)
         self.tabela_pedidos.setSortingEnabled(True)
 
         self.setup_scroll_navigation(

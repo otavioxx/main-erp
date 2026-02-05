@@ -256,7 +256,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
         layout.addWidget(container)
 
     def _configurar_tabela_condicionais(self):
-        """Configura a tabela de condicionais de forma otimizada"""
+        """Configura a tabela de condicionais - VERSÃO COM ALTURA FIXA"""
         self.tabela_condicionais.setColumnCount(7)  # Aumentei para 7 colunas
         self.tabela_condicionais.setHorizontalHeaderLabels(
             [
@@ -284,7 +284,41 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
         # Larguras otimizadas
         larguras_colunas = [50, 100, 200, 120, 60, 80, 100]
         for i, largura in enumerate(larguras_colunas):
-            self.tabela_condicionais.setColumnWidth(i, largura)
+            if largura > 0:  # Aplica apenas larguras positivas
+                self.tabela_condicionais.setColumnWidth(i, largura)
+        
+        # ========== CONFIGURAÇÃO DE ALTURA ==========
+        # Configurar VERTICAL HEADER para altura fixa
+        vheader = self.tabela_condicionais.verticalHeader()
+        altura_desejada = 21
+        
+        vheader.setDefaultSectionSize(altura_desejada)
+        vheader.setMinimumSectionSize(altura_desejada)
+        vheader.setMaximumSectionSize(altura_desejada)
+        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        vheader.setCascadingSectionResizes(False)
+        vheader.setStretchLastSection(False)
+        vheader.setVisible(False)
+        
+        # Função para aplicar altura quando dados forem carregados
+        def aplicar_altura_quando_necessario():
+            try:
+                if hasattr(self, 'tabela_condicionais') and self.tabela_condicionais:
+                    for row in range(self.tabela_condicionais.rowCount()):
+                        self.tabela_condicionais.setRowHeight(row, altura_desejada)
+            except:
+                pass
+        
+        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+        try:
+            if hasattr(self.tabela_condicionais, 'model'):
+                model = self.tabela_condicionais.model()
+                model.rowsInserted.connect(
+                    lambda parent, first, last: aplicar_altura_quando_necessario()
+                )
+        except:
+            pass
+        # ========== FIM DA CONFIGURAÇÃO ==========
 
         # Configurações gerais da tabela
         self.tabela_condicionais.setSelectionBehavior(
@@ -297,7 +331,6 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             QTableWidget.EditTrigger.NoEditTriggers
         )
         self.tabela_condicionais.setAlternatingRowColors(True)
-        self.tabela_condicionais.verticalHeader().setVisible(False)
         self.tabela_condicionais.setSortingEnabled(True)
 
         self.setup_scroll_navigation(
