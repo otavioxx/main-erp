@@ -70,10 +70,45 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
         self.tabela.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         self.tabela.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         self.tabela.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.tabela.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        self.tabela.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
 
         self.tabela.setColumnWidth(0, 50)
         self.tabela.setColumnWidth(2, 130)
         self.tabela.setColumnWidth(3, 110)
+        
+        # ========== CONFIGURAÇÃO DE ALTURA ==========
+        # Configurar VERTICAL HEADER para altura fixa
+        vheader = self.tabela.verticalHeader()
+        altura_desejada = 21
+        
+        vheader.setDefaultSectionSize(altura_desejada)
+        vheader.setMinimumSectionSize(altura_desejada)
+        vheader.setMaximumSectionSize(altura_desejada)
+        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        vheader.setCascadingSectionResizes(False)
+        vheader.setStretchLastSection(False)
+        vheader.setVisible(False)
+        
+        # Função para aplicar altura quando dados forem carregados
+        def aplicar_altura_quando_necessario():
+            try:
+                if hasattr(self, 'tabela') and self.tabela:
+                    for row in range(self.tabela.rowCount()):
+                        self.tabela.setRowHeight(row, altura_desejada)
+            except:
+                pass
+        
+        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+        try:
+            if hasattr(self.tabela, 'model'):
+                model = self.tabela.model()
+                model.rowsInserted.connect(
+                    lambda parent, first, last: aplicar_altura_quando_necessario()
+                )
+        except:
+            pass
+        # ========== FIM DA CONFIGURAÇÃO ==========
 
         self.tabela.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.tabela.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
@@ -81,8 +116,6 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
         self.tabela.setAlternatingRowColors(True)
 
         self.tabela.doubleClicked.connect(self.selecionar_cliente)
-
-        self.tabela.verticalHeader().setVisible(False)
 
         layout.addWidget(self.tabela)
 
@@ -173,6 +206,18 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
 
             telefone_item = QTableWidgetItem(cliente.telefone or "")
             self.tabela.setItem(row, 3, telefone_item)
+        
+        # Aplicar altura após carregar os dados
+        self._aplicar_altura_apos_filtro()
+
+    def _aplicar_altura_apos_filtro(self):
+        """Aplica altura fixa após filtrar os clientes"""
+        try:
+            if hasattr(self, 'tabela') and self.tabela:
+                for row in range(self.tabela.rowCount()):
+                    self.tabela.setRowHeight(row, 21)
+        except:
+            pass
 
     def selecionar_cliente(self, index):
         row = index.row()

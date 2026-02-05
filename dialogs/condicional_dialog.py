@@ -301,10 +301,12 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         layout.addWidget(grupo_produtos)
 
     def _criar_tabela_produtos(self):
-        """Configura tabela de produtos"""
+        """Configura tabela de produtos - VERSÃO COM ALTURA FIXA"""
         self.tabela_produtos = QTableWidget()
         self.tabela_produtos.setColumnCount(8)
-        self.tabela_produtos.setHorizontalHeaderLabels(["ID", "Nome", "Cor", "Tamanho", "Referência", "Preço", "Qtd", "Subtotal"])
+        self.tabela_produtos.setHorizontalHeaderLabels(
+            ["ID", "Nome", "Cor", "Tamanho", "Referência", "Preço", "Qtd", "Subtotal"]
+        )
 
         # Configurar colunas
         header = self.tabela_produtos.horizontalHeader()
@@ -317,6 +319,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)   # Qtd
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)   # Subtotal
 
+        # Larguras das colunas
         self.tabela_produtos.setColumnWidth(0, 50)   # ID
         self.tabela_produtos.setColumnWidth(2, 120)  # Cor
         self.tabela_produtos.setColumnWidth(3, 70)   # Tamanho
@@ -324,12 +327,45 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.tabela_produtos.setColumnWidth(5, 80)   # Preço
         self.tabela_produtos.setColumnWidth(6, 60)   # Qtd
         self.tabela_produtos.setColumnWidth(7, 90)   # Subtotal
+        
+        # ========== CONFIGURAÇÃO DE ALTURA ==========
+        # Configurar VERTICAL HEADER para altura fixa
+        vheader = self.tabela_produtos.verticalHeader()
+        altura_desejada = 21
+        
+        vheader.setDefaultSectionSize(altura_desejada)
+        vheader.setMinimumSectionSize(altura_desejada)
+        vheader.setMaximumSectionSize(altura_desejada)
+        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        vheader.setCascadingSectionResizes(False)
+        vheader.setStretchLastSection(False)
+        vheader.setVisible(False)
+        
+        # Função para aplicar altura quando dados forem carregados
+        def aplicar_altura_quando_necessario():
+            try:
+                if hasattr(self, 'tabela_produtos') and self.tabela_produtos:
+                    for row in range(self.tabela_produtos.rowCount()):
+                        self.tabela_produtos.setRowHeight(row, altura_desejada)
+            except:
+                pass
+        
+        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+        try:
+            if hasattr(self.tabela_produtos, 'model'):
+                model = self.tabela_produtos.model()
+                model.rowsInserted.connect(
+                    lambda parent, first, last: aplicar_altura_quando_necessario()
+                )
+        except:
+            pass
+        # ========== FIM DA CONFIGURAÇÃO ==========
 
         # Configurações gerais
         self.tabela_produtos.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.tabela_produtos.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.tabela_produtos.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_produtos.setAlternatingRowColors(True)
-        self.tabela_produtos.verticalHeader().setVisible(False)
         self.tabela_produtos.setSortingEnabled(False)
 
         self.setup_scroll_navigation(
