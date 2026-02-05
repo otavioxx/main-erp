@@ -1,26 +1,38 @@
-from PyQt6.QtWidgets import (QMainWindow, QLabel, QWidget, QVBoxLayout,
-                             QHBoxLayout, QPushButton, QDialog, QApplication, QButtonGroup, QFrame,
-                             QStackedWidget, QStatusBar)
-from PyQt6.QtGui import QAction
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-import platform
-import psutil
-from datetime import datetime
 import os
-from database import Database
+import platform
+from datetime import datetime
 
+import psutil
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import (
+    QApplication,
+    QButtonGroup,
+    QDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QPushButton,
+    QStackedWidget,
+    QStatusBar,
+    QVBoxLayout,
+    QWidget,
+)
+
+from database import Database
 from dialogs.backup_dialog import BackupDialog
+from dialogs.venda_dialog import ProdutoVendaDialog
+from utils.helpers import aplicar_maiuscula_formulario
 from views.cliente_view import ClienteView
-from views.produto_view import ProdutoView
-from views.fornecedor_view import FornecedorView
-from views.venda_view import VendaView
-from views.recebimento_view import RecebimentoView
 from views.condicional_view import CondicionalView
 from views.config_view import ConfigView
-from dialogs.venda_dialog import ProdutoVendaDialog
+from views.fornecedor_view import FornecedorView
 from views.pedido_view import PedidoView
+from views.produto_view import ProdutoView
+from views.recebimento_view import RecebimentoView
+from views.venda_view import VendaView
 
-from utils.helpers import aplicar_maiuscula_formulario
 
 class StatusBarWidget(QWidget):
     """Widget personalizado para a status bar com múltiplas informações"""
@@ -42,6 +54,7 @@ class StatusBarWidget(QWidget):
         self.label_version = QLabel("© Digital Solutions - MainERP v0.04 (05/02/2026)")
         self.label_version.setProperty("class", "version-label")
         layout.addWidget(self.label_version)
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -106,10 +119,10 @@ class MainWindow(QMainWindow):
         nav_frame = QFrame()
         nav_frame.setProperty("class", "sidebar")
         nav_frame.setFixedWidth(220)  # Largura fixa para a barra lateral
-        
+
         # REMOVA O STYLESHEET INLINE - será aplicado pelo tema
         # Apenas defina classes para estilização via CSS
-        
+
         nav_layout = QVBoxLayout(nav_frame)
         nav_layout.setSpacing(5)
         nav_layout.setContentsMargins(5, 15, 5, 15)
@@ -134,7 +147,7 @@ class MainWindow(QMainWindow):
             ("👤", "CLIENTES"),
             ("📦", "PRODUTOS"),
             ("🏭", "FORNECEDORES"),
-            ("⚙️", "CONFIGURAÇÕES")
+            ("⚙️", "CONFIGURAÇÕES"),
         ]
 
         for icon, text in nav_items:
@@ -212,19 +225,22 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """Fecha o sistema, mostrando diálogo de backup apenas se necessário"""
         # Limpa timers
-        if hasattr(self, 'status_widget'):
+        if hasattr(self, "status_widget"):
             timers_to_stop = [
-                'timer_datetime', 'timer_keys', 'timer_system', 'timer_db'
+                "timer_datetime",
+                "timer_keys",
+                "timer_system",
+                "timer_db",
             ]
             for timer_name in timers_to_stop:
                 if hasattr(self.status_widget, timer_name):
                     timer = getattr(self.status_widget, timer_name)
                     if timer.isActive():
                         timer.stop()
-        
+
         # Impede fechamento automático
         event.ignore()
-        
+
         # VERIFICAÇÃO DA DATA DO ÚLTIMO BACKUP
         # Se backup foi feito nos últimos 7 dias, fecha direto sem mostrar nada
         if not BackupDialog.should_show_dialog():
@@ -233,7 +249,7 @@ class MainWindow(QMainWindow):
             print("✅ Backup recente detectado, fechando sistema...")
             QApplication.instance().quit()
             return
-        
+
         # Se backup antigo (7+ dias) ou nunca feito, mostra diálogo
         self._mostrar_dialogo_backup()
 
@@ -243,14 +259,14 @@ class MainWindow(QMainWindow):
             # Criar diálogo de backup
             backup_dialog = BackupDialog(self)
             backup_dialog.setWindowTitle(f"Backup - {self.windowTitle()}")
-            
+
             # Conectar sinais
             backup_dialog.backup_realizado.connect(self._backup_concluido)
             backup_dialog.fechar_sem_backup.connect(self._fechar_sem_backup)
-            
+
             # Mostrar diálogo modalmente
             result = backup_dialog.exec()
-            
+
             # Verificar o resultado
             if result == QDialog.DialogCode.Accepted:
                 # Backup foi feito e diálogo fechado automaticamente
@@ -258,7 +274,7 @@ class MainWindow(QMainWindow):
             elif result == QDialog.DialogCode.Rejected:
                 # Usuário clicou em "Fechar sem Backup"
                 QApplication.instance().quit()
-                
+
         except Exception as e:
             print(f"Erro ao mostrar diálogo de backup: {e}")
             # Fallback: perguntar se quer fechar mesmo assim
@@ -267,29 +283,31 @@ class MainWindow(QMainWindow):
     def _backup_concluido(self, backup_path):
         """Chamado quando backup é concluído com sucesso"""
         print(f"✅ Backup criado com sucesso: {backup_path}")
-        
+
         # Aqui você pode adicionar log no sistema
         try:
             from datetime import datetime
+
             log_msg = f"Backup realizado: {datetime.now().strftime('%d/%m/%Y %H:%M')} - {backup_path}"
-            
+
             # Salvar log se tiver um sistema de logs
-            if hasattr(self, 'salvar_log'):
-                self.salvar_log('backup', log_msg)
-                
+            if hasattr(self, "salvar_log"):
+                self.salvar_log("backup", log_msg)
+
         except Exception as e:
             print(f"Erro ao registrar backup: {e}")
 
     def _fechar_sem_backup(self):
         """Chamado quando usuário escolhe fechar sem backup"""
-        
+
         # Aqui você pode adicionar log no sistema
         try:
             from datetime import datetime
+
             log_msg = f"Sistema fechado sem backup: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
-            
-            if hasattr(self, 'salvar_log'):
-                self.salvar_log('sistema', log_msg)
-                
+
+            if hasattr(self, "salvar_log"):
+                self.salvar_log("sistema", log_msg)
+
         except Exception as e:
             print(f"Erro ao registrar fechamento: {e}")

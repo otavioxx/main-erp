@@ -3,23 +3,40 @@ Dialog de Venda - Versão Final com Frame de Entrada Rápida - CORRIGIDO
 Com suporte a redimensionamento inteligente via DialogSizeMixin
 """
 
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QTableWidget, QTableWidgetItem, QLabel,
-                             QMessageBox, QHeaderView, QInputDialog, QFrame,
-                             QLineEdit, QGroupBox)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QShortcut, QKeySequence
+from PyQt6.QtGui import QKeySequence, QShortcut
+from PyQt6.QtWidgets import (
+    QDialog,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+)
 
-from dialogs.pagamento_dialog import PagamentoDialog
 from dialogs.cliente_selection_dialog import ClienteSelectionDialog
-from dialogs.produto_selection_dialog import ProdutoSelectionDialog
 from dialogs.observacao_dialog import ObservacaoDialog
-from utils.helpers import SelectAllDoubleSpinBox, SelectAllLineEdit
-from utils.helpers import formatar_moeda, validar_quantidade, calcular_subtotal, aplicar_desconto_total
-from utils.venda_utils import VendaUtils
-from models.produto import Produto
-from mixins.table_scroll_mixin import TableScrollNavigationMixin
+from dialogs.pagamento_dialog import PagamentoDialog
+from dialogs.produto_selection_dialog import ProdutoSelectionDialog
 from mixins.dialog_size_mixin import DialogSizeMixin
+from mixins.table_scroll_mixin import TableScrollNavigationMixin
+from models.produto import Produto
+from utils.helpers import (
+    SelectAllDoubleSpinBox,
+    SelectAllLineEdit,
+    aplicar_desconto_total,
+    calcular_subtotal,
+    formatar_moeda,
+    validar_quantidade,
+)
+from utils.venda_utils import VendaUtils
 
 
 class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
@@ -37,7 +54,6 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self._init_ui()
         self._configurar_comportamento_enter()
         self._configurar_tamanho_dialog()
-        self.showMaximized()
 
     def _init_ui(self):
         """Inicializa interface usando classes CSS semânticas"""
@@ -71,12 +87,12 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
     def _configurar_tamanho_dialog(self):
         """Configura o tamanho inteligente do diálogo usando o mixin"""
         self.setup_dialog_size(
-            min_width=700,           # Largura mínima adequada para a tabela
-            min_height=500,           # Altura mínima para ter espaço suficiente
+            min_width=700,  # Largura mínima adequada para a tabela
+            min_height=500,  # Altura mínima para ter espaço suficiente
             default_width_percent=0.95,  # 85% da tela
-            default_height_percent=0.80, # 90% da tela
-            max_width_percent=0.85,      # Máximo 95% da tela
-            max_height_percent=0.85      # Máximo 95% da tela
+            default_height_percent=0.80,  # 90% da tela
+            max_width_percent=0.85,  # Máximo 95% da tela
+            max_height_percent=0.85,  # Máximo 95% da tela
         )
 
     def _criar_header(self, layout):
@@ -214,29 +230,29 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         # Configurar colunas
         header = self.tabela_produtos.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)   # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch) # Nome
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)   # Cor
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)   # Tamanho
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)   # Referência
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)   # Preço
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)   # Qtd
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)   # Subtotal
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Cor
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Tamanho
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Referência
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Preço
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Qtd
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)  # Subtotal
 
         # Larguras das colunas
-        self.tabela_produtos.setColumnWidth(0, 50)   # ID
+        self.tabela_produtos.setColumnWidth(0, 50)  # ID
         self.tabela_produtos.setColumnWidth(2, 120)  # Cor
-        self.tabela_produtos.setColumnWidth(3, 70)   # Tamanho
+        self.tabela_produtos.setColumnWidth(3, 70)  # Tamanho
         self.tabela_produtos.setColumnWidth(4, 100)  # Referência
-        self.tabela_produtos.setColumnWidth(5, 80)   # Preço
-        self.tabela_produtos.setColumnWidth(6, 60)   # Qtd
-        self.tabela_produtos.setColumnWidth(7, 90)   # Subtotal
-        
+        self.tabela_produtos.setColumnWidth(5, 80)  # Preço
+        self.tabela_produtos.setColumnWidth(6, 60)  # Qtd
+        self.tabela_produtos.setColumnWidth(7, 90)  # Subtotal
+
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
         vheader = self.tabela_produtos.verticalHeader()
         altura_desejada = 22
-        
+
         vheader.setDefaultSectionSize(altura_desejada)
         vheader.setMinimumSectionSize(altura_desejada)
         vheader.setMaximumSectionSize(altura_desejada)
@@ -244,19 +260,19 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         vheader.setCascadingSectionResizes(False)
         vheader.setStretchLastSection(False)
         vheader.setVisible(False)
-        
+
         # Função para aplicar altura quando dados forem carregados
         def aplicar_altura_quando_necessario():
             try:
-                if hasattr(self, 'tabela_produtos') and self.tabela_produtos:
+                if hasattr(self, "tabela_produtos") and self.tabela_produtos:
                     for row in range(self.tabela_produtos.rowCount()):
                         self.tabela_produtos.setRowHeight(row, altura_desejada)
             except:
                 pass
-        
+
         # Conectar ao sinal de dados alterados (quando a tabela for populada)
         try:
-            if hasattr(self.tabela_produtos, 'model'):
+            if hasattr(self.tabela_produtos, "model"):
                 model = self.tabela_produtos.model()
                 model.rowsInserted.connect(
                     lambda parent, first, last: aplicar_altura_quando_necessario()
@@ -266,16 +282,20 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         # ========== FIM DA CONFIGURAÇÃO ==========
 
         # Configurações gerais
-        self.tabela_produtos.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.tabela_produtos.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.tabela_produtos.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.tabela_produtos.setSelectionMode(
+            QTableWidget.SelectionMode.SingleSelection
+        )
         self.tabela_produtos.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_produtos.setAlternatingRowColors(True)
         self.tabela_produtos.setSortingEnabled(False)
 
         self.setup_scroll_navigation(
             tabela=self.tabela_produtos,
-            scroll_sensibilidade=1,      # 1 linha por scroll (padrão)
-            auto_select_first=True       # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
+            auto_select_first=True,  # Seleciona primeira linha automaticamente
         )
 
     def _criar_resumo_financeiro(self, layout):
@@ -376,7 +396,9 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.shortcut_f10 = QShortcut("F10", self)
         self.shortcut_f10.activated.connect(self._aplicar_desconto)
 
-        self.shortcut_delete = QShortcut(QKeySequence(QKeySequence.StandardKey.Delete), self)
+        self.shortcut_delete = QShortcut(
+            QKeySequence(QKeySequence.StandardKey.Delete), self
+        )
         self.shortcut_delete.activated.connect(self._remover_produto)
 
     def _configurar_comportamento_enter(self):
@@ -419,7 +441,9 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         try:
             quantidade = int(quantidade_texto or "1")
             if quantidade <= 0:
-                QMessageBox.warning(self, "Aviso", "A quantidade deve ser maior que zero.")
+                QMessageBox.warning(
+                    self, "Aviso", "A quantidade deve ser maior que zero."
+                )
                 self.entry_quantidade.setFocus()
                 self.entry_quantidade.selectAll()
                 return
@@ -502,7 +526,9 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
     def _exibir_produto_encontrado(self, produto):
         """Exibe informações do produto encontrado"""
         if produto.preco_venda <= 0:
-            self.label_produto_encontrado.setText(f"⚠️ {produto.nome} - Produto sem preço de venda!")
+            self.label_produto_encontrado.setText(
+                f"⚠️ {produto.nome} - Produto sem preço de venda!"
+            )
             return
 
         if produto.estoque <= 0:
@@ -548,13 +574,17 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             valor_venda = float(valor_texto.replace(",", "."))
 
             if quantidade <= 0:
-                QMessageBox.warning(self, "Aviso", "A quantidade deve ser maior que zero.")
+                QMessageBox.warning(
+                    self, "Aviso", "A quantidade deve ser maior que zero."
+                )
                 self.entry_quantidade.setFocus()
                 self.entry_quantidade.selectAll()
                 return
 
             if valor_venda <= 0:
-                QMessageBox.warning(self, "Aviso", "O valor de venda deve ser maior que zero.")
+                QMessageBox.warning(
+                    self, "Aviso", "O valor de venda deve ser maior que zero."
+                )
                 self.entry_valor.setFocus()
                 self.entry_valor.selectAll()
                 return
@@ -570,15 +600,17 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             # Validações de estoque
             if produto.estoque <= 0:
                 QMessageBox.warning(
-                    self, "Produto sem estoque",
-                    f"O produto '{produto.nome}' está sem estoque e não pode ser vendido."
+                    self,
+                    "Produto sem estoque",
+                    f"O produto '{produto.nome}' está sem estoque e não pode ser vendido.",
                 )
                 return
 
             if quantidade > produto.estoque:
                 QMessageBox.warning(
-                    self, "Estoque insuficiente",
-                    f"Quantidade solicitada ({quantidade}) maior que o estoque disponível ({produto.estoque})."
+                    self,
+                    "Estoque insuficiente",
+                    f"Quantidade solicitada ({quantidade}) maior que o estoque disponível ({produto.estoque}).",
                 )
                 self.entry_quantidade.setFocus()
                 self.entry_quantidade.selectAll()
@@ -596,7 +628,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 tamanho=produto.tamanho,
                 cor=produto.cor,
                 ea=produto.ea,
-                referencia=produto.referencia
+                referencia=produto.referencia,
             )
 
             self._adicionar_produto(produto_venda, quantidade)
@@ -648,21 +680,23 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         # Validações
         if produto.preco_venda <= 0:
             QMessageBox.warning(
-                self, "Produto inválido",
-                f"O produto '{produto.nome}' possui preço de venda 0 e não pode ser vendido."
+                self,
+                "Produto inválido",
+                f"O produto '{produto.nome}' possui preço de venda 0 e não pode ser vendido.",
             )
             return
 
         if produto.estoque <= 0:
             QMessageBox.warning(
-                self, "Produto sem estoque",
-                f"O produto '{produto.nome}' está sem estoque e não pode ser vendido."
+                self,
+                "Produto sem estoque",
+                f"O produto '{produto.nome}' está sem estoque e não pode ser vendido.",
             )
             return
 
         # ========== DIÁLOGO DE QUANTIDADE (SEM REDIMENSIONAMENTO) ==========
         quantidade_dialog = QInputDialog(self)
-        
+
         # Configurar propriedades do diálogo
         quantidade_dialog.setWindowTitle("Quantidade")
         quantidade_dialog.setLabelText(f"{produto.nome}{produto.cor}{produto.tamanho}")
@@ -670,54 +704,52 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         quantidade_dialog.setIntMinimum(1)
         quantidade_dialog.setIntMaximum(produto.estoque)
         quantidade_dialog.setIntStep(1)
-        
+
         # Configurar flags da janela
         # Remover botão de ajuda, minimizar e maximizar
         quantidade_dialog.setWindowFlags(
-            Qt.WindowType.Dialog |
-            Qt.WindowType.CustomizeWindowHint |
-            Qt.WindowType.WindowTitleHint |
-            Qt.WindowType.WindowCloseButtonHint |
-            Qt.WindowType.MSWindowsFixedSizeDialogHint
+            Qt.WindowType.Dialog
+            | Qt.WindowType.CustomizeWindowHint
+            | Qt.WindowType.WindowTitleHint
+            | Qt.WindowType.WindowCloseButtonHint
+            | Qt.WindowType.MSWindowsFixedSizeDialogHint
         )
-        
+
         # Tamanho fixo
         quantidade_dialog.setFixedSize(400, 150)
-        
+
         # Executar o diálogo e verificar se foi aceito
         if quantidade_dialog.exec() == QDialog.DialogCode.Accepted:
             quantidade = quantidade_dialog.intValue()
-            
+
             # CORREÇÃO AQUI: Remover a variável 'ok' e usar diretamente
             if validar_quantidade(quantidade, produto.estoque):
                 # ========== DIÁLOGO DE PREÇO (SEM REDIMENSIONAMENTO) ==========
                 preco_dialog = QInputDialog(self)
-                
+
                 # Configurar propriedades do diálogo
                 preco_dialog.setWindowTitle("Preço de Venda")
-                preco_dialog.setLabelText(
-                    f"Digite o preço de venda:"
-                )
+                preco_dialog.setLabelText(f"Digite o preço de venda:")
                 preco_dialog.setDoubleValue(produto.preco_venda)
                 preco_dialog.setDoubleMinimum(0.01)
                 preco_dialog.setDoubleDecimals(2)
-                
+
                 # Configurar flags da janela (igual ao anterior)
                 preco_dialog.setWindowFlags(
-                    Qt.WindowType.Dialog |
-                    Qt.WindowType.CustomizeWindowHint |
-                    Qt.WindowType.WindowTitleHint |
-                    Qt.WindowType.WindowCloseButtonHint |
-                    Qt.WindowType.MSWindowsFixedSizeDialogHint
+                    Qt.WindowType.Dialog
+                    | Qt.WindowType.CustomizeWindowHint
+                    | Qt.WindowType.WindowTitleHint
+                    | Qt.WindowType.WindowCloseButtonHint
+                    | Qt.WindowType.MSWindowsFixedSizeDialogHint
                 )
-                
+
                 # Tamanho fixo
                 preco_dialog.setFixedSize(400, 200)
-                
+
                 # Executar e verificar se foi aceito
                 if preco_dialog.exec() == QDialog.DialogCode.Accepted:
                     preco_venda = preco_dialog.doubleValue()
-                    
+
                     if preco_venda:
                         # Criar uma cópia do produto com o novo preço
                         produto_venda = Produto(
@@ -731,7 +763,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                             tamanho=produto.tamanho,
                             cor=produto.cor,
                             ea=produto.ea,
-                            referencia=produto.referencia
+                            referencia=produto.referencia,
                         )
 
                         self._adicionar_produto(produto_venda, quantidade)
@@ -744,8 +776,9 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         if quantidade > produto.estoque:
             QMessageBox.warning(
-                self, "Estoque insuficiente",
-                f"Quantidade solicitada maior que o estoque disponível ({produto.estoque})."
+                self,
+                "Estoque insuficiente",
+                f"Quantidade solicitada maior que o estoque disponível ({produto.estoque}).",
             )
             return
 
@@ -753,27 +786,32 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         # Verificar se produto já existe
         for i, prod in enumerate(self.produtos_selecionados):
-            if prod['id'] == produto.id:
-                nova_quantidade = prod['quantidade'] + quantidade
+            if prod["id"] == produto.id:
+                nova_quantidade = prod["quantidade"] + quantidade
                 if nova_quantidade > produto.estoque:
                     QMessageBox.warning(
-                        self, "Estoque insuficiente",
-                        f"Quantidade total ({nova_quantidade}) excede o estoque disponível ({produto.estoque})."
+                        self,
+                        "Estoque insuficiente",
+                        f"Quantidade total ({nova_quantidade}) excede o estoque disponível ({produto.estoque}).",
                     )
                     return
-                self.produtos_selecionados[i]['quantidade'] = nova_quantidade
-                self.produtos_selecionados[i]['subtotal'] = calcular_subtotal(produto.preco_venda, nova_quantidade)
+                self.produtos_selecionados[i]["quantidade"] = nova_quantidade
+                self.produtos_selecionados[i]["subtotal"] = calcular_subtotal(
+                    produto.preco_venda, nova_quantidade
+                )
                 self._atualizar_tabela()
                 return
 
         # Adicionar novo produto
-        self.produtos_selecionados.append({
-            'id': produto.id,
-            'nome': produto.nome,
-            'preco': produto.preco_venda,
-            'quantidade': quantidade,
-            'subtotal': subtotal
-        })
+        self.produtos_selecionados.append(
+            {
+                "id": produto.id,
+                "nome": produto.nome,
+                "preco": produto.preco_venda,
+                "quantidade": quantidade,
+                "subtotal": subtotal,
+            }
+        )
 
         self._atualizar_tabela()
 
@@ -782,9 +820,10 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         current_row = self.tabela_produtos.currentRow()
         if current_row >= 0 and current_row < len(self.produtos_selecionados):
             reply = QMessageBox.question(
-                self, "Confirmar Remoção",
+                self,
+                "Confirmar Remoção",
                 f"Remover {self.produtos_selecionados[current_row]['nome']} da venda?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             )
 
             if reply == QMessageBox.StandardButton.Yes:
@@ -796,15 +835,23 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
     def _aplicar_desconto(self):
         """F10 - Aplicar desconto"""
         if not self.produtos_selecionados:
-            QMessageBox.warning(self, "Aviso", "Adicione produtos antes de aplicar desconto.")
+            QMessageBox.warning(
+                self, "Aviso", "Adicione produtos antes de aplicar desconto."
+            )
             return
 
-        total_sem_desconto = sum(prod['subtotal'] for prod in self.produtos_selecionados)
+        total_sem_desconto = sum(
+            prod["subtotal"] for prod in self.produtos_selecionados
+        )
 
         desconto, ok = QInputDialog.getDouble(
-            self, "Desconto na Nota",
+            self,
+            "Desconto na Nota",
             f"Valor total: R$ {total_sem_desconto:.2f}\n\nDigite o valor do desconto:",
-            value=self.desconto_total, min=0.0, max=total_sem_desconto, decimals=2
+            value=self.desconto_total,
+            min=0.0,
+            max=total_sem_desconto,
+            decimals=2,
         )
 
         if ok:
@@ -813,7 +860,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
     def _calcular_total(self):
         """Calcula total da venda com desconto"""
-        total_produtos = sum(prod['subtotal'] for prod in self.produtos_selecionados)
+        total_produtos = sum(prod["subtotal"] for prod in self.produtos_selecionados)
         total_venda = aplicar_desconto_total(total_produtos, self.desconto_total)
 
         self.label_subtotal.setText(formatar_moeda(total_produtos))
@@ -826,43 +873,49 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         for row, produto in enumerate(self.produtos_selecionados):
             # Buscar dados completos do produto para cor, tamanho e referência
-            produto_obj = Produto.buscar_por_id(produto['id'])
+            produto_obj = Produto.buscar_por_id(produto["id"])
 
             # ID
-            id_item = QTableWidgetItem(str(produto['id']))
+            id_item = QTableWidgetItem(str(produto["id"]))
             id_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 0, id_item)
 
             # Nome
-            self.tabela_produtos.setItem(row, 1, QTableWidgetItem(produto['nome']))
+            self.tabela_produtos.setItem(row, 1, QTableWidgetItem(produto["nome"]))
 
             # Cor
-            cor_item = QTableWidgetItem(produto_obj.cor if produto_obj and produto_obj.cor else "")
+            cor_item = QTableWidgetItem(
+                produto_obj.cor if produto_obj and produto_obj.cor else ""
+            )
             cor_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 2, cor_item)
 
             # Tamanho
-            tamanho_item = QTableWidgetItem(produto_obj.tamanho if produto_obj and produto_obj.tamanho else "")
+            tamanho_item = QTableWidgetItem(
+                produto_obj.tamanho if produto_obj and produto_obj.tamanho else ""
+            )
             tamanho_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 3, tamanho_item)
 
             # Referência
-            ref_item = QTableWidgetItem(produto_obj.referencia if produto_obj and produto_obj.referencia else "")
+            ref_item = QTableWidgetItem(
+                produto_obj.referencia if produto_obj and produto_obj.referencia else ""
+            )
             ref_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 4, ref_item)
 
             # Preço
-            preco_item = QTableWidgetItem(formatar_moeda(produto['preco']))
+            preco_item = QTableWidgetItem(formatar_moeda(produto["preco"]))
             preco_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 5, preco_item)
 
             # Quantidade
-            qtde_item = QTableWidgetItem(str(produto['quantidade']))
+            qtde_item = QTableWidgetItem(str(produto["quantidade"]))
             qtde_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 6, qtde_item)
 
             # Subtotal
-            subtotal_item = QTableWidgetItem(formatar_moeda(produto['subtotal']))
+            subtotal_item = QTableWidgetItem(formatar_moeda(produto["subtotal"]))
             subtotal_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 7, subtotal_item)
 
@@ -878,8 +931,9 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
     def _verificar_habilitar_finalizacao(self):
         """Verifica se pode habilitar finalização"""
-        pode_finalizar = (len(self.produtos_selecionados) > 0 and
-                         self.cliente_selecionado is not None)
+        pode_finalizar = (
+            len(self.produtos_selecionados) > 0 and self.cliente_selecionado is not None
+        )
         self.btn_finalizar.setEnabled(pode_finalizar)
 
     def _finalizar_venda(self):
@@ -889,25 +943,29 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             return
 
         if not self.produtos_selecionados:
-            QMessageBox.warning(self, "Aviso", "Adicione pelo menos um produto à venda.")
+            QMessageBox.warning(
+                self, "Aviso", "Adicione pelo menos um produto à venda."
+            )
             return
 
-        total_produtos = sum(prod['subtotal'] for prod in self.produtos_selecionados)
+        total_produtos = sum(prod["subtotal"] for prod in self.produtos_selecionados)
         total_venda = aplicar_desconto_total(total_produtos, self.desconto_total)
 
-        pagamento_dialog = PagamentoDialog(total_venda, self.cliente_selecionado.id, self)
+        pagamento_dialog = PagamentoDialog(
+            total_venda, self.cliente_selecionado.id, self
+        )
         if pagamento_dialog.exec():
             dados_pagamento = pagamento_dialog.get_dados()
 
-            forma_pagamento = dados_pagamento['forma_pagamento']
-            parcelas = dados_pagamento['parcelas']
-            data_primeiro_vencimento = dados_pagamento['data_primeiro_vencimento']
-            valor_entrada = dados_pagamento['valor_entrada']
-            valor_financiado = dados_pagamento['valor_financiado']
+            forma_pagamento = dados_pagamento["forma_pagamento"]
+            parcelas = dados_pagamento["parcelas"]
+            data_primeiro_vencimento = dados_pagamento["data_primeiro_vencimento"]
+            valor_entrada = dados_pagamento["valor_entrada"]
+            valor_financiado = dados_pagamento["valor_financiado"]
 
             try:
-                from models.venda import Venda
                 from models.duplicata import Duplicata
+                from models.venda import Venda
 
                 observacao = self.observacao
 
@@ -915,12 +973,16 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     cliente_id=self.cliente_selecionado.id,
                     total=total_venda,
                     forma_pagamento=forma_pagamento,
-                    status='concluida' if forma_pagamento in ['Dinheiro', 'Pix', 'Cartão'] else 'parcelada',
+                    status=(
+                        "concluida"
+                        if forma_pagamento in ["Dinheiro", "Pix", "Cartão"]
+                        else "parcelada"
+                    ),
                     parcelas=parcelas,
                     desconto=self.desconto_total,
                     observacao=observacao,
                     valor_entrada=valor_entrada,
-                    valor_financiado=valor_financiado
+                    valor_financiado=valor_financiado,
                 )
                 venda_id = venda.salvar()
 
@@ -928,16 +990,19 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
                 # Atualizar estoque
                 for produto in self.produtos_selecionados:
-                    produto_obj = Produto.buscar_por_id(produto['id'])
+                    produto_obj = Produto.buscar_por_id(produto["id"])
                     if produto_obj:
-                        produto_obj.estoque -= produto['quantidade']
+                        produto_obj.estoque -= produto["quantidade"]
                         produto_obj.salvar()
 
                 # Criar parcelas se crediário - usar valor financiado
-                if forma_pagamento == 'Crediario':
+                if forma_pagamento == "Crediario":
                     Duplicata.criar_parcelas(
-                        venda_id, self.cliente_selecionado.id, valor_financiado,
-                        parcelas, data_primeiro_vencimento
+                        venda_id,
+                        self.cliente_selecionado.id,
+                        valor_financiado,
+                        parcelas,
+                        data_primeiro_vencimento,
                     )
                     self.venda_crediario_realizada.emit(self.cliente_selecionado.id)
 
