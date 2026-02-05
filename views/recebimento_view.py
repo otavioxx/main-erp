@@ -1,5 +1,5 @@
 """
-View de Recebimentos - Otimizada com layout consistente ao CondicionalView
+View de Recebimentos - Otimizada para performance
 """
 
 import os
@@ -40,7 +40,7 @@ from utils.helpers import (
 
 
 class RecebimentoView(TableScrollNavigationMixin, QWidget):
-    """View de gestão de recebimentos otimizada"""
+    """View de gestão de recebimentos otimizada para performance"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -48,9 +48,17 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         self.duplicatas_filtradas = []
         self.ultima_duplicata_paga = None
         self.todas_duplicatas = []
+        self._parcelas_cache = {}  # Cache para total de parcelas
+        self._loaded = False  # Flag para carregamento lazy
         self._init_ui()
-        self._carregar_duplicatas()
         criar_pasta_se_nao_existir("relatorios")
+
+    def showEvent(self, event):
+        """Carrega dados apenas quando a view é exibida (lazy loading)"""
+        if not self._loaded:
+            self._carregar_duplicatas()
+            self._loaded = True
+        super().showEvent(event)
 
     def _init_ui(self):
         """Inicializa interface com layout consistente ao CondicionalView"""
@@ -83,7 +91,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         header_layout.addWidget(titulo)
 
         # Label informativo
-        self.label_info = QLabel("(Duplicatas abertas)")
+        self.label_info = QLabel("(Carregando...)")
         self.label_info.setProperty("class", "muted")
         header_layout.addWidget(self.label_info)
         header_layout.addStretch()
@@ -104,7 +112,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         self.busca_cliente = QLineEdit()
         self.busca_cliente.setPlaceholderText("Buscar por nome do cliente...")
         self.busca_cliente.setMaximumWidth(300)
-        self.busca_cliente.textChanged.connect(self._filtrar_duplicatas)
+        self.busca_cliente.textChanged.connect(self._filtrar_duplicatas_otimizado)
         filtro_layout.addWidget(self.busca_cliente)
 
         # ComboBox de status (após busca de cliente)
@@ -114,7 +122,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         self.combo_status.addItems(["Abertas", "Vencidas", "Pagas", "Todas"])
         self.combo_status.setCurrentText("Abertas")
         self.combo_status.setMaximumWidth(120)
-        self.combo_status.currentTextChanged.connect(self._filtrar_duplicatas)
+        self.combo_status.currentTextChanged.connect(self._filtrar_duplicatas_otimizado)
         filtro_layout.addWidget(self.combo_status)
 
         filtro_layout.addStretch()
@@ -140,7 +148,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         self.data_inicio = QLineEdit()
         self.data_inicio.setPlaceholderText("DD/MM/AAAA")
         self.data_inicio.setMaximumWidth(100)
-        self.data_inicio.textChanged.connect(self._filtrar_duplicatas)
+        self.data_inicio.textChanged.connect(self._filtrar_duplicatas_otimizado)
         layout.addWidget(self.data_inicio)
 
         layout.addWidget(QLabel("até:"))
@@ -148,7 +156,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         self.data_fim = QLineEdit()
         self.data_fim.setPlaceholderText("DD/MM/AAAA")
         self.data_fim.setMaximumWidth(100)
-        self.data_fim.textChanged.connect(self._filtrar_duplicatas)
+        self.data_fim.textChanged.connect(self._filtrar_duplicatas_otimizado)
         layout.addWidget(self.data_fim)
 
     def _criar_grupo_acoes(self, layout):
@@ -218,7 +226,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 "Parcela",
                 "Valor",
                 "Vencimento",
-                "Pagamento",  # MUDANÇA: Status movido para posição 2
+                "Pagamento",
             ]
         )
 
@@ -227,19 +235,19 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Cliente
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Status - MOVIDO
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Status
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Venda
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Parcela
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Valor
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Vencimento
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)  # Pagamento
 
-        # Larguras das colunas - AJUSTADAS
-        larguras = [50, 180, 80, 60, 60, 80, 100, 100]  # Status agora na posição 2
+        # Larguras das colunas
+        larguras = [50, 180, 80, 60, 60, 80, 100, 100]
         for i, largura in enumerate(larguras):
             self.tabela_duplicatas.setColumnWidth(i, largura)
 
-        # Configurações gerais (sem mudanças)
+        # Configurações gerais
         self.tabela_duplicatas.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
         )
@@ -254,75 +262,137 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
         self.setup_scroll_navigation(
             tabela=self.tabela_duplicatas,
-            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
-            auto_select_first=True,  # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,
+            auto_select_first=True,
         )
 
-    def _debug_selecao(self):
-        """Método de debug para verificar seleção"""
-        row = self.tabela_duplicatas.currentRow()
-        selected_items = self.tabela_duplicatas.selectedItems()
-        print(f"DEBUG - Linha atual: {row}, Items selecionados: {len(selected_items)}")
-
-    # ========== MÉTODOS DE DADOS ==========
-
-    def _get_status_selecionado(self):
-        """Retorna status selecionado no ComboBox"""
-        return self.combo_status.currentText()
+    # ========== MÉTODOS DE DADOS OTIMIZADOS ==========
 
     def _carregar_duplicatas(self):
-        """Carrega duplicatas do banco"""
+        """Carrega duplicatas do banco - VERSÃO OTIMIZADA"""
         try:
+            # Mostrar estado de carregamento
+            self.label_info.setText("(Carregando...)")
+
             conn = Database().get_connection()
             cursor = conn.cursor()
 
-            # Duplicatas abertas
-            query_abertas = """
-                SELECT
-                    d.id, d.cliente_id, d.venda_id, d.numero_parcela,
-                    d.valor_parcela, d.data_vencimento, d.data_pagamento,
-                    d.status, c.nome as cliente_nome, v.total as venda_total,
-                    v.data_venda
+            # CONSULTA ÚNICA OTIMIZADA com UNION ALL
+            query = """
+                -- Duplicatas abertas
+                SELECT 
+                    d.id, 
+                    d.cliente_id, 
+                    d.venda_id, 
+                    d.numero_parcela,
+                    d.valor_parcela as valor,
+                    d.data_vencimento,
+                    NULL as data_pagamento,
+                    'aberto' as status,
+                    c.nome as cliente_nome,
+                    v.total as venda_total,
+                    v.data_venda,
+                    NULL as forma_pagamento,
+                    0 as is_paga
                 FROM duplicatas d
                 LEFT JOIN clientes c ON d.cliente_id = c.id
                 LEFT JOIN vendas v ON d.venda_id = v.id
                 WHERE d.status = 'aberto'
-                ORDER BY d.data_vencimento
-            """
-
-            cursor.execute(query_abertas)
-            duplicatas_abertas = cursor.fetchall()
-
-            # Duplicatas pagas
-            query_pagas = """
-                SELECT
-                    dp.id, dp.cliente_id, dp.venda_id, dp.numero_parcela,
-                    dp.valor_original, dp.valor_recebido, dp.data_vencimento,
-                    dp.data_pagamento, dp.forma_pagamento,
-                    c.nome as cliente_nome, c.cpf_cnpj, c.endereco,
-                    v.total as venda_total, v.data_venda,
-                    'pago' AS status
+                
+                UNION ALL
+                
+                -- Duplicatas pagas
+                SELECT 
+                    dp.id,
+                    dp.cliente_id,
+                    dp.venda_id,
+                    dp.numero_parcela,
+                    dp.valor_original as valor,
+                    dp.data_vencimento,
+                    dp.data_pagamento,
+                    'pago' as status,
+                    c.nome as cliente_nome,
+                    v.total as venda_total,
+                    v.data_venda,
+                    dp.forma_pagamento,
+                    1 as is_paga
                 FROM duplicatas_pagas dp
                 LEFT JOIN clientes c ON dp.cliente_id = c.id
                 LEFT JOIN vendas v ON dp.venda_id = v.id
-                ORDER BY dp.data_pagamento DESC
+                ORDER BY status, data_vencimento
             """
 
-            cursor.execute(query_pagas)
-            duplicatas_pagas = cursor.fetchall()
+            cursor.execute(query)
+            self.todas_duplicatas = cursor.fetchall()
 
-            self.todas_duplicatas = duplicatas_abertas + duplicatas_pagas
-            self._filtrar_duplicatas()
+            # DEBUG: Quantidade de registros
+            print(f"Recebimentos: Carregadas {len(self.todas_duplicatas)} duplicatas")
+
+            # Inicializar cache de parcelas
+            self._inicializar_cache_parcelas()
+
+            # Filtrar e exibir
+            self._filtrar_duplicatas_otimizado()
 
         except Exception as e:
+            self.label_info.setText("(Erro ao carregar)")
             QMessageBox.critical(self, "Erro", f"Erro ao carregar duplicatas: {str(e)}")
         finally:
             if "conn" in locals():
                 conn.close()
 
-    def _filtrar_duplicatas(self):
-        """Filtra duplicatas baseado nos critérios - MÉTODO CORRIGIDO"""
-        if not hasattr(self, "todas_duplicatas"):
+    def _inicializar_cache_parcelas(self):
+        """Inicializa cache de total de parcelas por venda"""
+        self._parcelas_cache = {}
+
+        # Coletar IDs de vendas únicas
+        venda_ids = set()
+        for dup in self.todas_duplicatas:
+            venda_id = dup[2]  # venda_id está na posição 2
+            if venda_id:
+                venda_ids.add(venda_id)
+
+        if not venda_ids:
+            return
+
+        try:
+            conn = Database().get_connection()
+            cursor = conn.cursor()
+
+            # Buscar totais para todas as vendas de uma vez
+            for venda_id in venda_ids:
+                cursor.execute(
+                    """
+                    SELECT COUNT(*) FROM duplicatas WHERE venda_id = ? AND status = 'aberto'
+                """,
+                    (venda_id,),
+                )
+                count_abertas = cursor.fetchone()[0] or 0
+
+                cursor.execute(
+                    """
+                    SELECT COUNT(*) FROM duplicatas_pagas WHERE venda_id = ?
+                """,
+                    (venda_id,),
+                )
+                count_pagas = cursor.fetchone()[0] or 0
+
+                total = count_abertas + count_pagas
+                self._parcelas_cache[venda_id] = total if total > 0 else 1
+
+            conn.close()
+
+        except Exception as e:
+            print(f"Erro ao inicializar cache de parcelas: {e}")
+            # Se houver erro, usa fallback
+            for venda_id in venda_ids:
+                self._parcelas_cache[venda_id] = 1
+
+    def _filtrar_duplicatas_otimizado(self):
+        """Filtra duplicatas - VERSÃO OTIMIZADA"""
+        if not hasattr(self, "todas_duplicatas") or not self.todas_duplicatas:
+            self.tabela_duplicatas.setRowCount(0)
+            self.label_info.setText("(0 duplicatas)")
             return
 
         status_filtro = self._get_status_selecionado()
@@ -330,7 +400,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         data_fim_str = self.data_fim.text().strip()
         cliente_nome_busca = self.busca_cliente.text().strip().lower()
 
-        # Validação visual das datas
+        # Validação rápida de datas
         if data_inicio_str and not validar_data(data_inicio_str):
             self._marcar_campo_erro(self.data_inicio)
             return
@@ -343,48 +413,46 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         else:
             self._limpar_campo_erro(self.data_fim)
 
-        # Converter datas
+        # Converter datas uma vez
         data_inicio = None
         data_fim = None
+        hoje = datetime.now().date()
 
         if data_inicio_str:
-            data_inicio = datetime.strptime(data_inicio_str, "%d/%m/%Y").date()
+            try:
+                data_inicio = datetime.strptime(data_inicio_str, "%d/%m/%Y").date()
+            except:
+                pass
+
         if data_fim_str:
-            data_fim = datetime.strptime(data_fim_str, "%d/%m/%Y").date()
+            try:
+                data_fim = datetime.strptime(data_fim_str, "%d/%m/%Y").date()
+            except:
+                pass
 
         duplicatas_filtradas = []
 
+        # Filtro otimizado em uma passada
         for dup in self.todas_duplicatas:
-            # Identificar tipo de duplicata
-            is_paga = len(dup) == 15
+            # Acesso direto por índice
+            status = dup[7]  # status
+            cliente_nome = dup[8]  # cliente_nome
+            data_vencimento = dup[5]  # data_vencimento
+            data_pagamento = dup[6]  # data_pagamento
 
-            if is_paga:
-                status = "pago"
-                data_vencimento = dup[6]
-                data_pagamento = dup[7]
-                cliente_id = dup[1]
-                cliente_nome = dup[9]  # Índice correto para duplicatas pagas
-            else:
-                status = dup[7]
-                data_vencimento = dup[5]
-                data_pagamento = dup[6]
-                cliente_id = dup[1]
-                cliente_nome = dup[8]  # Índice correto para duplicatas abertas
-
-            # Filtro de status
-            status_ok = self._validar_status_filtro(
-                status_filtro, status, data_vencimento
-            )
-            if not status_ok:
+            # 1. Filtro de status (mais rápido primeiro)
+            if not self._validar_status_filtro(
+                status_filtro, status, data_vencimento, hoje
+            ):
                 continue
 
-            # Filtro por nome de cliente (CORRIGIDO)
+            # 2. Filtro por nome do cliente
             if cliente_nome_busca:
-                nome_cliente_atual = str(cliente_nome).lower() if cliente_nome else ""
-                if cliente_nome_busca not in nome_cliente_atual:
+                nome_atual = str(cliente_nome).lower() if cliente_nome else ""
+                if cliente_nome_busca not in nome_atual:
                     continue
 
-            # Filtro de data
+            # 3. Filtro de data
             if not self._validar_data_filtro(
                 status, data_vencimento, data_pagamento, data_inicio, data_fim
             ):
@@ -392,15 +460,157 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
             duplicatas_filtradas.append(dup)
 
-        # Ordenar
-        self._ordenar_duplicatas(duplicatas_filtradas)
-
         self.duplicatas_filtradas = duplicatas_filtradas
-        self._exibir_duplicatas(duplicatas_filtradas)
+        self._exibir_duplicatas_otimizado(duplicatas_filtradas)
         self._atualizar_label_info()
 
+    def _validar_status_filtro(self, status_filtro, status, data_vencimento, hoje):
+        """Validação de status otimizada"""
+        if status_filtro == "Abertas":
+            return status == "aberto"
+        elif status_filtro == "Vencidas":
+            if status != "aberto":
+                return False
+            if not data_vencimento:
+                return False
+            try:
+                data_venc = datetime.strptime(data_vencimento, "%Y-%m-%d").date()
+                return data_venc < hoje
+            except:
+                return False
+        elif status_filtro == "Pagas":
+            return status == "pago"
+        elif status_filtro == "Todas":
+            return True
+        return False
+
+    def _validar_data_filtro(
+        self, status, data_vencimento, data_pagamento, data_inicio, data_fim
+    ):
+        """Validação de data otimizada"""
+        data_referencia = data_vencimento if status == "aberto" else data_pagamento
+
+        if not data_referencia:
+            return not data_inicio and not data_fim
+
+        try:
+            data_ref = datetime.strptime(data_referencia, "%Y-%m-%d").date()
+
+            if data_inicio and data_ref < data_inicio:
+                return False
+
+            if data_fim and data_ref > data_fim:
+                return False
+
+            return True
+        except:
+            return False
+
+    def _exibir_duplicatas_otimizado(self, duplicatas):
+        """Exibe duplicatas na tabela - VERSÃO OTIMIZADA"""
+        # Desabilitar ordenação durante preenchimento
+        self.tabela_duplicatas.setSortingEnabled(False)
+        self.tabela_duplicatas.setRowCount(len(duplicatas))
+
+        for row, dup in enumerate(duplicatas):
+            self._preencher_linha_tabela_otimizado(row, dup)
+
+        # Reativar ordenação
+        self.tabela_duplicatas.setSortingEnabled(True)
+
+        # Selecionar primeira linha se houver dados
+        if duplicatas and self.tabela_duplicatas.rowCount() > 0:
+            self.tabela_duplicatas.selectRow(0)
+
+    def _preencher_linha_tabela_otimizado(self, row, dup):
+        """Preenche uma linha da tabela - VERSÃO OTIMIZADA"""
+        # Extrair dados com índices fixos
+        id_dup = dup[0]  # id
+        cliente_nome = dup[8]  # cliente_nome
+        venda_id = dup[2]  # venda_id
+        numero_parcela = dup[3]  # numero_parcela
+        valor = dup[4]  # valor
+        data_vencimento = dup[5]  # data_vencimento
+        data_pagamento = dup[6]  # data_pagamento
+        status = dup[7]  # status
+        forma_pagamento = dup[11]  # forma_pagamento (apenas para pagas)
+
+        # Obter total de parcelas do cache
+        total_parcelas = self._parcelas_cache.get(venda_id, 1)
+        parcela_formatada = f"{numero_parcela}/{total_parcelas}"
+
+        # Preencher células básicas
+        cells = [
+            (0, str(id_dup), Qt.AlignmentFlag.AlignCenter, None),
+            (1, str(cliente_nome) if cliente_nome else "N/A", None, None),
+            (3, str(venda_id), Qt.AlignmentFlag.AlignCenter, None),
+            (4, parcela_formatada, Qt.AlignmentFlag.AlignCenter, None),
+            (
+                5,
+                formatar_moeda(float(valor)) if valor else "0.00",
+                (Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter),
+                None,
+            ),
+        ]
+
+        for col, text, align, color in cells:
+            item = QTableWidgetItem(text)
+            if align:
+                item.setTextAlignment(align)
+            if color:
+                item.setForeground(QBrush(color))
+            self.tabela_duplicatas.setItem(row, col, item)
+
+        # Status (coluna 2)
+        status_text = status.capitalize()
+        if status == "pago" and forma_pagamento:
+            status_text = f"{status_text} ({forma_pagamento})"
+
+        status_item = QTableWidgetItem(status_text)
+        status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        if status == "pago":
+            status_item.setForeground(QBrush(QColor(0, 150, 0)))
+        elif status == "aberto":
+            status_item.setForeground(QBrush(QColor(237, 145, 33)))
+
+        self.tabela_duplicatas.setItem(row, 2, status_item)
+
+        # Vencimento (coluna 6)
+        vencimento = (
+            formatar_data(data_vencimento, "%Y-%m-%d", "%d/%m/%Y")
+            if data_vencimento
+            else "N/A"
+        )
+        venc_item = QTableWidgetItem(vencimento)
+        venc_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Aplicar cor se vencida
+        if status == "aberto" and data_vencimento:
+            try:
+                data_venc = datetime.strptime(data_vencimento, "%Y-%m-%d").date()
+                if data_venc < datetime.now().date():
+                    venc_item.setForeground(QBrush(QColor(140, 47, 47)))
+                    font = venc_item.font()
+                    font.setBold(True)
+                    venc_item.setFont(font)
+            except:
+                pass
+
+        self.tabela_duplicatas.setItem(row, 6, venc_item)
+
+        # Pagamento (coluna 7)
+        pagamento = (
+            formatar_data(data_pagamento, "%Y-%m-%d", "%d/%m/%Y")
+            if data_pagamento
+            else "N/A"
+        )
+        pag_item = QTableWidgetItem(pagamento)
+        pag_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.tabela_duplicatas.setItem(row, 7, pag_item)
+
     def _atualizar_label_info(self):
-        """Atualiza label informativo baseado nos filtros"""
+        """Atualiza label informativo"""
         total_duplicatas = len(self.duplicatas_filtradas)
         status = self._get_status_selecionado()
         cliente = self.busca_cliente.text().strip()
@@ -425,212 +635,9 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
         self.label_info.setText(" - ".join(info_parts) + ")")
 
-    def _validar_status_filtro(self, status_filtro, status, data_vencimento):
-        """Valida se duplicata atende filtro de status"""
-        if status_filtro == "Abertas" and status == "aberto":
-            return True
-        elif status_filtro == "Vencidas" and status == "aberto":
-            if data_vencimento:
-                try:
-                    data_venc = datetime.strptime(data_vencimento, "%Y-%m-%d").date()
-                    return data_venc < datetime.now().date()
-                except (ValueError, TypeError):
-                    pass
-        elif status_filtro == "Pagas" and status == "pago":
-            return True
-        elif status_filtro == "Todas":
-            return True
-        return False
-
-    def _validar_data_filtro(
-        self, status, data_vencimento, data_pagamento, data_inicio, data_fim
-    ):
-        """Valida se duplicata atende filtro de data"""
-        data_referencia = data_vencimento if status == "aberto" else data_pagamento
-
-        if data_referencia and isinstance(data_referencia, str):
-            try:
-                data_ref = datetime.strptime(data_referencia, "%Y-%m-%d").date()
-
-                if data_inicio and data_ref < data_inicio:
-                    return False
-
-                if data_fim and data_ref > data_fim:
-                    return False
-
-            except (ValueError, TypeError):
-                return False
-
-        return True
-
-    def _ordenar_duplicatas(self, duplicatas_filtradas):
-        """Ordena duplicatas por data"""
-        try:
-            duplicatas_filtradas.sort(
-                key=lambda d: (
-                    datetime.strptime(d[6] if len(d) == 15 else d[5], "%Y-%m-%d").date()
-                    if (d[6] if len(d) == 15 else d[5])
-                    and isinstance((d[6] if len(d) == 15 else d[5]), str)
-                    else datetime.max.date()
-                )
-            )
-        except Exception:
-            duplicatas_filtradas.sort(key=lambda d: d[0])
-
-    def _exibir_duplicatas(self, duplicatas):
-        """Exibe duplicatas na tabela"""
-        self.tabela_duplicatas.setRowCount(len(duplicatas))
-
-        for row, dup in enumerate(duplicatas):
-            self._preencher_linha_tabela(row, dup)
-
-    def _preencher_linha_tabela(self, row, dup):
-        """Preenche uma linha da tabela - COM FORMATO DE PARCELA CORRIGIDO"""
-        is_paga = len(dup) == 15
-
-        if is_paga:
-            (
-                id_dup,
-                cliente_id,
-                venda_id,
-            ) = (
-                dup[0],
-                dup[1],
-                dup[2],
-            )
-            cliente_nome, numero_parcela = dup[9], dup[3]
-            valor, data_vencimento = dup[4], dup[6]
-            data_pagamento, status = dup[7], "pago"
-        else:
-            id_dup, cliente_id, venda_id = dup[0], dup[1], dup[2]
-            cliente_nome, numero_parcela = dup[8], dup[3]
-            valor, data_vencimento = dup[4], dup[5]
-            data_pagamento, status = dup[6], dup[7]
-
-        # NOVO: Buscar total de parcelas da venda para exibir formato "1/3"
-        total_parcelas = self._get_total_parcelas_venda(venda_id)
-        parcela_formatada = (
-            f"{numero_parcela}/{total_parcelas}"
-            if total_parcelas
-            else str(numero_parcela)
-        )
-
-        # Preencher células - ÍNDICES AJUSTADOS
-        items = [
-            (0, str(id_dup), Qt.AlignmentFlag.AlignCenter),
-            (1, str(cliente_nome) if cliente_nome else "N/A", None),
-            # Status agora na posição 2 - será preenchido separadamente
-            (3, str(venda_id), Qt.AlignmentFlag.AlignCenter),
-            (
-                4,
-                parcela_formatada,
-                Qt.AlignmentFlag.AlignCenter,
-            ),  # MUDANÇA: usar parcela_formatada
-            (
-                5,
-                formatar_moeda(float(valor)) if valor else "0.00",
-                (Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter),
-            ),
-        ]
-
-        for col, text, align in items:
-            item = QTableWidgetItem(text)
-            if align:
-                item.setTextAlignment(align)
-            self.tabela_duplicatas.setItem(row, col, item)
-
-        # Status na posição 2 - NOVO
-        self._preencher_status(row, status)
-
-        # Vencimento com cor especial - MUDANÇA: de posição 5 para 6
-        self._preencher_vencimento(row, data_vencimento, status)
-
-        # Pagamento - MUDANÇA: de posição 6 para 7
-        pagamento = (
-            formatar_data(data_pagamento, "%Y-%m-%d", "%d/%m/%Y")
-            if data_pagamento
-            else "N/A"
-        )
-        pag_item = QTableWidgetItem(pagamento)
-        pag_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.tabela_duplicatas.setItem(row, 7, pag_item)
-
-    def _get_total_parcelas_venda(self, venda_id):
-        """Obtém o total de parcelas de uma venda - MÉTODO NOVO"""
-        try:
-            conn = Database().get_connection()
-            cursor = conn.cursor()
-
-            # Buscar nas duplicatas abertas
-            cursor.execute(
-                """
-                SELECT COUNT(*) FROM duplicatas WHERE venda_id = ?
-            """,
-                (venda_id,),
-            )
-
-            count_abertas = cursor.fetchone()[0]
-
-            # Buscar nas duplicatas pagas
-            cursor.execute(
-                """
-                SELECT COUNT(*) FROM duplicatas_pagas WHERE venda_id = ?
-            """,
-                (venda_id,),
-            )
-
-            count_pagas = cursor.fetchone()[0]
-
-            conn.close()
-
-            total = count_abertas + count_pagas
-            return total if total > 0 else 1  # Fallback para 1 se não encontrar
-
-        except Exception as e:
-            print(f"Erro ao buscar total de parcelas: {e}")
-            return 1  # Fallback para 1 em caso de erro
-
-    def _preencher_vencimento(self, row, data_vencimento, status):
-        """Preenche coluna de vencimento com cores - APENAS a coluna quando vencida"""
-        vencimento = (
-            formatar_data(data_vencimento, "%Y-%m-%d", "%d/%m/%Y")
-            if data_vencimento
-            else "N/A"
-        )
-        venc_item = QTableWidgetItem(vencimento)
-        venc_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Aplicar cor vermelha APENAS na coluna de vencimento para duplicatas vencidas
-        if status == "aberto" and data_vencimento:
-            try:
-                data_venc = datetime.strptime(data_vencimento, "%Y-%m-%d").date()
-                if data_venc < datetime.now().date():
-                    # Cor vermelha apenas para esta célula
-                    venc_item.setForeground(
-                        QBrush(QColor(140, 47, 47))
-                    )  # Vermelho mais forte
-                    # Opcional: deixar em negrito para maior destaque
-                    font = venc_item.font()
-                    font.setBold(True)
-                    venc_item.setFont(font)
-            except (ValueError, TypeError):
-                pass
-
-        self.tabela_duplicatas.setItem(row, 6, venc_item)
-
-    def _preencher_status(self, row, status):
-        """Preenche coluna de status com cores"""
-        status_item = QTableWidgetItem(status.capitalize())
-        status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        if status == "pago":
-            status_item.setForeground(QBrush(QColor(0, 150, 0)))  # Verde mais escuro
-        elif status == "aberto":
-            status_item.setForeground(
-                QBrush(QColor(237, 145, 33))
-            )  # Amarelo mais escuro
-
-        self.tabela_duplicatas.setItem(row, 2, status_item)
+    def _get_status_selecionado(self):
+        """Retorna status selecionado no ComboBox"""
+        return self.combo_status.currentText()
 
     # ========== MÉTODOS DE AÇÃO ==========
 
@@ -643,7 +650,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         self._limpar_campo_erro(self.data_inicio)
         self._limpar_campo_erro(self.data_fim)
         self.cliente_filtro = None
-        self._filtrar_duplicatas()
+        self._filtrar_duplicatas_otimizado()
 
     def _get_duplicata_selecionada(self):
         """Retorna duplicata selecionada"""
@@ -661,15 +668,14 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             return None
 
     def _receber_duplicata(self):
-        """Processa recebimento de duplicata - VERSÃO CORRIGIDA"""
+        """Processa recebimento de duplicata"""
         duplicata = self._get_duplicata_selecionada()
         if not duplicata:
             QMessageBox.warning(self, "Aviso", "Selecione uma duplicata para receber")
             return
 
-        # Verificar se é duplicata paga (não pode receber novamente)
-        is_paga = len(duplicata) == 15
-        if is_paga or (len(duplicata) > 7 and duplicata[7] == "pago"):
+        # Verificar se já está paga
+        if duplicata[7] == "pago":  # status na posição 7
             QMessageBox.warning(self, "Aviso", "Esta duplicata já está paga")
             return
 
@@ -677,7 +683,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         if dialog.exec():
             valor_recebido, data_recebimento, forma_pagamento = dialog.get_dados()
             try:
-                # Processar recebimento e obter dados da duplicata paga
+                # Processar recebimento
                 dados_duplicata_paga = self._processar_recebimento_com_retorno(
                     duplicata, valor_recebido, data_recebimento, forma_pagamento
                 )
@@ -690,7 +696,8 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 if self._confirmar_impressao():
                     self._imprimir_comprovante_direto(dados_duplicata_paga)
 
-                self._carregar_duplicatas()
+                # Recarregar dados
+                self._recarregar_dados_apos_recebimento()
 
             except Exception as e:
                 QMessageBox.critical(
@@ -717,70 +724,75 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             if not success:
                 raise Exception("Falha ao processar recebimento")
 
-            # Buscar dados do cliente para o comprovante
-            try:
-                conn = Database().get_connection()
-                cursor = conn.cursor()
+            # Buscar dados para comprovante
+            conn = Database().get_connection()
+            cursor = conn.cursor()
 
-                cursor.execute(
-                    """
-                    SELECT c.nome, c.cpf_cnpj, c.endereco, v.total, v.data_venda
-                    FROM clientes c
-                    LEFT JOIN vendas v ON v.cliente_id = c.id
-                    WHERE c.id = ? AND v.id = ?
-                """,
-                    (cliente_id, venda_id),
-                )
+            cursor.execute(
+                """
+                SELECT c.nome, c.cpf_cnpj, c.endereco, v.total, v.data_venda
+                FROM clientes c
+                LEFT JOIN vendas v ON v.cliente_id = c.id
+                WHERE c.id = ? AND v.id = ?
+            """,
+                (cliente_id, venda_id),
+            )
 
-                cliente_venda = cursor.fetchone()
-                conn.close()
+            cliente_venda = cursor.fetchone()
+            conn.close()
 
-                if not cliente_venda:
-                    raise Exception("Dados do cliente/venda não encontrados")
+            if not cliente_venda:
+                raise Exception("Dados do cliente/venda não encontrados")
 
-                # Montar dados completos para o comprovante
-                dados_comprovante = {
-                    "id": duplicata_id,
-                    "venda_id": venda_id,
-                    "cliente_id": cliente_id,
-                    "numero_parcela": numero_parcela,
-                    "valor_original": float(valor_original),
-                    "valor_recebido": float(valor_recebido),
-                    "data_vencimento": data_vencimento,
-                    "data_pagamento": data_recebimento,
-                    "forma_pagamento": forma_pagamento,
-                    "cliente_nome": cliente_venda[0],
-                    "cpf_cnpj": cliente_venda[1],
-                    "endereco": cliente_venda[2],
-                    "venda_total": float(cliente_venda[3]) if cliente_venda[3] else 0,
-                    "data_venda": cliente_venda[4],
-                }
+            # Montar dados para comprovante
+            dados_comprovante = {
+                "id": duplicata_id,
+                "venda_id": venda_id,
+                "cliente_id": cliente_id,
+                "numero_parcela": numero_parcela,
+                "valor_original": float(valor_original),
+                "valor_recebido": float(valor_recebido),
+                "data_vencimento": data_vencimento,
+                "data_pagamento": data_recebimento,
+                "forma_pagamento": forma_pagamento,
+                "cliente_nome": cliente_venda[0],
+                "cpf_cnpj": cliente_venda[1],
+                "endereco": cliente_venda[2],
+                "venda_total": float(cliente_venda[3]) if cliente_venda[3] else 0,
+                "data_venda": cliente_venda[4],
+            }
 
-                return dados_comprovante
-
-            except Exception as e:
-                raise Exception(f"Erro ao buscar dados complementares: {str(e)}")
+            return dados_comprovante
 
         except Exception as e:
             raise e
 
+    def _recarregar_dados_apos_recebimento(self):
+        """Recarrega dados após recebimento - otimizado"""
+        # Atualizar cache localmente primeiro
+        venda_id = (
+            self._get_duplicata_selecionada()[2]
+            if self._get_duplicata_selecionada()
+            else None
+        )
+
+        if venda_id and venda_id in self._parcelas_cache:
+            # Atualizar contagem no cache
+            self._parcelas_cache[venda_id] += 1
+
+        # Recarregar apenas se necessário
+        self._carregar_duplicatas()
+
     def _imprimir_comprovante_direto(self, dados_duplicata):
-        """Imprime comprovante usando dados diretos da duplicata"""
+        """Imprime comprovante usando dados diretos"""
         try:
             filename = PrintComprovanteRecebimento.gerar_comprovante(
                 dados_duplicata, "relatorios"
             )
             if filename:
-                try:
-                    if ExportUtils.abrir_arquivo(filename):
-                        print(f"Comprovante gerado e aberto: {filename}")
-                    else:
-                        QMessageBox.information(
-                            self,
-                            "Sucesso",
-                            f"Comprovante salvo em:\n{filename}\n\nNão foi possível abrir automaticamente.",
-                        )
-                except Exception as e:
+                if ExportUtils.abrir_arquivo(filename):
+                    print(f"Comprovante gerado: {filename}")
+                else:
                     QMessageBox.information(
                         self,
                         "Sucesso",
@@ -804,196 +816,6 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         )
         return resposta == QMessageBox.StandardButton.Yes
 
-    def _imprimir_comprovante_recebimento(self, duplicata):
-        """Imprime comprovante de recebimento"""
-        try:
-            conn = Database().get_connection()
-            cursor = conn.cursor()
-
-            cursor.execute(
-                """
-                SELECT
-                    dp.id, dp.venda_id, dp.cliente_id, dp.numero_parcela,
-                    dp.valor_original, dp.valor_recebido, dp.data_vencimento,
-                    dp.data_pagamento, dp.forma_pagamento,
-                    c.nome as cliente_nome, c.cpf_cnpj, c.endereco,
-                    v.total as venda_total, v.data_venda
-                FROM duplicatas_pagas dp
-                LEFT JOIN clientes c ON dp.cliente_id = c.id
-                LEFT JOIN vendas v ON dp.venda_id = v.id
-                WHERE dp.venda_id = ? AND dp.numero_parcela = ?
-            """,
-                (duplicata[2], duplicata[3]),
-            )
-
-            duplicata_paga = cursor.fetchone()
-            conn.close()
-
-            if duplicata_paga:
-                self._imprimir_comprovante(duplicata_paga)
-            else:
-                QMessageBox.warning(
-                    self, "Aviso", "Duplicata paga não encontrada para impressão."
-                )
-
-        except Exception as e:
-            QMessageBox.critical(
-                self, "Erro", f"Erro ao buscar duplicata paga: {str(e)}"
-            )
-
-    def _imprimir_comprovante(self, duplicata=None):
-        """Imprime comprovante da duplicata - VERSÃO MELHORADA"""
-        if duplicata is None:
-            duplicata = self._get_duplicata_selecionada()
-
-        if not duplicata:
-            QMessageBox.warning(self, "Aviso", "Selecione uma duplicata para imprimir")
-            return
-
-        try:
-            # Extrair venda_id e numero_parcela corretamente
-            venda_id = duplicata[2]
-            numero_parcela = duplicata[3]
-
-            # Buscar com retry para garantir que a transação foi commitada
-            dados_comprovante = None
-            max_tentativas = 3
-
-            for tentativa in range(max_tentativas):
-                try:
-                    conn = Database().get_connection()
-                    cursor = conn.cursor()
-
-                    # Buscar primeiro na tabela de duplicatas pagas
-                    cursor.execute(
-                        """
-                        SELECT
-                            dp.id, dp.venda_id, dp.cliente_id, dp.numero_parcela,
-                            dp.valor_original, dp.valor_recebido, dp.data_vencimento,
-                            dp.data_pagamento, dp.forma_pagamento,
-                            c.nome as cliente_nome, c.cpf_cnpj, c.endereco,
-                            v.total as venda_total, v.data_venda
-                        FROM duplicatas_pagas dp
-                        LEFT JOIN clientes c ON dp.cliente_id = c.id
-                        LEFT JOIN vendas v ON dp.venda_id = v.id
-                        WHERE dp.venda_id = ? AND dp.numero_parcela = ?
-                    """,
-                        (venda_id, numero_parcela),
-                    )
-
-                    row = cursor.fetchone()
-
-                    if row:
-                        # Dados para duplicata paga
-                        dados_comprovante = {
-                            "id": row[0],
-                            "venda_id": row[1],
-                            "cliente_id": row[2],
-                            "numero_parcela": row[3],
-                            "valor_original": float(row[4]),
-                            "valor_recebido": float(row[5]),
-                            "data_vencimento": row[6],
-                            "data_pagamento": row[7],
-                            "forma_pagamento": row[8],
-                            "cliente_nome": row[9],
-                            "cpf_cnpj": row[10],
-                            "endereco": row[11],
-                            "venda_total": float(row[12]) if row[12] else 0,
-                            "data_venda": row[13],
-                        }
-                        break
-                    else:
-                        # Se não encontrou na tabela de pagas, buscar na tabela de abertas
-                        cursor.execute(
-                            """
-                            SELECT
-                                d.id, d.venda_id, d.cliente_id, d.numero_parcela,
-                                d.valor_parcela, d.data_vencimento, d.data_pagamento,
-                                d.status, c.nome as cliente_nome, c.cpf_cnpj, c.endereco,
-                                v.total as venda_total, v.data_venda
-                            FROM duplicatas d
-                            LEFT JOIN clientes c ON d.cliente_id = c.id
-                            LEFT JOIN vendas v ON d.venda_id = v.id
-                            WHERE d.venda_id = ? AND d.numero_parcela = ?
-                        """,
-                            (venda_id, numero_parcela),
-                        )
-
-                        row = cursor.fetchone()
-
-                        if row:
-                            # Dados para duplicata aberta
-                            dados_comprovante = {
-                                "id": row[0],
-                                "venda_id": row[1],
-                                "cliente_id": row[2],
-                                "numero_parcela": row[3],
-                                "valor_original": float(row[4]),
-                                "valor_recebido": float(row[4]),
-                                "data_vencimento": row[5],
-                                "data_pagamento": row[6],
-                                "forma_pagamento": "Não informada",
-                                "cliente_nome": row[8],
-                                "cpf_cnpj": row[9],
-                                "endereco": row[10],
-                                "venda_total": float(row[11]) if row[11] else 0,
-                                "data_venda": row[12],
-                            }
-                            break
-
-                    conn.close()
-
-                    # Se não encontrou em nenhuma tabela na primeira tentativa, aguardar um pouco
-                    if not dados_comprovante and tentativa < max_tentativas - 1:
-                        import time
-
-                        time.sleep(0.5)  # Aguardar 500ms
-
-                except Exception as e:
-                    if "conn" in locals():
-                        conn.close()
-                    if tentativa == max_tentativas - 1:  # Última tentativa
-                        raise e
-                    import time
-
-                    time.sleep(0.5)
-
-            if not dados_comprovante:
-                QMessageBox.warning(
-                    self, "Aviso", "Duplicata não encontrada para impressão."
-                )
-                return
-
-        except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao buscar dados: {str(e)}")
-            return
-
-        # Gerar comprovante
-        if dados_comprovante:
-            filename = PrintComprovanteRecebimento.gerar_comprovante(
-                dados_comprovante, "relatorios"
-            )
-            if filename:
-                try:
-                    if ExportUtils.abrir_arquivo(filename):
-                        print(f"Comprovante gerado: {filename}")
-                    else:
-                        QMessageBox.information(
-                            self,
-                            "Sucesso",
-                            f"Comprovante salvo em:\n{filename}\n\nNão foi possível abrir automaticamente.",
-                        )
-                except Exception as e:
-                    QMessageBox.information(
-                        self,
-                        "Sucesso",
-                        f"Comprovante salvo em:\n{filename}\n\nNão foi possível abrir automaticamente.",
-                    )
-            else:
-                QMessageBox.warning(
-                    self, "Erro", "Não foi possível gerar o comprovante."
-                )
-
     def _imprimir_relatorio(self):
         """Imprime relatório de recebimentos"""
         try:
@@ -1002,8 +824,6 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             data_fim_str = self.data_fim.text().strip()
 
             cliente_id = None
-            # Se houver busca por nome de cliente, não usamos cliente específico no relatório
-            # O relatório vai filtrar por nome internamente
 
             if data_inicio_str and not validar_data(data_inicio_str):
                 QMessageBox.warning(self, "Aviso", "Data inicial inválida")
@@ -1052,8 +872,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         return self._get_status_selecionado()
 
     def selecionar_cliente(self):
-        """Método público para compatibilidade - agora deprecated"""
-        # Mantido para compatibilidade, mas agora usa busca por nome
+        """Método público para compatibilidade"""
         dialog = ClienteSelectionDialog(self)
         if dialog.exec():
             cliente_selecionado = dialog.get_cliente_selecionado()
@@ -1066,11 +885,11 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
     def filtrar_duplicatas(self):
         """Método público para compatibilidade"""
-        self._filtrar_duplicatas()
+        self._filtrar_duplicatas_otimizado()
 
     def exibir_duplicatas(self, duplicatas):
         """Método público para compatibilidade"""
-        self._exibir_duplicatas(duplicatas)
+        self._exibir_duplicatas_otimizado(duplicatas)
 
     def limpar_filtros(self):
         """Método público para compatibilidade"""
@@ -1088,13 +907,49 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         self, duplicata, valor_recebido, data_recebimento, forma_pagamento
     ):
         """Método público para compatibilidade"""
-        self._processar_recebimento(
+        self._processar_recebimento_com_retorno(
             duplicata, valor_recebido, data_recebimento, forma_pagamento
         )
 
     def imprimir_comprovante(self, duplicata=None):
         """Método público para compatibilidade"""
-        self._imprimir_comprovante(duplicata)
+        # Método simplificado para compatibilidade
+        if duplicata is None:
+            duplicata = self._get_duplicata_selecionada()
+
+        if not duplicata:
+            QMessageBox.warning(self, "Aviso", "Selecione uma duplicata para imprimir")
+            return
+
+        # Lógica básica de impressão
+        try:
+            dados = {
+                "id": duplicata[0],
+                "venda_id": duplicata[2],
+                "cliente_id": duplicata[1],
+                "numero_parcela": duplicata[3],
+                "valor_original": float(duplicata[4]),
+                "valor_recebido": float(duplicata[4]),
+                "data_vencimento": duplicata[5],
+                "data_pagamento": duplicata[6] if len(duplicata) > 6 else None,
+                "forma_pagamento": (
+                    duplicata[11] if len(duplicata) > 11 else "Não informada"
+                ),
+                "cliente_nome": duplicata[8],
+                "cpf_cnpj": "",
+                "endereco": "",
+                "venda_total": float(duplicata[9]) if len(duplicata) > 9 else 0,
+                "data_venda": duplicata[10] if len(duplicata) > 10 else None,
+            }
+
+            filename = PrintComprovanteRecebimento.gerar_comprovante(
+                dados, "relatorios"
+            )
+            if filename:
+                ExportUtils.abrir_arquivo(filename)
+
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro ao imprimir: {str(e)}")
 
     def imprimir_relatorio(self):
         """Método público para compatibilidade"""
@@ -1106,4 +961,8 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
     def atualizar_tabela_apos_recebimento(self, duplicata_id):
         """Atualiza tabela após recebimento"""
+        self._carregar_duplicatas()
+
+    def atualizar_tabela(self):
+        """Método público para atualizar a tabela"""
         self._carregar_duplicatas()
