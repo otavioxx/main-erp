@@ -552,7 +552,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             ean_busca = dialog.get_valor()
             if ean_busca:
                 # Busca por EAN (busca parcial)
-                produtos = [p for p in self.dados if ean_busca in str(p.ean or "")]
+                produtos = [p for p in self.dados if ean_busca in str(p.ea or "")]
                 
                 if produtos:
                     self.tabela_produtos.setRowCount(len(produtos))
