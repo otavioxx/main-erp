@@ -147,7 +147,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         layout.addWidget(header_frame)
 
     def _criar_grupo_filtros(self, layout):
-        """Cria o grupo de filtros"""
+        """Cria o grupo de filtros com botões de busca específica"""
         grupo_filtros = QGroupBox("Filtros")
 
         filtro_layout = QHBoxLayout()
@@ -161,14 +161,33 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         )
         self.busca_edit.setMaximumWidth(300)
         self.busca_edit.textChanged.connect(self._filtrar_produtos)
-        # REMOVIDO: self.busca_edit.returnPressed.connect(self._executar_busca_especifica)
         filtro_layout.addWidget(self.busca_edit)
 
         filtro_layout.addStretch()
 
+        # Botões de busca específica
+        btn_id = QPushButton("ID (F3)")
+        btn_id.setProperty("class", "secondary")
+        btn_id.setToolTip("Buscar por ID do produto")
+        btn_id.clicked.connect(self._buscar_por_id)
+        filtro_layout.addWidget(btn_id)
+
+        btn_ean = QPushButton("EAN (F4)")
+        btn_ean.setProperty("class", "secondary")
+        btn_ean.setToolTip("Buscar por código EAN")
+        btn_ean.clicked.connect(self._buscar_por_ean)
+        filtro_layout.addWidget(btn_ean)
+
+        btn_referencia = QPushButton("Referência (F5)")
+        btn_referencia.setProperty("class", "secondary")
+        btn_referencia.setToolTip("Buscar por referência do produto")
+        btn_referencia.clicked.connect(self._buscar_por_referencia)
+        filtro_layout.addWidget(btn_referencia)
+
         # Botão limpar
         btn_limpar = QPushButton("Limpar Filtros")
         btn_limpar.setProperty("class", "secondary")
+        btn_limpar.setToolTip("Limpar todos os filtros e buscas")
         btn_limpar.clicked.connect(self._limpar_filtros)
         filtro_layout.addWidget(btn_limpar)
 
@@ -533,7 +552,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             ean_busca = dialog.get_valor()
             if ean_busca:
                 # Busca por EAN (busca parcial)
-                produtos = [p for p in self.dados if ean_busca in str(p.ea or "")]
+                produtos = [p for p in self.dados if ean_busca in str(p.ean or "")]
                 
                 if produtos:
                     self.tabela_produtos.setRowCount(len(produtos))
