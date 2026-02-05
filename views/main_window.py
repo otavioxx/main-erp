@@ -206,7 +206,6 @@ class MainWindow(QMainWindow):
         """Aplica conversão automática para maiúscula em toda a aplicação"""
         try:
             aplicar_maiuscula_formulario(self)
-            print("Conversão para maiúscula ativada globalmente!")
         except Exception as e:
             print(f"Erro ao configurar maiúscula global: {e}")
 
@@ -255,16 +254,10 @@ class MainWindow(QMainWindow):
             # Verificar o resultado
             if result == QDialog.DialogCode.Accepted:
                 # Backup foi feito e diálogo fechado automaticamente
-                print("✅ Backup realizado, fechando sistema...")
                 QApplication.instance().quit()
             elif result == QDialog.DialogCode.Rejected:
                 # Usuário clicou em "Fechar sem Backup"
-                print("⚠ Programa fechado sem backup")
                 QApplication.instance().quit()
-            else:
-                # Usuário cancelou o diálogo (clicou no X), manter aplicação aberta
-                print("✖ Fechamento cancelado pelo usuário")
-                # A aplicação continua aberta
                 
         except Exception as e:
             print(f"Erro ao mostrar diálogo de backup: {e}")
@@ -289,7 +282,6 @@ class MainWindow(QMainWindow):
 
     def _fechar_sem_backup(self):
         """Chamado quando usuário escolhe fechar sem backup"""
-        print("⚠ Programa fechado sem backup")
         
         # Aqui você pode adicionar log no sistema
         try:

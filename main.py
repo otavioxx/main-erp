@@ -380,9 +380,6 @@ def main():
     # Inicia cronômetro
     start_time = time.time()
 
-    # Executa inicializações com delays intencionais e mensagens
-    print("Iniciando processos de inicialização...")
-
     try:
         # Etapa 1: Configurações
         update_splash_message("Carregando configurações do sistema...")
@@ -430,7 +427,6 @@ def main():
 
     # Calcula tempo decorrido
     elapsed = time.time() - start_time
-    print(f"Inicialização concluída em {elapsed:.2f} segundos")
 
     # Calcula tempo restante para atingir duração mínima
     remaining = max(0, (SPLASH_MIN_DURATION - elapsed) * 1000)  # Converte para ms
@@ -450,25 +446,20 @@ def main():
         update_splash_message("Preparando sistema...")
         QTimer.singleShot(int(remaining), show_main_window)
     else:
-        print(
-            "Inicialização demorou mais que o mínimo, mostrando sistema imediatamente."
-        )
+
         show_main_window()
 
     # Executar aplicação
     try:
         result = app.exec()
-        print(f"🔄 Aplicação encerrada com código: {result}")
         
         # Verificar se é um código de reinício (100)
         if result == 100:
-            print("🔄 Solicitado reinício da aplicação...")
             # Fechar tudo e reiniciar
             reiniciar_aplicacao()
         
         sys.exit(result)
     except Exception as e:
-        print(f"❌ Erro fatal na execução: {e}")
         import traceback
         traceback.print_exc()
         input("Pressione Enter para sair...")

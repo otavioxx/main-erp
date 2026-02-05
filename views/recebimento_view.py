@@ -235,57 +235,128 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         layout.addWidget(container)
 
     def _criar_tabela_duplicatas(self):
-        """Configura tabela de duplicatas"""
+        """Configura tabela de duplicatas - VERSÃO COM TIMER SEGURO"""
         self.tabela_duplicatas = QTableWidget()
+        
+        # Altura desejada
+        altura_desejada = 21
+        
+        # 1. Configurar altura primeiro
+        vheader = self.tabela_duplicatas.verticalHeader()
+        vheader.setDefaultSectionSize(altura_desejada)
+        vheader.setMinimumSectionSize(altura_desejada)
+        vheader.setMaximumSectionSize(altura_desejada)
+        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        vheader.setCascadingSectionResizes(False)
+        vheader.setStretchLastSection(False)
+        vheader.setVisible(False)
+        
+        # 2. Configuração normal das colunas
         self.tabela_duplicatas.setColumnCount(8)
         self.tabela_duplicatas.setHorizontalHeaderLabels(
-            [
-                "ID",
-                "Cliente",
-                "Status",
-                "Venda",
-                "Parcela",
-                "Valor",
-                "Vencimento",
-                "Pagamento",
-            ]
+            ["ID", "Cliente", "Status", "Venda", "Parcela", "Valor", "Vencimento", "Pagamento"]
         )
-
-        # Configuração das colunas
+        
         header = self.tabela_duplicatas.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Cliente
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Status
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Venda
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Parcela
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Valor
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Vencimento
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)  # Pagamento
-
-        # Larguras das colunas
-        larguras = [50, 180, 80, 60, 60, 80, 100, 100]
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
+        
+        # Larguras
+        larguras = [50, 0, 120, 60, 60, 80, 100, 100]
         for i, largura in enumerate(larguras):
-            self.tabela_duplicatas.setColumnWidth(i, largura)
-
-        # Configurações gerais
-        self.tabela_duplicatas.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-        self.tabela_duplicatas.setSelectionMode(
-            QTableWidget.SelectionMode.SingleSelection
-        )
+            if largura > 0:
+                self.tabela_duplicatas.setColumnWidth(i, largura)
+        
+        # 3. Configurações gerais (OS ESTILOS SERÃO APLICADOS GLOBALMENTE)
+        self.tabela_duplicatas.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.tabela_duplicatas.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.tabela_duplicatas.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_duplicatas.setAlternatingRowColors(True)
-        self.tabela_duplicatas.verticalHeader().setVisible(False)
-        self.tabela_duplicatas.verticalHeader().setDefaultSectionSize(18)
         self.tabela_duplicatas.setSortingEnabled(True)
-
+        
+        # 4. Função para forçar altura COM VERIFICAÇÃO DE SEGURANÇA
+        def aplicar_altura_fixa_segura():
+            """Versão segura que verifica se a tabela ainda existe"""
+            try:
+                # Verificação robusta da existência da tabela
+                if not hasattr(self, 'tabela_duplicatas'):
+                    return
+                    
+                # Verificar se o objeto Qt ainda está vivo
+                # Tentando acessar uma propriedade simples
+                try:
+                    self.tabela_duplicatas.objectName()
+                except RuntimeError:
+                    # Objeto foi deletado, sair silenciosamente
+                    return
+                
+                # Verificar se a tabela ainda está acessível
+                if not self.tabela_duplicatas or not self.tabela_duplicatas.isVisible():
+                    return
+                
+                # Aplicar altura em cada linha
+                for row in range(self.tabela_duplicatas.rowCount()):
+                    try:
+                        self.tabela_duplicatas.setRowHeight(row, altura_desejada)
+                    except RuntimeError:
+                        # Se der erro em uma linha, continuar
+                        continue
+                        
+            except RuntimeError:
+                # Objeto deletado durante execução
+                return
+            except Exception as e:
+                # Qualquer outro erro, ignorar silenciosamente
+                # print(f"Erro ao aplicar altura: {e}")  # Para debug
+                return
+        
+        # 5. Timer SEGURO para aplicar após renderização
+        from PyQt6.QtCore import QTimer
+        
+        # Criar timer como filho da tabela (será destruído automaticamente)
+        timer = QTimer(self.tabela_duplicatas)
+        timer.setSingleShot(True)
+        timer.timeout.connect(aplicar_altura_fixa_segura)
+        timer.start(150)  # Executar após 150ms
+        
+        # 6. Função segura para conectar aos sinais
+        def conectar_sinais_seguro():
+            """Conecta sinais de forma segura"""
+            try:
+                if (hasattr(self, 'tabela_duplicatas') and 
+                    self.tabela_duplicatas and 
+                    hasattr(self.tabela_duplicatas, 'model')):
+                    
+                    model = self.tabela_duplicatas.model()
+                    if model:
+                        # Usar weakref ou captura direta
+                        model.rowsInserted.connect(
+                            lambda parent, first, last: aplicar_altura_fixa_segura()
+                        )
+                        model.modelReset.connect(
+                            lambda: aplicar_altura_fixa_segura()
+                        )
+            except:
+                pass
+        
+        # Conectar sinais após um pequeno delay
+        QTimer.singleShot(50, conectar_sinais_seguro)
+        
+        # 7. Navegação
         self.setup_scroll_navigation(
             tabela=self.tabela_duplicatas,
             scroll_sensibilidade=1,
             auto_select_first=True,
         )
+        
+        return self.tabela_duplicatas
 
     # ========== MÉTODOS DE DADOS OTIMIZADOS ==========
 
@@ -345,9 +416,6 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
             cursor.execute(query)
             self.todas_duplicatas = cursor.fetchall()
-
-            # DEBUG: Quantidade de registros
-            print(f"Recebimentos: Carregadas {len(self.todas_duplicatas)} duplicatas")
 
             # Inicializar cache de parcelas
             self._inicializar_cache_parcelas()

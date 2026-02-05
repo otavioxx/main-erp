@@ -711,16 +711,25 @@ def configurar_paleta_qt(app, cores: CoresPaleta):
 def aplicar_tema_dark(app, fonte_customizada: Optional[ConfiguracaoFonte] = None):
     """
     Aplica o tema dark à aplicação PyQt6
-    
-    Args:
-        app: Instância da aplicação PyQt6
-        fonte_customizada: Configuração personalizada de fonte
     """
-    # Configuração da fonte
+    # Configuração da fonte - CORRIGIR VALIDAÇÃO
     if fonte_customizada is None:
         fonte_customizada = ConfiguracaoFonte()
     
+    # VALIDAR tamanho da fonte
+    if fonte_customizada.tamanho_base <= 0:
+        fonte_customizada.tamanho_base = 12  # Valor padrão seguro
+        fonte_customizada.tamanho_pequeno = 11
+        fonte_customizada.tamanho_medio = 14
+        fonte_customizada.tamanho_grande = 19
+        fonte_customizada.tamanho_titulo = 23
+    
     fonte = QFont(fonte_customizada.familia, fonte_customizada.tamanho_base)
+    
+    # VALIDAR tamanho da fonte Qt
+    if fonte.pointSize() <= 0:
+        fonte.setPointSize(12)  # Tamanho seguro
+    
     app.setFont(fonte)
     
     # Usar cores padrão do tema dark
