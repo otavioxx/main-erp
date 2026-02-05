@@ -270,63 +270,80 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         layout.addWidget(container)
 
     def _configurar_tabela_produtos(self):
-        """Configura a tabela de produtos de forma otimizada"""
-        self.tabela_produtos.setColumnCount(11)  # Aumentado de 8 para 11
+        """Configura a tabela de produtos - VERSÃO FINAL"""
+        
+        # Configuração básica das colunas
+        self.tabela_produtos.setColumnCount(11)
         self.tabela_produtos.setHorizontalHeaderLabels(
-            [
-                "ID",
-                "Nome",
-                "Cor",
-                "Tamanho",
-                "Referência",
-                "Preço Custo",
-                "Preço Venda",
-                "Estoque",
-                "Lucro %",
-                "Markup %",
-                "Fornecedor",
-            ]
+            ["ID", "Nome", "Cor", "Tamanho", "Referência", "Preço Custo", 
+            "Preço Venda", "Estoque", "Lucro %", "Markup %", "Fornecedor"]
         )
-
-        # Configuração das colunas
-        header = self.tabela_produtos.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
-
-        for i in range(2, 11):  # Outras colunas fixas
-            header.setSectionResizeMode(i, QHeaderView.ResizeMode.Fixed)
-
-        # Larguras otimizadas com as novas colunas
-        larguras_colunas = [50, 200, 120, 70, 100, 100, 100, 80, 80, 80, 200]
-        for i, largura in enumerate(larguras_colunas):
+        
+        # Larguras
+        larguras = [50, 200, 120, 70, 100, 100, 100, 80, 80, 80, 180]
+        for i, largura in enumerate(larguras):
             self.tabela_produtos.setColumnWidth(i, largura)
-
-        # Configurações gerais da tabela
-        self.tabela_produtos.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-        self.tabela_produtos.setSelectionMode(
-            QTableWidget.SelectionMode.SingleSelection
-        )
+        
+        # ========== CONFIGURAÇÃO DE ALTURA ==========
+        # 1. REMOVER QUALQUER ESTILO EXISTENTE
+        self.tabela_produtos.setStyleSheet("")
+        
+        # 2. Configurar VERTICAL HEADER
+        vheader = self.tabela_produtos.verticalHeader()
+        
+        # ALTURA DESEJADA (ajuste este valor)
+        altura_desejada = 21
+        
+        vheader.setDefaultSectionSize(altura_desejada)
+        vheader.setMinimumSectionSize(altura_desejada)
+        vheader.setMaximumSectionSize(altura_desejada)
+        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        vheader.setCascadingSectionResizes(False)
+        vheader.setStretchLastSection(False)
+        vheader.setVisible(False)  # Opcional: esconder números
+        
+        # 3. CSS SIMPLES que FUNCIONA
+        css = f"""
+        QTableWidget::item {{
+            min-height: {altura_desejada}px !important;
+            max-height: {altura_desejada}px !important;
+            height: {altura_desejada}px !important;
+            padding: 1px 2px !important;
+            font-size: 11px !important;
+        }}
+        """
+        
+        self.tabela_produtos.setStyleSheet(css)
+        
+        # 4. Timer para garantir após renderização
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(100, lambda: self._forcar_altura_final(altura_desejada))
+        
+        # ========== FIM DA CONFIGURAÇÃO ==========
+        
+        # Configurações gerais
+        self.tabela_produtos.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.tabela_produtos.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.tabela_produtos.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_produtos.setAlternatingRowColors(True)
-        self.tabela_produtos.verticalHeader().setVisible(False)
         self.tabela_produtos.setSortingEnabled(True)
+        
+        # Menu e navegação
+        self.tabela_produtos.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.tabela_produtos.customContextMenuRequested.connect(self._mostrar_menu_contexto)
+        self.setup_scroll_navigation(tabela=self.tabela_produtos, scroll_sensibilidade=1, auto_select_first=True)
 
-        # Menu contextual
-        self.tabela_produtos.setContextMenuPolicy(
-            Qt.ContextMenuPolicy.CustomContextMenu
-        )
-        self.tabela_produtos.customContextMenuRequested.connect(
-            self._mostrar_menu_contexto
-        )
-
-        self.setup_scroll_navigation(
-            tabela=self.tabela_produtos,
-            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
-            auto_select_first=True,  # Seleciona primeira linha automaticamente
-        )
+    def _forcar_altura_final(self, altura_desejada):
+        """Força a altura após renderização"""
+        if not hasattr(self, 'tabela_produtos'):
+            return
+        
+        vheader = self.tabela_produtos.verticalHeader()
+        
+        # Forçar linha por linha (só se necessário)
+        for row in range(self.tabela_produtos.rowCount()):
+            if vheader.sectionSize(row) != altura_desejada:
+                vheader.resizeSection(row, altura_desejada)
 
     # ========== MÉTODOS DE CARREGAMENTO E FILTROS ==========
 

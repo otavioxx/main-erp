@@ -91,7 +91,7 @@ class ConstrutorEstilos:
             font-weight: 400;
             font-size: {self.fonte.tamanho_pequeno}px;
             min-width: 70px;
-            min-height: 24px;
+            min-height: 20px;
         }}
         
         QPushButton:hover {{
@@ -152,7 +152,7 @@ class ConstrutorEstilos:
             border-radius: 4px;
             padding: 5px 8px;
             font-size: {self.fonte.tamanho_pequeno}px;
-            min-height: 24px;
+            min-height: 20px;
             selection-background-color: {self.cores.selection_bg};
         }}
         
@@ -304,7 +304,7 @@ class ConstrutorEstilos:
             font-size: {self.fonte.tamanho_pequeno}px;
             selection-background-color: {self.cores.selection_bg};
             selection-color: {self.cores.selection_text};
-            min-height: 24px;
+            min-height: 20px;
         }}
         
         QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {{
