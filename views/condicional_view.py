@@ -1,23 +1,39 @@
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-    QTableWidget, QTableWidgetItem, QLabel, QMessageBox,
-    QHeaderView, QFrame, QLineEdit, QGroupBox, QComboBox
-)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor
-from models.condicional import Condicional
-from dialogs.venda_dialog import ProdutoVendaDialog
-from dialogs.condicional_dialog import CondicionalDialog
-from dialogs.cliente_selection_dialog import ClienteSelectionDialog
-from imprecoes.print_condicional import PrintCondicional
-from imprecoes.print_relat_condicional import PrintRelatCondicional
-from dialogs.relatorio_condicional_dialog import RelatorioCondicionalDialog
-from mixins.table_scroll_mixin import TableScrollNavigationMixin
-from database import Database
 from datetime import datetime, timedelta
 
-from utils.helpers import formatar_moeda, formatar_data, validar_data, criar_pasta_se_nao_existir
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
+from database import Database
+from dialogs.cliente_selection_dialog import ClienteSelectionDialog
+from dialogs.condicional_dialog import CondicionalDialog
+from dialogs.relatorio_condicional_dialog import RelatorioCondicionalDialog
+from dialogs.venda_dialog import ProdutoVendaDialog
+from imprecoes.print_condicional import PrintCondicional
+from imprecoes.print_relat_condicional import PrintRelatCondicional
+from mixins.table_scroll_mixin import TableScrollNavigationMixin
+from models.condicional import Condicional
 from utils.export_utils import ExportUtils
+from utils.helpers import (
+    criar_pasta_se_nao_existir,
+    formatar_data,
+    formatar_moeda,
+    validar_data,
+)
 
 
 # ========== CORREÇÃO: Classe para ordenação numérica ==========
@@ -53,7 +69,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
         self.dados = []
         self._init_ui()
         self._carregar_condicionais()
-        criar_pasta_se_nao_existir('relatorios')
+        criar_pasta_se_nao_existir("relatorios")
 
     def _init_ui(self):
         """Inicializa a interface com classes CSS semânticas"""
@@ -142,7 +158,9 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
         self.data_inicio = QLineEdit()
         self.data_inicio.setPlaceholderText("DD/MM/AAAA")
         self.data_inicio.setMaximumWidth(100)
-        self.data_inicio.setText((datetime.now() - timedelta(days=30)).strftime("%d/%m/%Y"))
+        self.data_inicio.setText(
+            (datetime.now() - timedelta(days=30)).strftime("%d/%m/%Y")
+        )
         self.data_inicio.textChanged.connect(self._filtrar_condicionais)
         layout.addWidget(self.data_inicio)
 
@@ -208,54 +226,85 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
 
     def _criar_grupo_condicionais(self, layout):
         """Cria a tabela de condicionais com configuração otimizada"""
-        grupo_condicionais = QGroupBox("Condicionais")
+        # Frame container
+        container = QFrame()
+        container.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
 
-        condicionais_layout = QVBoxLayout()
-        condicionais_layout.setContentsMargins(0, 12, 0, 12)
+        # Layout principal
+        container_layout = QVBoxLayout()
+        container_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Título
+        titulo_frame = QFrame()
+        titulo_layout = QHBoxLayout()
+        titulo_layout.setContentsMargins(8, 4, 8, 4)
+
+        titulo = QLabel("Condicionais")
+        titulo.setProperty("class", "subtitle")
+        titulo_layout.addWidget(titulo)
+        titulo_layout.addStretch()
+
+        titulo_frame.setLayout(titulo_layout)
+        container_layout.addWidget(titulo_frame)
+
+        # Tabela
         self.tabela_condicionais = QTableWidget()
         self._configurar_tabela_condicionais()
+        container_layout.addWidget(self.tabela_condicionais)
 
-        condicionais_layout.addWidget(self.tabela_condicionais)
-        grupo_condicionais.setLayout(condicionais_layout)
-        layout.addWidget(grupo_condicionais)
+        container.setLayout(container_layout)
+        layout.addWidget(container)
 
     def _configurar_tabela_condicionais(self):
-            """Configura a tabela de condicionais de forma otimizada"""
-            self.tabela_condicionais.setColumnCount(7)  # Aumentei para 7 colunas
-            self.tabela_condicionais.setHorizontalHeaderLabels([
-                "ID", "Cliente", "Data", "Prev. Devolução", "Itens", "Desconto", "Valor Total"
-            ])
+        """Configura a tabela de condicionais de forma otimizada"""
+        self.tabela_condicionais.setColumnCount(7)  # Aumentei para 7 colunas
+        self.tabela_condicionais.setHorizontalHeaderLabels(
+            [
+                "ID",
+                "Cliente",
+                "Data",
+                "Prev. Devolução",
+                "Itens",
+                "Desconto",
+                "Valor Total",
+            ]
+        )
 
-            # Configuração das colunas
-            header = self.tabela_condicionais.horizontalHeader()
-            header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)     # ID
-            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)   # Cliente
-            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)     # Data
-            header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)     # Prev. Devolução
-            header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)     # Itens
-            header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)     # Desconto
-            header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)     # Total
+        # Configuração das colunas
+        header = self.tabela_condicionais.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Cliente
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Data
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Prev. Devolução
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Itens
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Desconto
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Total
 
-            # Larguras otimizadas
-            larguras_colunas = [50, 100, 200, 120, 60, 80, 100]
-            for i, largura in enumerate(larguras_colunas):
-                self.tabela_condicionais.setColumnWidth(i, largura)
+        # Larguras otimizadas
+        larguras_colunas = [50, 100, 200, 120, 60, 80, 100]
+        for i, largura in enumerate(larguras_colunas):
+            self.tabela_condicionais.setColumnWidth(i, largura)
 
-            # Configurações gerais da tabela
-            self.tabela_condicionais.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-            self.tabela_condicionais.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
-            self.tabela_condicionais.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-            self.tabela_condicionais.setAlternatingRowColors(True)
-            self.tabela_condicionais.verticalHeader().setVisible(False)
-            self.tabela_condicionais.setSortingEnabled(True)
+        # Configurações gerais da tabela
+        self.tabela_condicionais.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.tabela_condicionais.setSelectionMode(
+            QTableWidget.SelectionMode.SingleSelection
+        )
+        self.tabela_condicionais.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
+        self.tabela_condicionais.setAlternatingRowColors(True)
+        self.tabela_condicionais.verticalHeader().setVisible(False)
+        self.tabela_condicionais.setSortingEnabled(True)
 
-            self.setup_scroll_navigation(
-                tabela=self.tabela_condicionais,
-                scroll_sensibilidade=1,      # 1 linha por scroll (padrão)
-                auto_select_first=True       # Seleciona primeira linha automaticamente
-            )
+        self.setup_scroll_navigation(
+            tabela=self.tabela_condicionais,
+            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
+            auto_select_first=True,  # Seleciona primeira linha automaticamente
+        )
 
     # ========== MÉTODOS DE CARREGAMENTO E FILTROS ==========
 
@@ -264,7 +313,9 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
         try:
             # Buscar todas as condicionais
             self.dados = Condicional.buscar_todas()
-            self.dados.sort(key=lambda condicional: condicional[0], reverse=True)  # Ordem decrescente por ID
+            self.dados.sort(
+                key=lambda condicional: condicional[0], reverse=True
+            )  # Ordem decrescente por ID
 
             self._filtrar_condicionais()
             self._atualizar_label_info()
@@ -300,10 +351,12 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             status_map = {
                 "Ativas": "ativa",
                 "Convertidas": "convertida",
-                "Devolvidas": "devolvida"
+                "Devolvidas": "devolvida",
             }
             status_filtro = status_map.get(status_selecionado, "")
-            dados_filtrados = [c for c in dados_filtrados if str(c[4]).lower() == status_filtro]
+            dados_filtrados = [
+                c for c in dados_filtrados if str(c[4]).lower() == status_filtro
+            ]
 
         # Filtro por data
         if data_inicio_str and data_fim_str:
@@ -312,8 +365,10 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
                 data_fim = self._converter_data(data_fim_str)
 
                 dados_filtrados = [
-                    c for c in dados_filtrados
-                    if self._parse_data(c[2]) and data_ini <= self._parse_data(c[2]) <= data_fim
+                    c
+                    for c in dados_filtrados
+                    if self._parse_data(c[2])
+                    and data_ini <= self._parse_data(c[2]) <= data_fim
                 ]
             except ValueError:
                 pass
@@ -321,8 +376,12 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
         # Filtro por nome do cliente na busca local - CORREÇÃO AQUI
         if cliente_nome:
             dados_filtrados = [
-                c for c in dados_filtrados
-                if cliente_nome.lower() in (str(c[7]) if len(c) > 7 and c[7] else "").lower()  # ✅ Índice correto [7]
+                c
+                for c in dados_filtrados
+                if cliente_nome.lower()
+                in (
+                    str(c[7]) if len(c) > 7 and c[7] else ""
+                ).lower()  # ✅ Índice correto [7]
             ]
 
         self.tabela_condicionais.setRowCount(len(dados_filtrados))
@@ -338,12 +397,18 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
         for row, condicional in enumerate(condicionais):
             # CORREÇÃO: ID usando NumericTableWidgetItem para ordenação numérica
             item_id = NumericTableWidgetItem(str(condicional[0]))
-            item_id.setData(Qt.ItemDataRole.UserRole, condicional[0])  # Armazenar valor numérico
+            item_id.setData(
+                Qt.ItemDataRole.UserRole, condicional[0]
+            )  # Armazenar valor numérico
             item_id.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_condicionais.setItem(row, 0, item_id)
 
             # Cliente
-            cliente_nome = str(condicional[7]) if len(condicional) > 7 and condicional[7] else "Cliente não informado"
+            cliente_nome = (
+                str(condicional[7])
+                if len(condicional) > 7 and condicional[7]
+                else "Cliente não informado"
+            )
             self.tabela_condicionais.setItem(row, 1, QTableWidgetItem(cliente_nome))
 
             # Data
@@ -385,10 +450,16 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             self.tabela_condicionais.setItem(row, 4, itens_item)
 
             # CORREÇÃO: Desconto usando NumericTableWidgetItem com valor numérico
-            desconto_valor = float(condicional[6]) if len(condicional) > 6 and condicional[6] else 0
+            desconto_valor = (
+                float(condicional[6]) if len(condicional) > 6 and condicional[6] else 0
+            )
             desconto_item = NumericTableWidgetItem(formatar_moeda(desconto_valor))
-            desconto_item.setData(Qt.ItemDataRole.UserRole, desconto_valor)  # Valor numérico para ordenação
-            desconto_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            desconto_item.setData(
+                Qt.ItemDataRole.UserRole, desconto_valor
+            )  # Valor numérico para ordenação
+            desconto_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            )
             self.tabela_condicionais.setItem(row, 5, desconto_item)
 
             # CORREÇÃO: Valor total usando NumericTableWidgetItem com valor numérico
@@ -396,11 +467,15 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             if condicional_obj:
                 total = condicional_obj.calcular_total()  # Já aplica o desconto
                 total_item = NumericTableWidgetItem(formatar_moeda(total))
-                total_item.setData(Qt.ItemDataRole.UserRole, total)  # Valor numérico para ordenação
+                total_item.setData(
+                    Qt.ItemDataRole.UserRole, total
+                )  # Valor numérico para ordenação
             else:
                 total_item = NumericTableWidgetItem(formatar_moeda(0))
                 total_item.setData(Qt.ItemDataRole.UserRole, 0)
-            total_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            total_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+            )
             self.tabela_condicionais.setItem(row, 6, total_item)
 
             # Aplicar cores baseadas no status
@@ -502,7 +577,9 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
 
     def _limpar_filtros(self):
         """Limpa todos os filtros e recarrega condicionais"""
-        self.data_inicio.setText((datetime.now() - timedelta(days=30)).strftime("%d/%m/%Y"))
+        self.data_inicio.setText(
+            (datetime.now() - timedelta(days=30)).strftime("%d/%m/%Y")
+        )
         self.data_fim.setText(datetime.now().strftime("%d/%m/%Y"))
         self.busca_cliente.clear()
         self.combo_status.setCurrentText("Todos")
@@ -580,7 +657,9 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             return
 
         if condicional.status != "ativa":
-            self._mostrar_aviso("Apenas condicionais ativas podem ser convertidas em venda")
+            self._mostrar_aviso(
+                "Apenas condicionais ativas podem ser convertidas em venda"
+            )
             return
 
         if not condicional.itens:
@@ -594,7 +673,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             f"Cliente: {self._get_nome_cliente(condicional.cliente_id)}\n"
             f"Itens: {len(condicional.itens)}\n"
             f"Total: {formatar_moeda(condicional.calcular_total())}",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
         if resposta == QMessageBox.StandardButton.Yes:
@@ -603,6 +682,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
 
                 # Configurar cliente na venda
                 from models.cliente import Cliente
+
                 cliente = Cliente.buscar_por_id(condicional.cliente_id)
                 if cliente:
                     dialog.cliente_selecionado = cliente
@@ -610,15 +690,18 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
 
                 # Adicionar produtos da condicional
                 from models.produto import Produto
+
                 for item in condicional.itens:
-                    produto = Produto.buscar_por_id(item['produto_id'])
+                    produto = Produto.buscar_por_id(item["produto_id"])
                     if produto:
-                        dialog.adicionar_produto(produto, item['quantidade'])
+                        dialog.adicionar_produto(produto, item["quantidade"])
 
                 if dialog.exec():
                     condicional.marcar_como_convertida()
                     self._carregar_condicionais()
-                    self._mostrar_sucesso("Condicional convertida em venda com sucesso!")
+                    self._mostrar_sucesso(
+                        "Condicional convertida em venda com sucesso!"
+                    )
 
             except Exception as e:
                 self._mostrar_erro("Erro ao converter condicional", str(e))
@@ -631,7 +714,9 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             return
 
         if condicional.status != "ativa":
-            self._mostrar_aviso("Apenas condicionais ativas podem ser marcadas como devolvidas")
+            self._mostrar_aviso(
+                "Apenas condicionais ativas podem ser marcadas como devolvidas"
+            )
             return
 
         resposta = QMessageBox.question(
@@ -640,7 +725,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             f"Marcar condicional #{condicional.id} como devolvida?\n"
             f"Cliente: {self._get_nome_cliente(condicional.cliente_id)}\n"
             f"Itens: {len(condicional.itens)}",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
         if resposta == QMessageBox.StandardButton.Yes:
@@ -672,7 +757,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             f"Cliente: {self._get_nome_cliente(condicional.cliente_id)}\n"
             f"Itens: {len(condicional.itens)}\n\n"
             "Esta ação não pode ser desfeita!",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
         if resposta == QMessageBox.StandardButton.Yes:
@@ -681,10 +766,15 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
                 cursor = conn.cursor()
 
                 # Excluir itens da condicional
-                cursor.execute('DELETE FROM itens_condicional WHERE condicional_id = ?', (condicional.id,))
+                cursor.execute(
+                    "DELETE FROM itens_condicional WHERE condicional_id = ?",
+                    (condicional.id,),
+                )
 
                 # Excluir a condicional
-                cursor.execute('DELETE FROM condicionais WHERE id = ?', (condicional.id,))
+                cursor.execute(
+                    "DELETE FROM condicionais WHERE id = ?", (condicional.id,)
+                )
 
                 conn.commit()
                 conn.close()
@@ -706,10 +796,10 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
     def _gerar_relatorio_com_filtros(self, filtros):
         """Gera relatório com base nos filtros selecionados"""
         try:
-            data_inicio = filtros['data_inicio']
-            data_fim = filtros['data_fim']
-            cliente_id = filtros['cliente_id']
-            status = filtros['status']
+            data_inicio = filtros["data_inicio"]
+            data_fim = filtros["data_fim"]
+            cliente_id = filtros["cliente_id"]
+            status = filtros["status"]
 
             # Validar datas
             if not self._validar_data(data_inicio) or not self._validar_data(data_fim):
@@ -718,18 +808,21 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
 
             # CORREÇÃO: Usar a versão corrigida do PrintRelatCondicional
             filename = PrintRelatCondicional.gerar_relatorio_por_periodo(
-                data_inicio, data_fim, status, cliente_id, 'relatorios'
+                data_inicio, data_fim, status, cliente_id, "relatorios"
             )
 
             self._tratar_arquivo_gerado(filename, "Relatório exportado")
 
         except Exception as e:
-            self._mostrar_erro("Erro na Exportação", f"Ocorreu um erro ao exportar as condicionais:\n{str(e)}")
+            self._mostrar_erro(
+                "Erro na Exportação",
+                f"Ocorreu um erro ao exportar as condicionais:\n{str(e)}",
+            )
 
     def _validar_data(self, data_str):
         """Valida formato de data DD/MM/YYYY"""
         try:
-            datetime.strptime(data_str, '%d/%m/%Y')
+            datetime.strptime(data_str, "%d/%m/%Y")
             return True
         except ValueError:
             return False
@@ -742,18 +835,23 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             return
 
         try:
-            filename = PrintCondicional.gerar_comprovante(condicional.id, 'relatorios')
+            filename = PrintCondicional.gerar_comprovante(condicional.id, "relatorios")
             self._tratar_arquivo_gerado(filename, "Comprovante gerado")
 
         except Exception as e:
-            self._mostrar_erro("Erro na Impressão", f"Ocorreu um erro ao gerar o comprovante:\n{str(e)}")
+            self._mostrar_erro(
+                "Erro na Impressão",
+                f"Ocorreu um erro ao gerar o comprovante:\n{str(e)}",
+            )
 
     def _tratar_arquivo_gerado(self, filename, mensagem_sucesso):
         """Trata arquivo gerado (relatório ou comprovante)"""
         if filename and ExportUtils.abrir_arquivo(filename):
             self._mostrar_sucesso(f"{mensagem_sucesso}:\n{filename}")
         else:
-            self._mostrar_aviso(f"Arquivo salvo em: {filename}\nNão foi possível abrir automaticamente.")
+            self._mostrar_aviso(
+                f"Arquivo salvo em: {filename}\nNão foi possível abrir automaticamente."
+            )
 
     def _get_nome_cliente(self, cliente_id):
         """Obtém o nome do cliente pelo ID"""
@@ -763,7 +861,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
         conn = Database().get_connection()
         cursor = conn.cursor()
         try:
-            cursor.execute('SELECT nome FROM clientes WHERE id = ?', (cliente_id,))
+            cursor.execute("SELECT nome FROM clientes WHERE id = ?", (cliente_id,))
             result = cursor.fetchone()
             return result[0] if result else "Cliente não encontrado"
         finally:
@@ -869,15 +967,16 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
 
     def criar_pasta_relatorios(self):
         """Método de compatibilidade - usa helper"""
-        criar_pasta_se_nao_existir('relatorios')
+        criar_pasta_se_nao_existir("relatorios")
 
     def limpar_pasta_relatorios(self):
         """Limpa todos os arquivos da pasta de relatórios"""
         try:
             import os
-            if os.path.exists('relatorios'):
-                for arquivo in os.listdir('relatorios'):
-                    caminho_arquivo = os.path.join('relatorios', arquivo)
+
+            if os.path.exists("relatorios"):
+                for arquivo in os.listdir("relatorios"):
+                    caminho_arquivo = os.path.join("relatorios", arquivo)
                     try:
                         if os.path.isfile(caminho_arquivo):
                             os.unlink(caminho_arquivo)

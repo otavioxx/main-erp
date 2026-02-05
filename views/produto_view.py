@@ -2,21 +2,34 @@
 View de Produtos - Padronizada com sistema de estilos e correções de ordenação
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QTableWidget, QTableWidgetItem, QLabel, QMessageBox,
-                             QHeaderView, QFrame, QLineEdit, QGroupBox, QMenu)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QAction
-from models.produto import Produto
-from views.produto_dialog import ProdutoDialog
-from utils.produto_utils import ProdutoUtils
-from imprecoes.print_produto import PrintProduto
-from dialogs.relatorio_produto_dialog import RelatorioProdutoDialog
-from mixins.table_scroll_mixin import TableScrollNavigationMixin
-from imprecoes.print_produto import PrintProduto
 import os
 import subprocess
 import sys
+
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QAction, QColor
+from PyQt6.QtWidgets import (
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMenu,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
+from dialogs.relatorio_produto_dialog import RelatorioProdutoDialog
+from imprecoes.print_produto import PrintProduto
+from mixins.table_scroll_mixin import TableScrollNavigationMixin
+from models.produto import Produto
+from utils.produto_utils import ProdutoUtils
+from views.produto_dialog import ProdutoDialog
 
 
 # ========== CORREÇÃO: Classe para ordenação numérica ==========
@@ -102,7 +115,9 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
 
         # Campo de busca
         self.busca_edit = QLineEdit()
-        self.busca_edit.setPlaceholderText("Nome, preço, fornecedor, cor, tamanho, referência ou estoque...")
+        self.busca_edit.setPlaceholderText(
+            "Nome, preço, fornecedor, cor, tamanho, referência ou estoque..."
+        )
         self.busca_edit.setMaximumWidth(300)
         self.busca_edit.textChanged.connect(self._filtrar_produtos)
         filtro_layout.addWidget(self.busca_edit)
@@ -164,31 +179,59 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
 
     def _criar_grupo_produtos(self, layout):
         """Cria a tabela de produtos com configuração otimizada"""
-        grupo_produtos = QGroupBox("Produtos")
+        # Frame container
+        container = QFrame()
+        container.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
 
-        produtos_layout = QVBoxLayout()
-        produtos_layout.setContentsMargins(0, 12, 0, 12)
+        # Layout principal
+        container_layout = QVBoxLayout()
+        container_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Título
+        titulo_frame = QFrame()
+        titulo_layout = QHBoxLayout()
+        titulo_layout.setContentsMargins(8, 4, 8, 4)
+
+        titulo = QLabel("Produtos")
+        titulo.setProperty("class", "subtitle")
+        titulo_layout.addWidget(titulo)
+        titulo_layout.addStretch()
+
+        titulo_frame.setLayout(titulo_layout)
+        container_layout.addWidget(titulo_frame)
+
+        # Tabela
         self.tabela_produtos = QTableWidget()
         self._configurar_tabela_produtos()
+        container_layout.addWidget(self.tabela_produtos)
 
-        produtos_layout.addWidget(self.tabela_produtos)
-        grupo_produtos.setLayout(produtos_layout)
-        layout.addWidget(grupo_produtos)
+        container.setLayout(container_layout)
+        layout.addWidget(container)
 
     def _configurar_tabela_produtos(self):
         """Configura a tabela de produtos de forma otimizada"""
         self.tabela_produtos.setColumnCount(11)  # Aumentado de 8 para 11
-        self.tabela_produtos.setHorizontalHeaderLabels([
-            "ID", "Nome", "Cor", "Tamanho", "Referência",
-            "Preço Custo", "Preço Venda", "Estoque", "Lucro %", "Markup %", "Fornecedor"
-        ])
+        self.tabela_produtos.setHorizontalHeaderLabels(
+            [
+                "ID",
+                "Nome",
+                "Cor",
+                "Tamanho",
+                "Referência",
+                "Preço Custo",
+                "Preço Venda",
+                "Estoque",
+                "Lucro %",
+                "Markup %",
+                "Fornecedor",
+            ]
+        )
 
         # Configuração das colunas
         header = self.tabela_produtos.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)     # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)   # Nome
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
 
         for i in range(2, 11):  # Outras colunas fixas
             header.setSectionResizeMode(i, QHeaderView.ResizeMode.Fixed)
@@ -199,21 +242,29 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             self.tabela_produtos.setColumnWidth(i, largura)
 
         # Configurações gerais da tabela
-        self.tabela_produtos.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.tabela_produtos.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.tabela_produtos.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.tabela_produtos.setSelectionMode(
+            QTableWidget.SelectionMode.SingleSelection
+        )
         self.tabela_produtos.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_produtos.setAlternatingRowColors(True)
         self.tabela_produtos.verticalHeader().setVisible(False)
         self.tabela_produtos.setSortingEnabled(True)
 
         # Menu contextual
-        self.tabela_produtos.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.tabela_produtos.customContextMenuRequested.connect(self._mostrar_menu_contexto)
+        self.tabela_produtos.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        self.tabela_produtos.customContextMenuRequested.connect(
+            self._mostrar_menu_contexto
+        )
 
         self.setup_scroll_navigation(
             tabela=self.tabela_produtos,
-            scroll_sensibilidade=1,      # 1 linha por scroll (padrão)
-            auto_select_first=True       # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
+            auto_select_first=True,  # Seleciona primeira linha automaticamente
         )
 
     # ========== MÉTODOS DE CARREGAMENTO E FILTROS ==========
@@ -223,10 +274,14 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         try:
             if self.mostrar_inativos:
                 self.dados = Produto.buscar_todos(apenas_ativos=False)
-                self.label_filtro.setText("(Mostrando todos os registros - F11 para apenas ativos)")
+                self.label_filtro.setText(
+                    "(Mostrando todos os registros - F11 para apenas ativos)"
+                )
             else:
                 self.dados = Produto.buscar_todos(apenas_ativos=True)
-                self.label_filtro.setText("(Mostrando apenas ativos - F11 para inativos)")
+                self.label_filtro.setText(
+                    "(Mostrando apenas ativos - F11 para inativos)"
+                )
 
             self._filtrar_produtos()
 
@@ -240,7 +295,8 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         # CORREÇÃO: Sempre trabalhar com os dados originais
         if texto_busca:
             dados_filtrados = [
-                p for p in self.dados  # CORREÇÃO: sempre usar self.dados original
+                p
+                for p in self.dados  # CORREÇÃO: sempre usar self.dados original
                 if self._produto_corresponde_busca(p, texto_busca)
             ]
         else:
@@ -260,7 +316,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             produto.fornecedor_nome or "",
             produto.cor or "",
             produto.tamanho or "",
-            produto.referencia or ""
+            produto.referencia or "",
         ]
         return any(texto_busca in str(campo).lower() for campo in campos)
 
@@ -280,15 +336,17 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             dados, lucro, markup = ProdutoUtils.formatar_item_produto(produto)
 
             # CORREÇÃO: ID usando NumericTableWidgetItem para ordenação numérica
-            item_id = NumericTableWidgetItem(dados['id'])
-            item_id.setData(Qt.ItemDataRole.UserRole, produto.id)  # Armazenar valor numérico
+            item_id = NumericTableWidgetItem(dados["id"])
+            item_id.setData(
+                Qt.ItemDataRole.UserRole, produto.id
+            )  # Armazenar valor numérico
             item_id.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             if not produto.ativo:
                 item_id.setForeground(cor_texto_inativo)
             self.tabela_produtos.setItem(row, 0, item_id)
 
             # Nome
-            item_nome = QTableWidgetItem(dados['nome'])
+            item_nome = QTableWidgetItem(dados["nome"])
             if not produto.ativo:
                 item_nome.setForeground(cor_texto_inativo)
             self.tabela_produtos.setItem(row, 1, item_nome)
@@ -315,31 +373,41 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             self.tabela_produtos.setItem(row, 4, item_ref)
 
             # CORREÇÃO: Preço Custo usando NumericTableWidgetItem
-            item_custo = NumericTableWidgetItem(dados['preco_custo'])
-            item_custo.setData(Qt.ItemDataRole.UserRole, produto.preco_custo)  # Valor numérico
-            item_custo.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            item_custo = NumericTableWidgetItem(dados["preco_custo"])
+            item_custo.setData(
+                Qt.ItemDataRole.UserRole, produto.preco_custo
+            )  # Valor numérico
+            item_custo.setTextAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            )
             if not produto.ativo:
                 item_custo.setForeground(cor_texto_inativo)
             self.tabela_produtos.setItem(row, 5, item_custo)
 
             # CORREÇÃO: Preço Venda usando NumericTableWidgetItem
-            item_venda = NumericTableWidgetItem(dados['preco_venda'])
-            item_venda.setData(Qt.ItemDataRole.UserRole, produto.preco_venda)  # Valor numérico
-            item_venda.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            item_venda = NumericTableWidgetItem(dados["preco_venda"])
+            item_venda.setData(
+                Qt.ItemDataRole.UserRole, produto.preco_venda
+            )  # Valor numérico
+            item_venda.setTextAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            )
             if not produto.ativo:
                 item_venda.setForeground(cor_texto_inativo)
             self.tabela_produtos.setItem(row, 6, item_venda)
 
             # CORREÇÃO: Estoque usando NumericTableWidgetItem
-            item_estoque = NumericTableWidgetItem(dados['estoque'])
-            item_estoque.setData(Qt.ItemDataRole.UserRole, produto.estoque)  # Valor numérico
+            item_estoque = NumericTableWidgetItem(dados["estoque"])
+            item_estoque.setData(
+                Qt.ItemDataRole.UserRole, produto.estoque
+            )  # Valor numérico
             item_estoque.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             if not produto.ativo:
                 item_estoque.setForeground(cor_texto_inativo)
             self.tabela_produtos.setItem(row, 7, item_estoque)
 
             # CORREÇÃO: Lucro % usando NumericTableWidgetItem
-            item_lucro = NumericTableWidgetItem(dados['lucro'])
+            item_lucro = NumericTableWidgetItem(dados["lucro"])
             item_lucro.setData(Qt.ItemDataRole.UserRole, lucro)  # Valor numérico
             item_lucro.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             if produto.ativo:
@@ -352,7 +420,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             self.tabela_produtos.setItem(row, 8, item_lucro)
 
             # CORREÇÃO: Markup % usando NumericTableWidgetItem
-            item_markup = NumericTableWidgetItem(dados['markup'])
+            item_markup = NumericTableWidgetItem(dados["markup"])
             item_markup.setData(Qt.ItemDataRole.UserRole, markup)  # Valor numérico
             item_markup.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             if produto.ativo:
@@ -365,7 +433,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             self.tabela_produtos.setItem(row, 9, item_markup)
 
             # Fornecedor
-            item_fornecedor = QTableWidgetItem(dados['fornecedor'])
+            item_fornecedor = QTableWidgetItem(dados["fornecedor"])
             if not produto.ativo:
                 item_fornecedor.setForeground(cor_texto_inativo)
             self.tabela_produtos.setItem(row, 10, item_fornecedor)
@@ -414,37 +482,37 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             self._mostrar_sucesso("Produto atualizado com sucesso!")
 
     def _inativar_produto(self):
-            """Inativa o produto selecionado com validações de negócio"""
-            produto = self._get_produto_selecionado()
-            if not produto:
-                self._mostrar_aviso("Selecione um produto para inativar")
-                return
+        """Inativa o produto selecionado com validações de negócio"""
+        produto = self._get_produto_selecionado()
+        if not produto:
+            self._mostrar_aviso("Selecione um produto para inativar")
+            return
 
-            # Verifica se o produto pode ser inativado
-            verificacao = produto.pode_ser_inativado()
+        # Verifica se o produto pode ser inativado
+        verificacao = produto.pode_ser_inativado()
 
-            if not verificacao['pode']:
-                # Mostra os motivos pelos quais não pode ser inativado
-                motivos_texto = "\n• ".join(verificacao['motivos'])
-                self._mostrar_aviso(
-                    f"O produto '{produto.nome}' não pode ser inativado pelos seguintes motivos:\n\n"
-                    f"• {motivos_texto}\n\n"
-                    "Para inativar este produto, você deve:\n"
-                    "• Zerar o estoque (se houver)\n"
-                    "• Finalizar ou cancelar pedidos que o contenham\n"
-                    "• Finalizar ou cancelar condicionais que o contenham"
-                )
-                return
+        if not verificacao["pode"]:
+            # Mostra os motivos pelos quais não pode ser inativado
+            motivos_texto = "\n• ".join(verificacao["motivos"])
+            self._mostrar_aviso(
+                f"O produto '{produto.nome}' não pode ser inativado pelos seguintes motivos:\n\n"
+                f"• {motivos_texto}\n\n"
+                "Para inativar este produto, você deve:\n"
+                "• Zerar o estoque (se houver)\n"
+                "• Finalizar ou cancelar pedidos que o contenham\n"
+                "• Finalizar ou cancelar condicionais que o contenham"
+            )
+            return
 
-            # Se chegou até aqui, pode ser inativado
-            if self._confirmar_inativacao(produto):
-                try:
-                    produto.inativar()
-                    self._carregar_produtos()
-                    self.tabela_produtos.clearSelection()
-                    self._mostrar_sucesso("Produto inativado com sucesso!")
-                except Exception as e:
-                    self._mostrar_erro("Erro ao inativar produto", str(e))
+        # Se chegou até aqui, pode ser inativado
+        if self._confirmar_inativacao(produto):
+            try:
+                produto.inativar()
+                self._carregar_produtos()
+                self.tabela_produtos.clearSelection()
+                self._mostrar_sucesso("Produto inativado com sucesso!")
+            except Exception as e:
+                self._mostrar_erro("Erro ao inativar produto", str(e))
 
     def _reativar_produto(self):
         """Reativa o produto selecionado"""
@@ -469,7 +537,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         # Verifica novamente para mostrar informações na confirmação
         verificacao = produto.pode_ser_inativado()
 
-        if verificacao['pode']:
+        if verificacao["pode"]:
             mensagem = (
                 f"Tem certeza que deseja inativar o produto:\n\n"
                 f"Nome: {produto.nome}\n"
@@ -479,7 +547,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             )
         else:
             # Isso não deveria acontecer, mas é uma segurança extra
-            motivos_texto = "\n• ".join(verificacao['motivos'])
+            motivos_texto = "\n• ".join(verificacao["motivos"])
             mensagem = (
                 f"ATENÇÃO: Este produto não pode ser inativado!\n\n"
                 f"Motivos:\n• {motivos_texto}\n\n"
@@ -490,7 +558,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             self,
             "Confirmar Inativação",
             mensagem,
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         return resposta == QMessageBox.StandardButton.Yes
 
@@ -505,8 +573,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         """Gera relatório com base nos filtros selecionados"""
         try:
             filename = PrintProduto.gerar_relatorio_com_filtros(
-                filtros=filtros,
-                pasta_destino='relatorios'
+                filtros=filtros, pasta_destino="relatorios"
             )
 
             if filename:
@@ -516,15 +583,19 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
                 self._mostrar_aviso("Não foi possível gerar o relatório")
 
         except Exception as e:
-            self._mostrar_erro("Erro na Exportação", f"Erro ao exportar produtos:\n{str(e)}")
+            self._mostrar_erro(
+                "Erro na Exportação", f"Erro ao exportar produtos:\n{str(e)}"
+            )
 
     def _abrir_arquivo(self, filename):
         """Abre arquivo gerado"""
         try:
-            if os.name == 'nt':
+            if os.name == "nt":
                 os.startfile(filename)
-            elif os.name == 'posix':
-                subprocess.run(['open' if sys.platform == 'darwin' else 'xdg-open', filename])
+            elif os.name == "posix":
+                subprocess.run(
+                    ["open" if sys.platform == "darwin" else "xdg-open", filename]
+                )
         except Exception as e:
             self._mostrar_aviso(f"Não foi possível abrir automaticamente:\n{e}")
 

@@ -1,11 +1,23 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QTableWidget, QTableWidgetItem, QLabel, QMessageBox,
-                             QHeaderView, QFrame, QLineEdit, QGroupBox)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
-from models.fornecedor import Fornecedor
+from PyQt6.QtWidgets import (
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
 from dialogs.fornecedor_dialog import FornecedorDialog
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
+from models.fornecedor import Fornecedor
 
 
 # ========== CORREÇÃO: Classe para ordenação numérica ==========
@@ -144,34 +156,51 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
 
     def _criar_grupo_fornecedores(self, layout):
         """Cria a tabela de fornecedores com configuração otimizada"""
-        grupo_fornecedores = QGroupBox("Fornecedores")
+        # Frame container
+        container = QFrame()
+        container.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
 
-        fornecedores_layout = QVBoxLayout()
-        fornecedores_layout.setContentsMargins(0, 12, 0, 12)
+        # Layout principal
+        container_layout = QVBoxLayout()
+        container_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Título
+        titulo_frame = QFrame()
+        titulo_layout = QHBoxLayout()
+        titulo_layout.setContentsMargins(8, 4, 8, 4)
+
+        titulo = QLabel("Fornecedores")
+        titulo.setProperty("class", "subtitle")
+        titulo_layout.addWidget(titulo)
+        titulo_layout.addStretch()
+
+        titulo_frame.setLayout(titulo_layout)
+        container_layout.addWidget(titulo_frame)
+
+        # Tabela
         self.tabela_fornecedores = QTableWidget()
         self._configurar_tabela_fornecedores()
+        container_layout.addWidget(self.tabela_fornecedores)
 
-        fornecedores_layout.addWidget(self.tabela_fornecedores)
-        grupo_fornecedores.setLayout(fornecedores_layout)
-        layout.addWidget(grupo_fornecedores)
+        container.setLayout(container_layout)
+        layout.addWidget(container)
 
     def _configurar_tabela_fornecedores(self):
         """Configura a tabela de fornecedores de forma otimizada"""
         self.tabela_fornecedores.setColumnCount(6)
-        self.tabela_fornecedores.setHorizontalHeaderLabels([
-            "ID", "Nome", "CNPJ", "Telefone", "Email", "Observação"
-        ])
+        self.tabela_fornecedores.setHorizontalHeaderLabels(
+            ["ID", "Nome", "CNPJ", "Telefone", "Email", "Observação"]
+        )
 
         # Configuração das colunas
         header = self.tabela_fornecedores.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)    # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)   # Nome
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)     # CNPJ
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)     # Telefone
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)     # Email
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)     # Observação
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # CNPJ
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Telefone
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Email
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Observação
 
         # Larguras otimizadas
         larguras_colunas = [50, 200, 130, 110, 250, 350]
@@ -179,17 +208,23 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
             self.tabela_fornecedores.setColumnWidth(i, largura)
 
         # Configurações gerais da tabela
-        self.tabela_fornecedores.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.tabela_fornecedores.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
-        self.tabela_fornecedores.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tabela_fornecedores.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.tabela_fornecedores.setSelectionMode(
+            QTableWidget.SelectionMode.SingleSelection
+        )
+        self.tabela_fornecedores.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
         self.tabela_fornecedores.setAlternatingRowColors(True)
         self.tabela_fornecedores.verticalHeader().setVisible(False)
         self.tabela_fornecedores.setSortingEnabled(True)
 
         self.setup_scroll_navigation(
             tabela=self.tabela_fornecedores,
-            scroll_sensibilidade=1,      # 1 linha por scroll (padrão)
-            auto_select_first=True       # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
+            auto_select_first=True,  # Seleciona primeira linha automaticamente
         )
 
     # ========== MÉTODOS DE CARREGAMENTO E FILTROS ==========
@@ -199,10 +234,14 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
         try:
             if self.mostrar_inativos:
                 self.dados = Fornecedor.buscar_todos(apenas_ativos=False)
-                self.label_filtro.setText("(Mostrando todos os registros - F11 para apenas ativos)")
+                self.label_filtro.setText(
+                    "(Mostrando todos os registros - F11 para apenas ativos)"
+                )
             else:
                 self.dados = Fornecedor.buscar_todos(apenas_ativos=True)
-                self.label_filtro.setText("(Mostrando apenas ativos - F11 para inativos)")
+                self.label_filtro.setText(
+                    "(Mostrando apenas ativos - F11 para inativos)"
+                )
 
             self._filtrar_fornecedores()
 
@@ -216,12 +255,13 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
         # CORREÇÃO: Sempre trabalhar com os dados originais
         if texto_busca:
             dados_filtrados = [
-                f for f in self.dados  # CORREÇÃO: sempre usar self.dados original
-                if (texto_busca in f.nome.lower() if f.nome else False) or
-                   (texto_busca in (f.cnpj or "").lower()) or
-                   (texto_busca in (f.telefone or "").lower()) or
-                   (texto_busca in (f.email or "").lower()) or
-                   (texto_busca in (f.observacao or "").lower())
+                f
+                for f in self.dados  # CORREÇÃO: sempre usar self.dados original
+                if (texto_busca in f.nome.lower() if f.nome else False)
+                or (texto_busca in (f.cnpj or "").lower())
+                or (texto_busca in (f.telefone or "").lower())
+                or (texto_busca in (f.email or "").lower())
+                or (texto_busca in (f.observacao or "").lower())
             ]
         else:
             dados_filtrados = self.dados
@@ -242,7 +282,9 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
         for row, fornecedor in enumerate(fornecedores):
             # CORREÇÃO: ID usando NumericTableWidgetItem para ordenação numérica
             item_id = NumericTableWidgetItem(str(fornecedor.id))
-            item_id.setData(Qt.ItemDataRole.UserRole, fornecedor.id)  # Armazenar valor numérico
+            item_id.setData(
+                Qt.ItemDataRole.UserRole, fornecedor.id
+            )  # Armazenar valor numérico
             item_id.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             if not fornecedor.ativo:
                 item_id.setBackground(cor_fundo_inativo)
@@ -374,7 +416,7 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
             f"Nome: {fornecedor.nome}\n"
             f"CNPJ: {fornecedor.cnpj or 'Não informado'}\n\n"
             "O fornecedor ficará inativo mas seus dados serão preservados.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         return resposta == QMessageBox.StandardButton.Yes
 

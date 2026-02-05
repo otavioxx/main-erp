@@ -2,21 +2,38 @@
 Sistema de Vendas - Versão Corrigida com Ordenação e Filtro Fixos
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QTableWidget, QTableWidgetItem, QLabel, QMessageBox,
-                             QHeaderView, QFrame, QLineEdit, QGroupBox)
-from PyQt6.QtCore import Qt
-from dialogs.venda_dialog import ProdutoVendaDialog
-from models.venda import Venda
 from datetime import datetime, timedelta
-from database import Database
 
-from utils.helpers import formatar_moeda, formatar_data, validar_data, criar_pasta_se_nao_existir
-from utils.venda_utils import VendaUtils
-from utils.export_utils import ExportUtils
-from imprecoes.print_venda import PrintVenda
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
+from database import Database
+from dialogs.venda_dialog import ProdutoVendaDialog
 from imprecoes.print_relat_venda import PrintRelatVenda
+from imprecoes.print_venda import PrintVenda
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
+from models.venda import Venda
+from utils.export_utils import ExportUtils
+from utils.helpers import (
+    criar_pasta_se_nao_existir,
+    formatar_data,
+    formatar_moeda,
+    validar_data,
+)
+from utils.venda_utils import VendaUtils
 
 
 # ========== CORREÇÃO: Classe para ordenação numérica ==========
@@ -52,7 +69,7 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         self.dados = []
         self._init_ui()
         self._carregar_vendas()
-        criar_pasta_se_nao_existir('relatorios')
+        criar_pasta_se_nao_existir("relatorios")
 
     def _init_ui(self):
         """Inicializa a interface com classes CSS semânticas"""
@@ -132,7 +149,9 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         self.data_inicio = QLineEdit()
         self.data_inicio.setPlaceholderText("DD/MM/AAAA")
         self.data_inicio.setMaximumWidth(100)
-        self.data_inicio.setText((datetime.now() - timedelta(days=30)).strftime("%d/%m/%Y"))
+        self.data_inicio.setText(
+            (datetime.now() - timedelta(days=30)).strftime("%d/%m/%Y")
+        )
         self.data_inicio.textChanged.connect(self._filtrar_vendas)
         layout.addWidget(self.data_inicio)
 
@@ -183,34 +202,51 @@ class VendaView(TableScrollNavigationMixin, QWidget):
 
     def _criar_grupo_vendas(self, layout):
         """Cria a tabela de vendas com configuração otimizada"""
-        grupo_vendas = QGroupBox("Vendas")
+        # Frame container
+        container = QFrame()
+        container.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
 
-        vendas_layout = QVBoxLayout()
-        vendas_layout.setContentsMargins(0, 12, 0, 12)
+        # Layout principal
+        container_layout = QVBoxLayout()
+        container_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Título (opcional, se quiser manter estilo similar)
+        titulo_frame = QFrame()
+        titulo_layout = QHBoxLayout()
+        titulo_layout.setContentsMargins(8, 4, 8, 4)
+
+        titulo = QLabel("Vendas")
+        titulo.setProperty("class", "subtitle")
+        titulo_layout.addWidget(titulo)
+        titulo_layout.addStretch()
+
+        titulo_frame.setLayout(titulo_layout)
+        container_layout.addWidget(titulo_frame)
+
+        # Tabela
         self.tabela_vendas = QTableWidget()
         self._configurar_tabela_vendas()
+        container_layout.addWidget(self.tabela_vendas)
 
-        vendas_layout.addWidget(self.tabela_vendas)
-        grupo_vendas.setLayout(vendas_layout)
-        layout.addWidget(grupo_vendas)
+        container.setLayout(container_layout)
+        layout.addWidget(container)
 
     def _configurar_tabela_vendas(self):
         """Configura a tabela de vendas de forma otimizada"""
         self.tabela_vendas.setColumnCount(6)
-        self.tabela_vendas.setHorizontalHeaderLabels([
-            "ID", "Cliente", "Data", "Pagamento", "Desconto", "Total"
-        ])
+        self.tabela_vendas.setHorizontalHeaderLabels(
+            ["ID", "Cliente", "Data", "Pagamento", "Desconto", "Total"]
+        )
 
         # Configuração das colunas
         header = self.tabela_vendas.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)     # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)   # Cliente
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)     # Data
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)     # Pagamento
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)     # Desconto
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)     # Total
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Cliente
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Data
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Pagamento
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Desconto
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Total
 
         # Larguras otimizadas
         larguras_colunas = [50, 200, 100, 120, 80, 100]
@@ -218,7 +254,9 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             self.tabela_vendas.setColumnWidth(i, largura)
 
         # Configurações gerais da tabela
-        self.tabela_vendas.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.tabela_vendas.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
         self.tabela_vendas.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.tabela_vendas.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_vendas.setAlternatingRowColors(True)
@@ -227,13 +265,15 @@ class VendaView(TableScrollNavigationMixin, QWidget):
 
         self.setup_scroll_navigation(
             tabela=self.tabela_vendas,
-            scroll_sensibilidade=1,      # 1 linha por scroll (padrão)
-            auto_select_first=True       # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
+            auto_select_first=True,  # Seleciona primeira linha automaticamente
         )
 
     # ========== MÉTODOS DE CARREGAMENTO E FILTROS ==========
 
-    def _carregar_vendas(self, data_inicio_str=None, data_fim_str=None, cliente_nome=None):
+    def _carregar_vendas(
+        self, data_inicio_str=None, data_fim_str=None, cliente_nome=None
+    ):
         """Carrega vendas na tabela com tratamento de erros"""
         try:
             # Se não foram passados parâmetros, usa os valores dos filtros
@@ -246,7 +286,9 @@ class VendaView(TableScrollNavigationMixin, QWidget):
 
             # Buscar vendas com filtro de data
             self.dados = VendaUtils.filtrar_vendas(data_inicio_str, data_fim_str, None)
-            self.dados.sort(key=lambda venda: venda[0], reverse=True)  # Ordem decrescente por ID
+            self.dados.sort(
+                key=lambda venda: venda[0], reverse=True
+            )  # Ordem decrescente por ID
 
             self._filtrar_vendas()
             self._atualizar_label_info()
@@ -274,10 +316,10 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             self._limpar_campo_erro(self.data_fim)
 
         datas_mudaram = (
-            not hasattr(self, '_ultima_data_inicio') or
-            not hasattr(self, '_ultima_data_fim') or
-            self._ultima_data_inicio != data_inicio_str or
-            self._ultima_data_fim != data_fim_str
+            not hasattr(self, "_ultima_data_inicio")
+            or not hasattr(self, "_ultima_data_fim")
+            or self._ultima_data_inicio != data_inicio_str
+            or self._ultima_data_fim != data_fim_str
         )
 
         # Se as datas mudaram, recarregar do banco
@@ -291,8 +333,10 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         dados_filtrados = self.dados
         if cliente_nome:
             dados_filtrados = [
-                v for v in self.dados
-                if cliente_nome.lower() in (str(v[-1]) if len(v) > 0 and v[-1] else "").lower()
+                v
+                for v in self.dados
+                if cliente_nome.lower()
+                in (str(v[-1]) if len(v) > 0 and v[-1] else "").lower()
             ]
 
         self.tabela_vendas.setRowCount(len(dados_filtrados))
@@ -308,17 +352,25 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         for row, venda in enumerate(vendas):
             # CORREÇÃO: ID usando NumericTableWidgetItem para ordenação numérica
             item_id = NumericTableWidgetItem(str(venda[0]))
-            item_id.setData(Qt.ItemDataRole.UserRole, venda[0])  # Armazenar valor numérico
+            item_id.setData(
+                Qt.ItemDataRole.UserRole, venda[0]
+            )  # Armazenar valor numérico
             item_id.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_vendas.setItem(row, 0, item_id)
 
             # CORREÇÃO: Cliente - usar o último índice que contém o nome do cliente
             # A query retorna v.* seguido de c.nome as cliente_nome
-            cliente_nome = str(venda[-1]) if len(venda) > 0 and venda[-1] else "Cliente não informado"
+            cliente_nome = (
+                str(venda[-1])
+                if len(venda) > 0 and venda[-1]
+                else "Cliente não informado"
+            )
             self.tabela_vendas.setItem(row, 1, QTableWidgetItem(cliente_nome))
 
             # Data
-            data_item = QTableWidgetItem(formatar_data(venda[2], '%Y-%m-%d', '%d/%m/%Y'))
+            data_item = QTableWidgetItem(
+                formatar_data(venda[2], "%Y-%m-%d", "%d/%m/%Y")
+            )
             data_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_vendas.setItem(row, 2, data_item)
 
@@ -330,15 +382,23 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             # CORREÇÃO: Desconto usando NumericTableWidgetItem com valor numérico
             desconto_valor = float(venda[7]) if venda[7] else 0
             desconto_item = NumericTableWidgetItem(formatar_moeda(desconto_valor))
-            desconto_item.setData(Qt.ItemDataRole.UserRole, desconto_valor)  # Valor numérico para ordenação
-            desconto_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            desconto_item.setData(
+                Qt.ItemDataRole.UserRole, desconto_valor
+            )  # Valor numérico para ordenação
+            desconto_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            )
             self.tabela_vendas.setItem(row, 4, desconto_item)
 
             # CORREÇÃO: Total usando NumericTableWidgetItem com valor numérico
             total_valor = float(venda[3]) if venda[3] else 0
             total_item = NumericTableWidgetItem(formatar_moeda(total_valor))
-            total_item.setData(Qt.ItemDataRole.UserRole, total_valor)  # Valor numérico para ordenação
-            total_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            total_item.setData(
+                Qt.ItemDataRole.UserRole, total_valor
+            )  # Valor numérico para ordenação
+            total_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            )
             self.tabela_vendas.setItem(row, 5, total_item)
 
         # CORREÇÃO: Reabilitar ordenação após preenchimento
@@ -383,7 +443,9 @@ class VendaView(TableScrollNavigationMixin, QWidget):
 
     def _limpar_filtros(self):
         """Limpa todos os filtros e recarrega vendas"""
-        self.data_inicio.setText((datetime.now() - timedelta(days=30)).strftime("%d/%m/%Y"))
+        self.data_inicio.setText(
+            (datetime.now() - timedelta(days=30)).strftime("%d/%m/%Y")
+        )
         self.data_fim.setText(datetime.now().strftime("%d/%m/%Y"))
         self.busca_cliente.clear()
         self._limpar_campo_erro(self.data_inicio)
@@ -440,11 +502,14 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         try:
             conn = Database().get_connection()
             cursor = conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*)
                 FROM duplicatas_pagas
                 WHERE venda_id = ?
-            """, (venda_id,))
+            """,
+                (venda_id,),
+            )
             parcelas_pagas = cursor.fetchone()[0]
             conn.close()
             return parcelas_pagas > 0
@@ -461,7 +526,7 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             f"Data: {formatar_data(venda.data_venda)}\n"
             f"Total: {formatar_moeda(venda.total)}\n\n"
             "Esta ação não pode ser desfeita!",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         return resposta == QMessageBox.StandardButton.Yes
 
@@ -477,11 +542,11 @@ class VendaView(TableScrollNavigationMixin, QWidget):
     def _gerar_relatorio_com_filtros(self, filtros):
         """Gera relatório com base nos filtros selecionados"""
         try:
-            data_inicio = filtros['data_inicio']
-            data_fim = filtros['data_fim']
-            cliente_id = filtros['cliente_id']
-            status = filtros['status']
-            forma_pagamento = filtros['forma_pagamento']
+            data_inicio = filtros["data_inicio"]
+            data_fim = filtros["data_fim"]
+            cliente_id = filtros["cliente_id"]
+            status = filtros["status"]
+            forma_pagamento = filtros["forma_pagamento"]
 
             # Validar datas
             if not self._validar_data(data_inicio) or not self._validar_data(data_fim):
@@ -489,18 +554,21 @@ class VendaView(TableScrollNavigationMixin, QWidget):
                 return
 
             filename = PrintRelatVenda.gerar_relatorio_por_periodo(
-                data_inicio, data_fim, cliente_id, status, forma_pagamento, 'relatorios'
+                data_inicio, data_fim, cliente_id, status, forma_pagamento, "relatorios"
             )
 
             self._tratar_arquivo_gerado(filename, "Relatório exportado")
 
         except Exception as e:
-            self._mostrar_erro("Erro na Exportação", f"Ocorreu um erro ao exportar as vendas:\n{str(e)}")
+            self._mostrar_erro(
+                "Erro na Exportação",
+                f"Ocorreu um erro ao exportar as vendas:\n{str(e)}",
+            )
 
     def _validar_data(self, data_str):
         """Valida formato de data DD/MM/YYYY"""
         try:
-            datetime.strptime(data_str, '%d/%m/%Y')
+            datetime.strptime(data_str, "%d/%m/%Y")
             return True
         except ValueError:
             return False
@@ -513,18 +581,23 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             return
 
         try:
-            filename = PrintVenda.gerar_comprovante(venda.id, 'relatorios')
+            filename = PrintVenda.gerar_comprovante(venda.id, "relatorios")
             self._tratar_arquivo_gerado(filename, "Comprovante gerado")
 
         except Exception as e:
-            self._mostrar_erro("Erro na Impressão", f"Ocorreu um erro ao gerar o comprovante:\n{str(e)}")
+            self._mostrar_erro(
+                "Erro na Impressão",
+                f"Ocorreu um erro ao gerar o comprovante:\n{str(e)}",
+            )
 
     def _tratar_arquivo_gerado(self, filename, mensagem_sucesso):
         """Trata arquivo gerado (relatório ou comprovante)"""
         if filename and ExportUtils.abrir_arquivo(filename):
             self._mostrar_sucesso(f"{mensagem_sucesso}:\n{filename}")
         else:
-            self._mostrar_aviso(f"Arquivo salvo em: {filename}\nNão foi possível abrir automaticamente.")
+            self._mostrar_aviso(
+                f"Arquivo salvo em: {filename}\nNão foi possível abrir automaticamente."
+            )
 
     # ========== MÉTODOS DE INTERFACE ==========
 

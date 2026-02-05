@@ -1,11 +1,26 @@
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QTableWidget, QTableWidgetItem, QLabel, QMessageBox,
-                             QHeaderView, QFrame, QLineEdit, QGroupBox, QDialog,
-                             QDialogButtonBox, QTextEdit, QCheckBox)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
-from models.cliente import Cliente
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QDialog,
+    QDialogButtonBox,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
+from models.cliente import Cliente
 from utils.helpers import aplicar_maiuscula_formulario
 
 
@@ -60,7 +75,9 @@ class ClienteDialog(QDialog):
 
         dados_layout.addWidget(QLabel("CPF/CNPJ:"))
         self.cpf_cnpj_edit = QLineEdit(self.cliente.cpf_cnpj or "")
-        self.cpf_cnpj_edit.setPlaceholderText("Ex: 123.456.789-00 ou 12.345.678/0001-90")
+        self.cpf_cnpj_edit.setPlaceholderText(
+            "Ex: 123.456.789-00 ou 12.345.678/0001-90"
+        )
         dados_layout.addWidget(self.cpf_cnpj_edit)
 
         grupo_dados.setLayout(dados_layout)
@@ -73,7 +90,9 @@ class ClienteDialog(QDialog):
 
         contato_layout.addWidget(QLabel("Endereço:"))
         self.endereco_edit = QLineEdit(self.cliente.endereco or "")
-        self.endereco_edit.setPlaceholderText("Rua das Flores, 123 - Centro - São Paulo/SP")
+        self.endereco_edit.setPlaceholderText(
+            "Rua das Flores, 123 - Centro - São Paulo/SP"
+        )
         contato_layout.addWidget(self.endereco_edit)
 
         contato_layout.addWidget(QLabel("Telefone:"))
@@ -94,7 +113,9 @@ class ClienteDialog(QDialog):
         obs_layout = QVBoxLayout()
 
         self.observacao_edit = QTextEdit(self.cliente.observacao or "")
-        self.observacao_edit.setPlaceholderText("Informações adicionais sobre o cliente...")
+        self.observacao_edit.setPlaceholderText(
+            "Informações adicionais sobre o cliente..."
+        )
         self.observacao_edit.setMaximumHeight(80)
         obs_layout.addWidget(self.observacao_edit)
 
@@ -111,8 +132,7 @@ class ClienteDialog(QDialog):
 
         # Botões
         buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok |
-            QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
@@ -243,35 +263,52 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
 
     def _criar_grupo_clientes(self, layout):
         """Cria a tabela de clientes com configuração otimizada"""
-        grupo_clientes = QGroupBox("Clientes")
+        # Frame container
+        container = QFrame()
+        container.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
 
-        clientes_layout = QVBoxLayout()
-        clientes_layout.setContentsMargins(0, 12, 0, 12)
+        # Layout principal
+        container_layout = QVBoxLayout()
+        container_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Título
+        titulo_frame = QFrame()
+        titulo_layout = QHBoxLayout()
+        titulo_layout.setContentsMargins(8, 4, 8, 4)
+
+        titulo = QLabel("Clientes")
+        titulo.setProperty("class", "subtitle")
+        titulo_layout.addWidget(titulo)
+        titulo_layout.addStretch()
+
+        titulo_frame.setLayout(titulo_layout)
+        container_layout.addWidget(titulo_frame)
+
+        # Tabela
         self.tabela_clientes = QTableWidget()
         self._configurar_tabela_clientes()
+        container_layout.addWidget(self.tabela_clientes)
 
-        clientes_layout.addWidget(self.tabela_clientes)
-        grupo_clientes.setLayout(clientes_layout)
-        layout.addWidget(grupo_clientes)
+        container.setLayout(container_layout)
+        layout.addWidget(container)
 
     def _configurar_tabela_clientes(self):
         """Configura a tabela de clientes de forma otimizada"""
         self.tabela_clientes.setColumnCount(7)
-        self.tabela_clientes.setHorizontalHeaderLabels([
-            "ID", "Nome", "CPF/CNPJ", "Endereço", "Telefone", "Email", "Observação"
-        ])
+        self.tabela_clientes.setHorizontalHeaderLabels(
+            ["ID", "Nome", "CPF/CNPJ", "Endereço", "Telefone", "Email", "Observação"]
+        )
 
         # Configuração das colunas
         header = self.tabela_clientes.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)     # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)   # Nome
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)     # CPF/CNPJ
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)     # Endereço
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)     # Telefone
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)     # Email
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)     # Observação
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # CPF/CNPJ
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Endereço
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Telefone
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Email
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Observação
 
         # Larguras otimizadas
         larguras_colunas = [50, 200, 130, 250, 110, 200, 200]
@@ -279,8 +316,12 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
             self.tabela_clientes.setColumnWidth(i, largura)
 
         # Configurações gerais da tabela
-        self.tabela_clientes.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.tabela_clientes.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.tabela_clientes.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.tabela_clientes.setSelectionMode(
+            QTableWidget.SelectionMode.SingleSelection
+        )
         self.tabela_clientes.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_clientes.setAlternatingRowColors(True)
         self.tabela_clientes.verticalHeader().setVisible(False)
@@ -288,8 +329,8 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
 
         self.setup_scroll_navigation(
             tabela=self.tabela_clientes,
-            scroll_sensibilidade=1,      # 1 linha por scroll (padrão)
-            auto_select_first=True       # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
+            auto_select_first=True,  # Seleciona primeira linha automaticamente
         )
 
     # ========== MÉTODOS DE CARREGAMENTO E FILTROS ==========
@@ -299,10 +340,14 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
         try:
             if self.mostrar_inativos:
                 self.dados = Cliente.buscar_todos(apenas_ativos=False)
-                self.label_filtro.setText("(Mostrando todos os registros - F11 para apenas ativos)")
+                self.label_filtro.setText(
+                    "(Mostrando todos os registros - F11 para apenas ativos)"
+                )
             else:
                 self.dados = Cliente.buscar_todos(apenas_ativos=True)
-                self.label_filtro.setText("(Mostrando apenas ativos - F11 para inativos)")
+                self.label_filtro.setText(
+                    "(Mostrando apenas ativos - F11 para inativos)"
+                )
 
             self._filtrar_clientes()
 
@@ -316,13 +361,14 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
         # CORREÇÃO: Sempre trabalhar com os dados originais
         if texto_busca:
             dados_filtrados = [
-                c for c in self.dados  # CORREÇÃO: sempre usar self.dados original
-                if (texto_busca in c.nome.lower() if c.nome else False) or
-                   (texto_busca in (c.cpf_cnpj or "").lower()) or
-                   (texto_busca in (c.telefone or "").lower()) or
-                   (texto_busca in (c.email or "").lower()) or
-                   (texto_busca in (c.endereco or "").lower()) or
-                   (texto_busca in (c.observacao or "").lower())
+                c
+                for c in self.dados  # CORREÇÃO: sempre usar self.dados original
+                if (texto_busca in c.nome.lower() if c.nome else False)
+                or (texto_busca in (c.cpf_cnpj or "").lower())
+                or (texto_busca in (c.telefone or "").lower())
+                or (texto_busca in (c.email or "").lower())
+                or (texto_busca in (c.endereco or "").lower())
+                or (texto_busca in (c.observacao or "").lower())
             ]
         else:
             dados_filtrados = self.dados
@@ -343,7 +389,9 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
         for row, cliente in enumerate(clientes):
             # CORREÇÃO: ID usando NumericTableWidgetItem para ordenação numérica
             item_id = NumericTableWidgetItem(str(cliente.id))
-            item_id.setData(Qt.ItemDataRole.UserRole, cliente.id)  # Armazenar valor numérico
+            item_id.setData(
+                Qt.ItemDataRole.UserRole, cliente.id
+            )  # Armazenar valor numérico
             item_id.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             if not cliente.ativo:
                 item_id.setBackground(cor_fundo_inativo)
@@ -495,7 +543,7 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
             f"Nome: {cliente.nome}\n"
             f"CPF/CNPJ: {cliente.cpf_cnpj or 'Não informado'}\n\n"
             "O cliente ficará inativo mas seus dados serão preservados.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         return resposta == QMessageBox.StandardButton.Yes
 

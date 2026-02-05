@@ -2,21 +2,40 @@
 View de Pedidos - Otimizada com correções de ordenação e layout reorganizado - CORRIGIDO para nova estrutura
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QTableWidget, QTableWidgetItem, QLabel, QMessageBox,
-                             QHeaderView, QFrame, QLineEdit, QGroupBox,
-                             QRadioButton, QButtonGroup, QComboBox)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QBrush, QColor
 from datetime import datetime, timedelta
 
-from utils.helpers import formatar_moeda, formatar_data, validar_data, criar_pasta_se_nao_existir
-from utils.pedido_utils import PedidoUtils
-from utils.export_utils import ExportUtils
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QBrush, QColor
+from PyQt6.QtWidgets import (
+    QButtonGroup,
+    QComboBox,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QRadioButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
 from dialogs.pedido_dialog import PedidoDialog
 from imprecoes.print_pedido import PrintPedido
 from imprecoes.print_relat_pedido import PrintRelatPedido
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
+from utils.export_utils import ExportUtils
+from utils.helpers import (
+    criar_pasta_se_nao_existir,
+    formatar_data,
+    formatar_moeda,
+    validar_data,
+)
+from utils.pedido_utils import PedidoUtils
 
 
 # ========== CORREÇÃO: Classe para ordenação numérica ==========
@@ -50,7 +69,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
         super().__init__()
         self.fornecedor_filtro = None
         self.dados = []
-        criar_pasta_se_nao_existir('relatorios')
+        criar_pasta_se_nao_existir("relatorios")
         self._init_ui()
         self._carregar_dados()
 
@@ -142,7 +161,9 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
         self.data_inicio = QLineEdit()
         self.data_inicio.setPlaceholderText("DD/MM/AAAA")
         self.data_inicio.setMaximumWidth(100)
-        self.data_inicio.setText((datetime.now() - timedelta(days=30)).strftime("%d/%m/%Y"))
+        self.data_inicio.setText(
+            (datetime.now() - timedelta(days=30)).strftime("%d/%m/%Y")
+        )
         self.data_inicio.textChanged.connect(self._filtrar_pedidos)
         layout.addWidget(self.data_inicio)
 
@@ -197,38 +218,63 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
         layout.addWidget(grupo_acoes)
 
     def _criar_grupo_pedidos(self, layout):
-        """Cria grupo da tabela"""
-        grupo_pedidos = QGroupBox("Pedidos")
-        grupo_pedidos.setProperty("class", "clean-group")
+        """Cria grupo da tabela de pedidos"""
+        # Frame container
+        container = QFrame()
+        container.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
 
-        pedidos_layout = QVBoxLayout()
-        pedidos_layout.setContentsMargins(0, 12, 0, 12)
+        # Layout principal
+        container_layout = QVBoxLayout()
+        container_layout.setContentsMargins(0, 0, 0, 0)
 
-        self._criar_tabela_pedidos()
-        pedidos_layout.addWidget(self.tabela_pedidos)
+        # Título
+        titulo_frame = QFrame()
+        titulo_layout = QHBoxLayout()
+        titulo_layout.setContentsMargins(8, 4, 8, 4)
 
-        grupo_pedidos.setLayout(pedidos_layout)
-        layout.addWidget(grupo_pedidos)
+        titulo = QLabel("Pedidos")
+        titulo.setProperty("class", "subtitle")
+        titulo_layout.addWidget(titulo)
+        titulo_layout.addStretch()
+
+        titulo_frame.setLayout(titulo_layout)
+        container_layout.addWidget(titulo_frame)
+
+        # Tabela
+        self._criar_tabela_pedidos()  # Este método deve criar self.tabela_pedidos
+        container_layout.addWidget(self.tabela_pedidos)
+
+        container.setLayout(container_layout)
+        layout.addWidget(container)
 
     def _criar_tabela_pedidos(self):
         """Configura tabela de pedidos - ATUALIZADA para incluir desconto"""
         self.tabela_pedidos = QTableWidget()
         self.tabela_pedidos.setColumnCount(8)  # AUMENTADO para incluir desconto
-        self.tabela_pedidos.setHorizontalHeaderLabels([
-            "ID", "Fornecedor", "Data Pedido", "Status", "Recebimento", "Desconto", "Frete", "Total"
-        ])
+        self.tabela_pedidos.setHorizontalHeaderLabels(
+            [
+                "ID",
+                "Fornecedor",
+                "Data Pedido",
+                "Status",
+                "Recebimento",
+                "Desconto",
+                "Frete",
+                "Total",
+            ]
+        )
 
         # Configuração das colunas
         header = self.tabela_pedidos.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)    # ID
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Fornecedor
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)    # Data
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)    # Status
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)    # Recebimento
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)    # Desconto - NOVO
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)    # Frete
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)    # Total
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Data
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Status
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Recebimento
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Desconto - NOVO
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Frete
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)  # Total
 
         # LARGURAS AJUSTADAS para incluir desconto
         larguras = [50, 150, 100, 90, 100, 80, 70, 80]
@@ -236,7 +282,9 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             self.tabela_pedidos.setColumnWidth(i, largura)
 
         # Configurações gerais
-        self.tabela_pedidos.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.tabela_pedidos.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
         self.tabela_pedidos.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.tabela_pedidos.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_pedidos.setAlternatingRowColors(True)
@@ -245,8 +293,8 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
 
         self.setup_scroll_navigation(
             tabela=self.tabela_pedidos,
-            scroll_sensibilidade=1,      # 1 linha por scroll (padrão)
-            auto_select_first=True       # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
+            auto_select_first=True,  # Seleciona primeira linha automaticamente
         )
 
     # ========== MÉTODOS DE DADOS ==========
@@ -264,10 +312,13 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             return "cancelado"
         return None
 
-    def _buscar_pedidos_com_estrutura_correta(self, data_inicio_str=None, data_fim_str=None, fornecedor_id=None, status=None):
+    def _buscar_pedidos_com_estrutura_correta(
+        self, data_inicio_str=None, data_fim_str=None, fornecedor_id=None, status=None
+    ):
         """NOVO MÉTODO: Busca pedidos com estrutura explícita para evitar problemas de índice"""
         try:
             from database import Database
+
             db = Database()
             conn = db.get_connection()
             cursor = conn.cursor()
@@ -294,7 +345,9 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             # Aplicar filtros de data
             if data_inicio_str:
                 try:
-                    data_inicio = datetime.strptime(data_inicio_str, '%d/%m/%Y').strftime('%Y-%m-%d')
+                    data_inicio = datetime.strptime(
+                        data_inicio_str, "%d/%m/%Y"
+                    ).strftime("%Y-%m-%d")
                     query += " AND p.data_pedido >= ?"
                     params.append(data_inicio)
                 except ValueError:
@@ -302,7 +355,9 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
 
             if data_fim_str:
                 try:
-                    data_fim = datetime.strptime(data_fim_str, '%d/%m/%Y').strftime('%Y-%m-%d')
+                    data_fim = datetime.strptime(data_fim_str, "%d/%m/%Y").strftime(
+                        "%Y-%m-%d"
+                    )
                     query += " AND p.data_pedido <= ?"
                     params.append(data_fim)
                 except ValueError:
@@ -328,14 +383,16 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             return []
         finally:
             try:
-                if hasattr(db, 'close_connection'):
+                if hasattr(db, "close_connection"):
                     db.close_connection()
             except:
                 pass
 
-    def _carregar_dados(self, data_inicio_str=None, data_fim_str=None, fornecedor_id=None, status=None):
+    def _carregar_dados(
+        self, data_inicio_str=None, data_fim_str=None, fornecedor_id=None, status=None
+    ):
         """Carrega dados na tabela - MÉTODO ATUALIZADO"""
-        if not hasattr(self, 'tabela_pedidos'):
+        if not hasattr(self, "tabela_pedidos"):
             return
 
         try:
@@ -386,17 +443,21 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             status_map = {
                 "Pendentes": "pendente",
                 "Recebidos": "recebido",
-                "Cancelados": "cancelado"
+                "Cancelados": "cancelado",
             }
             status_filtro = status_map.get(status_selecionado, "")
-            dados_filtrados = [p for p in dados_filtrados if str(p[7]).lower() == status_filtro]
+            dados_filtrados = [
+                p for p in dados_filtrados if str(p[7]).lower() == status_filtro
+            ]
 
         # Filtro por nome do fornecedor na busca local
         # CORREÇÃO: Usar índice 9 para nome do fornecedor
         if fornecedor_nome:
             dados_filtrados = [
-                p for p in dados_filtrados
-                if fornecedor_nome.lower() in (str(p[9]) if len(p) > 9 and p[9] else "").lower()
+                p
+                for p in dados_filtrados
+                if fornecedor_nome.lower()
+                in (str(p[9]) if len(p) > 9 and p[9] else "").lower()
             ]
 
         self.tabela_pedidos.setRowCount(len(dados_filtrados))
@@ -416,16 +477,24 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
 
             # CORREÇÃO: ID usando NumericTableWidgetItem para ordenação numérica
             item_id = NumericTableWidgetItem(str(pedido[0]))
-            item_id.setData(Qt.ItemDataRole.UserRole, pedido[0])  # Armazenar valor numérico
+            item_id.setData(
+                Qt.ItemDataRole.UserRole, pedido[0]
+            )  # Armazenar valor numérico
             item_id.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_pedidos.setItem(row, 0, item_id)
 
             # CORREÇÃO: Fornecedor - agora no índice 9
-            fornecedor_nome = str(pedido[9]) if len(pedido) > 9 and pedido[9] else "Fornecedor não informado"
+            fornecedor_nome = (
+                str(pedido[9])
+                if len(pedido) > 9 and pedido[9]
+                else "Fornecedor não informado"
+            )
             self.tabela_pedidos.setItem(row, 1, QTableWidgetItem(fornecedor_nome))
 
             # Data Pedido
-            data_pedido = QTableWidgetItem(formatar_data(pedido[2], '%Y-%m-%d', '%d/%m/%Y'))
+            data_pedido = QTableWidgetItem(
+                formatar_data(pedido[2], "%Y-%m-%d", "%d/%m/%Y")
+            )
             data_pedido.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_pedidos.setItem(row, 2, data_pedido)
 
@@ -433,7 +502,9 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             self._preencher_status(row, pedido[7])
 
             # Data Recebimento - índice 3
-            data_recebimento = formatar_data(pedido[3], '%Y-%m-%d', '%d/%m/%Y') if pedido[3] else "-"
+            data_recebimento = (
+                formatar_data(pedido[3], "%Y-%m-%d", "%d/%m/%Y") if pedido[3] else "-"
+            )
             data_recebimento_item = QTableWidgetItem(data_recebimento)
             data_recebimento_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_pedidos.setItem(row, 4, data_recebimento_item)
@@ -444,7 +515,9 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
                 formatar_moeda(desconto_valor) if desconto_valor > 0 else "-"
             )
             desconto_item.setData(Qt.ItemDataRole.UserRole, desconto_valor)
-            desconto_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            desconto_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            )
             # Destacar desconto em vermelho se houver
             if desconto_valor > 0:
                 desconto_item.setForeground
@@ -452,16 +525,26 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
 
             # CORREÇÃO: Frete - índice 5
             frete_valor = float(pedido[5]) if pedido[5] else 0
-            frete_item = NumericTableWidgetItem(formatar_moeda(frete_valor) if frete_valor > 0 else "-")
-            frete_item.setData(Qt.ItemDataRole.UserRole, frete_valor)  # Valor numérico para ordenação
-            frete_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            frete_item = NumericTableWidgetItem(
+                formatar_moeda(frete_valor) if frete_valor > 0 else "-"
+            )
+            frete_item.setData(
+                Qt.ItemDataRole.UserRole, frete_valor
+            )  # Valor numérico para ordenação
+            frete_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            )
             self.tabela_pedidos.setItem(row, 6, frete_item)
 
             # CORREÇÃO: Total - índice 4
             total_valor = float(pedido[4]) if pedido[4] else 0
             total_item = NumericTableWidgetItem(formatar_moeda(total_valor))
-            total_item.setData(Qt.ItemDataRole.UserRole, total_valor)  # Valor numérico para ordenação
-            total_item.setTextAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+            total_item.setData(
+                Qt.ItemDataRole.UserRole, total_valor
+            )  # Valor numérico para ordenação
+            total_item.setTextAlignment(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            )
             self.tabela_pedidos.setItem(row, 7, total_item)
 
         # CORREÇÃO: Reabilitar ordenação após preenchimento
@@ -472,16 +555,18 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
 
     def _preencher_status(self, row, status):
         """Preenche status com cores"""
-        status_str = str(status) if status is not None else 'pendente'  # CORREÇÃO: Garantir que seja string
+        status_str = (
+            str(status) if status is not None else "pendente"
+        )  # CORREÇÃO: Garantir que seja string
         status_item = QTableWidgetItem(status_str.capitalize())
         status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Cores baseadas no status
-        if status_str.lower() == 'pendente':
+        if status_str.lower() == "pendente":
             status_item.setForeground(QBrush(QColor(150, 100, 0)))
-        elif status_str.lower() == 'recebido':
+        elif status_str.lower() == "recebido":
             status_item.setForeground(QBrush(QColor(0, 150, 0)))
-        elif status_str.lower() == 'cancelado':
+        elif status_str.lower() == "cancelado":
             status_item.setForeground(QBrush(QColor(200, 50, 50)))
 
         self.tabela_pedidos.setItem(row, 3, status_item)
@@ -526,7 +611,9 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
 
     def _limpar_filtros(self):
         """Limpa todos os filtros"""
-        self.data_inicio.setText((datetime.now() - timedelta(days=30)).strftime("%d/%m/%Y"))
+        self.data_inicio.setText(
+            (datetime.now() - timedelta(days=30)).strftime("%d/%m/%Y")
+        )
         self.data_fim.setText(datetime.now().strftime("%d/%m/%Y"))
         self.busca_fornecedor.clear()
         self._limpar_campo_erro(self.data_inicio)
@@ -540,6 +627,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
     def _selecionar_fornecedor(self):
         """Abre dialog de seleção de fornecedor"""
         from dialogs.fornecedor_selection_dialog import FornecedorSelectionDialog
+
         dialog = FornecedorSelectionDialog(self)
         if dialog.exec():
             fornecedor = dialog.get_fornecedor_selecionado()
@@ -556,6 +644,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
         try:
             pedido_id = int(self.tabela_pedidos.item(row, 0).text())
             from models.pedido import Pedido
+
             return Pedido.buscar_por_id(pedido_id)
         except (ValueError, AttributeError):
             return None
@@ -573,12 +662,14 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             QMessageBox.warning(self, "Aviso", "Selecione um pedido para receber")
             return
 
-        if pedido.status == 'recebido':
+        if pedido.status == "recebido":
             QMessageBox.warning(self, "Aviso", "Este pedido já foi recebido")
             return
 
-        if pedido.status == 'cancelado':
-            QMessageBox.warning(self, "Aviso", "Não é possível receber um pedido cancelado")
+        if pedido.status == "cancelado":
+            QMessageBox.warning(
+                self, "Aviso", "Não é possível receber um pedido cancelado"
+            )
             return
 
         if self._confirmar_recebimento(pedido):
@@ -592,12 +683,13 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
     def _confirmar_recebimento(self, pedido):
         """Confirma recebimento do pedido"""
         resposta = QMessageBox.question(
-            self, "Confirmar Recebimento",
+            self,
+            "Confirmar Recebimento",
             f"Marcar pedido #{pedido.id} como recebido?\n"
             f"Fornecedor: {pedido.obter_fornecedor().nome if pedido.obter_fornecedor() else 'N/A'}\n"
             f"Total: {formatar_moeda(pedido.valor_total)}\n\n"
             "Esta ação irá atualizar o estoque dos produtos.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         return resposta == QMessageBox.StandardButton.Yes
 
@@ -608,9 +700,12 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             QMessageBox.warning(self, "Aviso", "Selecione um pedido para editar")
             return
 
-        if pedido.status != 'pendente':
-            QMessageBox.warning(self, "Aviso",
-                f"Só é possível editar pedidos pendentes.\nStatus atual: {pedido.status.capitalize()}")
+        if pedido.status != "pendente":
+            QMessageBox.warning(
+                self,
+                "Aviso",
+                f"Só é possível editar pedidos pendentes.\nStatus atual: {pedido.status.capitalize()}",
+            )
             return
 
         dialog = PedidoDialog(self, pedido=pedido)
@@ -624,11 +719,13 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             QMessageBox.warning(self, "Aviso", "Selecione um pedido para cancelar")
             return
 
-        if pedido.status == 'recebido':
-            QMessageBox.warning(self, "Aviso", "Não é possível cancelar um pedido já recebido")
+        if pedido.status == "recebido":
+            QMessageBox.warning(
+                self, "Aviso", "Não é possível cancelar um pedido já recebido"
+            )
             return
 
-        if pedido.status == 'cancelado':
+        if pedido.status == "cancelado":
             QMessageBox.warning(self, "Aviso", "Este pedido já está cancelado")
             return
 
@@ -643,12 +740,13 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
     def _confirmar_cancelamento(self, pedido):
         """Confirma cancelamento do pedido"""
         resposta = QMessageBox.question(
-            self, "Confirmar Cancelamento",
+            self,
+            "Confirmar Cancelamento",
             f"Cancelar pedido #{pedido.id}?\n"
             f"Fornecedor: {pedido.obter_fornecedor().nome if pedido.obter_fornecedor() else 'N/A'}\n"
             f"Total: {formatar_moeda(pedido.valor_total)}\n\n"
             "Esta ação não pode ser desfeita!",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         return resposta == QMessageBox.StandardButton.Yes
 
@@ -657,7 +755,9 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
         try:
             data_inicio = self.data_inicio.text().strip()
             data_fim = self.data_fim.text().strip()
-            fornecedor_id = self.fornecedor_filtro.id if self.fornecedor_filtro else None
+            fornecedor_id = (
+                self.fornecedor_filtro.id if self.fornecedor_filtro else None
+            )
             status = self._get_status_selecionado()
 
             if data_inicio and not validar_data(data_inicio):
@@ -668,15 +768,23 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
                 return
 
             filename = PrintRelatPedido.gerar_relatorio_por_periodo(
-                data_inicio, data_fim, fornecedor_id, status, 'relatorios'
+                data_inicio, data_fim, fornecedor_id, status, "relatorios"
             )
 
             if filename and ExportUtils.abrir_arquivo(filename):
-                QMessageBox.information(self, "Sucesso", f"Relatório exportado:\n{filename}")
+                QMessageBox.information(
+                    self, "Sucesso", f"Relatório exportado:\n{filename}"
+                )
             else:
-                QMessageBox.warning(self, "Arquivo salvo", f"Arquivo salvo em: {filename}\nNão foi possível abrir automaticamente.")
+                QMessageBox.warning(
+                    self,
+                    "Arquivo salvo",
+                    f"Arquivo salvo em: {filename}\nNão foi possível abrir automaticamente.",
+                )
         except Exception as e:
-            QMessageBox.critical(self, "Erro na Exportação", f"Erro ao exportar pedidos:\n{str(e)}")
+            QMessageBox.critical(
+                self, "Erro na Exportação", f"Erro ao exportar pedidos:\n{str(e)}"
+            )
 
     def _imprimir_pedido(self):
         """Imprime pedido selecionado"""
@@ -685,13 +793,21 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             QMessageBox.warning(self, "Aviso", "Selecione um pedido para imprimir")
             return
         try:
-            filename = PrintPedido.gerar_comprovante(pedido.id, 'relatorios')
+            filename = PrintPedido.gerar_comprovante(pedido.id, "relatorios")
             if filename and ExportUtils.abrir_arquivo(filename):
-                QMessageBox.information(self, "Sucesso", f"Comprovante gerado:\n{filename}")
+                QMessageBox.information(
+                    self, "Sucesso", f"Comprovante gerado:\n{filename}"
+                )
             else:
-                QMessageBox.warning(self, "Arquivo salvo", f"Arquivo salvo em: {filename}\nNão foi possível abrir automaticamente.")
+                QMessageBox.warning(
+                    self,
+                    "Arquivo salvo",
+                    f"Arquivo salvo em: {filename}\nNão foi possível abrir automaticamente.",
+                )
         except Exception as e:
-            QMessageBox.critical(self, "Erro na Impressão", f"Erro ao gerar comprovante:\n{str(e)}")
+            QMessageBox.critical(
+                self, "Erro na Impressão", f"Erro ao gerar comprovante:\n{str(e)}"
+            )
 
     # ========== MÉTODOS PÚBLICOS PARA COMPATIBILIDADE ==========
 
@@ -699,7 +815,9 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
         """Método público para compatibilidade"""
         self._selecionar_fornecedor()
 
-    def carregar_dados(self, data_inicio_str=None, data_fim_str=None, fornecedor_id=None, status=None):
+    def carregar_dados(
+        self, data_inicio_str=None, data_fim_str=None, fornecedor_id=None, status=None
+    ):
         """Método público para compatibilidade"""
         self._carregar_dados(data_inicio_str, data_fim_str, fornecedor_id, status)
 

@@ -2,24 +2,41 @@
 View de Recebimentos - Otimizada com layout consistente ao CondicionalView
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QTableWidget, QTableWidgetItem, QLabel, QMessageBox,
-                             QHeaderView, QFrame, QLineEdit, QGroupBox,
-                             QComboBox)
+import os
+from datetime import datetime
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QBrush, QColor
-from datetime import datetime
-import os
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 
+from database import Database
 from dialogs.cliente_selection_dialog import ClienteSelectionDialog
 from dialogs.recebimento_dialog import RecebimentoDialog
-from models.duplicata import Duplicata
-from database import Database
-from utils.helpers import formatar_moeda, formatar_data, validar_data, criar_pasta_se_nao_existir
-from utils.export_utils import ExportUtils
 from imprecoes.print_comprovante_recebimento import PrintComprovanteRecebimento
 from imprecoes.print_relat_recebimento import PrintRelatRecebimento
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
+from models.duplicata import Duplicata
+from utils.export_utils import ExportUtils
+from utils.helpers import (
+    criar_pasta_se_nao_existir,
+    formatar_data,
+    formatar_moeda,
+    validar_data,
+)
 
 
 class RecebimentoView(TableScrollNavigationMixin, QWidget):
@@ -33,7 +50,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         self.todas_duplicatas = []
         self._init_ui()
         self._carregar_duplicatas()
-        criar_pasta_se_nao_existir('relatorios')
+        criar_pasta_se_nao_existir("relatorios")
 
     def _init_ui(self):
         """Inicializa interface com layout consistente ao CondicionalView"""
@@ -160,37 +177,62 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
     def _criar_grupo_duplicatas(self, layout):
         """Cria grupo da tabela de duplicatas"""
-        grupo_duplicatas = QGroupBox("Duplicatas")
-        grupo_duplicatas.setProperty("class", "clean-group")
+        # Frame container
+        container = QFrame()
+        container.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
 
-        duplicatas_layout = QVBoxLayout()
-        duplicatas_layout.setContentsMargins(0, 12, 0, 12)
+        # Layout principal
+        container_layout = QVBoxLayout()
+        container_layout.setContentsMargins(0, 0, 0, 0)
 
+        # Título
+        titulo_frame = QFrame()
+        titulo_layout = QHBoxLayout()
+        titulo_layout.setContentsMargins(8, 4, 8, 4)
+
+        titulo = QLabel("Duplicatas")
+        titulo.setProperty("class", "subtitle")
+        titulo_layout.addWidget(titulo)
+        titulo_layout.addStretch()
+
+        titulo_frame.setLayout(titulo_layout)
+        container_layout.addWidget(titulo_frame)
+
+        # Tabela
         self._criar_tabela_duplicatas()
-        duplicatas_layout.addWidget(self.tabela_duplicatas)
+        container_layout.addWidget(self.tabela_duplicatas)
 
-        grupo_duplicatas.setLayout(duplicatas_layout)
-        layout.addWidget(grupo_duplicatas)
+        container.setLayout(container_layout)
+        layout.addWidget(container)
 
     def _criar_tabela_duplicatas(self):
         """Configura tabela de duplicatas"""
         self.tabela_duplicatas = QTableWidget()
         self.tabela_duplicatas.setColumnCount(8)
-        self.tabela_duplicatas.setHorizontalHeaderLabels([
-            "ID", "Cliente", "Status", "Venda", "Parcela", "Valor", "Vencimento", "Pagamento"  # MUDANÇA: Status movido para posição 2
-        ])
+        self.tabela_duplicatas.setHorizontalHeaderLabels(
+            [
+                "ID",
+                "Cliente",
+                "Status",
+                "Venda",
+                "Parcela",
+                "Valor",
+                "Vencimento",
+                "Pagamento",  # MUDANÇA: Status movido para posição 2
+            ]
+        )
 
         # Configuração das colunas
         header = self.tabela_duplicatas.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)    # ID
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Cliente
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)    # Status - MOVIDO
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)    # Venda
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)    # Parcela
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)    # Valor
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)    # Vencimento
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)    # Pagamento
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Status - MOVIDO
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Venda
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Parcela
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Valor
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Vencimento
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)  # Pagamento
 
         # Larguras das colunas - AJUSTADAS
         larguras = [50, 180, 80, 60, 60, 80, 100, 100]  # Status agora na posição 2
@@ -198,8 +240,12 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             self.tabela_duplicatas.setColumnWidth(i, largura)
 
         # Configurações gerais (sem mudanças)
-        self.tabela_duplicatas.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.tabela_duplicatas.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.tabela_duplicatas.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.tabela_duplicatas.setSelectionMode(
+            QTableWidget.SelectionMode.SingleSelection
+        )
         self.tabela_duplicatas.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_duplicatas.setAlternatingRowColors(True)
         self.tabela_duplicatas.verticalHeader().setVisible(False)
@@ -208,8 +254,8 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
         self.setup_scroll_navigation(
             tabela=self.tabela_duplicatas,
-            scroll_sensibilidade=1,      # 1 linha por scroll (padrão)
-            auto_select_first=True       # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
+            auto_select_first=True,  # Seleciona primeira linha automaticamente
         )
 
     def _debug_selecao(self):
@@ -271,12 +317,12 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao carregar duplicatas: {str(e)}")
         finally:
-            if 'conn' in locals():
+            if "conn" in locals():
                 conn.close()
 
     def _filtrar_duplicatas(self):
         """Filtra duplicatas baseado nos critérios - MÉTODO CORRIGIDO"""
-        if not hasattr(self, 'todas_duplicatas'):
+        if not hasattr(self, "todas_duplicatas"):
             return
 
         status_filtro = self._get_status_selecionado()
@@ -313,7 +359,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             is_paga = len(dup) == 15
 
             if is_paga:
-                status = 'pago'
+                status = "pago"
                 data_vencimento = dup[6]
                 data_pagamento = dup[7]
                 cliente_id = dup[1]
@@ -326,7 +372,9 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 cliente_nome = dup[8]  # Índice correto para duplicatas abertas
 
             # Filtro de status
-            status_ok = self._validar_status_filtro(status_filtro, status, data_vencimento)
+            status_ok = self._validar_status_filtro(
+                status_filtro, status, data_vencimento
+            )
             if not status_ok:
                 continue
 
@@ -337,7 +385,9 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                     continue
 
             # Filtro de data
-            if not self._validar_data_filtro(status, data_vencimento, data_pagamento, data_inicio, data_fim):
+            if not self._validar_data_filtro(
+                status, data_vencimento, data_pagamento, data_inicio, data_fim
+            ):
                 continue
 
             duplicatas_filtradas.append(dup)
@@ -392,7 +442,9 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             return True
         return False
 
-    def _validar_data_filtro(self, status, data_vencimento, data_pagamento, data_inicio, data_fim):
+    def _validar_data_filtro(
+        self, status, data_vencimento, data_pagamento, data_inicio, data_fim
+    ):
         """Valida se duplicata atende filtro de data"""
         data_referencia = data_vencimento if status == "aberto" else data_pagamento
 
@@ -416,11 +468,9 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         try:
             duplicatas_filtradas.sort(
                 key=lambda d: (
-                    datetime.strptime(
-                        d[6] if len(d) == 15 else d[5],
-                        "%Y-%m-%d"
-                    ).date()
-                    if (d[6] if len(d) == 15 else d[5]) and isinstance((d[6] if len(d) == 15 else d[5]), str)
+                    datetime.strptime(d[6] if len(d) == 15 else d[5], "%Y-%m-%d").date()
+                    if (d[6] if len(d) == 15 else d[5])
+                    and isinstance((d[6] if len(d) == 15 else d[5]), str)
                     else datetime.max.date()
                 )
             )
@@ -439,10 +489,18 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         is_paga = len(dup) == 15
 
         if is_paga:
-            id_dup, cliente_id, venda_id, = dup[0], dup[1], dup[2]
+            (
+                id_dup,
+                cliente_id,
+                venda_id,
+            ) = (
+                dup[0],
+                dup[1],
+                dup[2],
+            )
             cliente_nome, numero_parcela = dup[9], dup[3]
             valor, data_vencimento = dup[4], dup[6]
-            data_pagamento, status = dup[7], 'pago'
+            data_pagamento, status = dup[7], "pago"
         else:
             id_dup, cliente_id, venda_id = dup[0], dup[1], dup[2]
             cliente_nome, numero_parcela = dup[8], dup[3]
@@ -451,7 +509,11 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
         # NOVO: Buscar total de parcelas da venda para exibir formato "1/3"
         total_parcelas = self._get_total_parcelas_venda(venda_id)
-        parcela_formatada = f"{numero_parcela}/{total_parcelas}" if total_parcelas else str(numero_parcela)
+        parcela_formatada = (
+            f"{numero_parcela}/{total_parcelas}"
+            if total_parcelas
+            else str(numero_parcela)
+        )
 
         # Preencher células - ÍNDICES AJUSTADOS
         items = [
@@ -459,8 +521,16 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             (1, str(cliente_nome) if cliente_nome else "N/A", None),
             # Status agora na posição 2 - será preenchido separadamente
             (3, str(venda_id), Qt.AlignmentFlag.AlignCenter),
-            (4, parcela_formatada, Qt.AlignmentFlag.AlignCenter),  # MUDANÇA: usar parcela_formatada
-            (5, formatar_moeda(float(valor)) if valor else "0.00", (Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter))
+            (
+                4,
+                parcela_formatada,
+                Qt.AlignmentFlag.AlignCenter,
+            ),  # MUDANÇA: usar parcela_formatada
+            (
+                5,
+                formatar_moeda(float(valor)) if valor else "0.00",
+                (Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter),
+            ),
         ]
 
         for col, text, align in items:
@@ -476,7 +546,11 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         self._preencher_vencimento(row, data_vencimento, status)
 
         # Pagamento - MUDANÇA: de posição 6 para 7
-        pagamento = formatar_data(data_pagamento, '%Y-%m-%d', '%d/%m/%Y') if data_pagamento else "N/A"
+        pagamento = (
+            formatar_data(data_pagamento, "%Y-%m-%d", "%d/%m/%Y")
+            if data_pagamento
+            else "N/A"
+        )
         pag_item = QTableWidgetItem(pagamento)
         pag_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
         self.tabela_duplicatas.setItem(row, 7, pag_item)
@@ -488,16 +562,22 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             cursor = conn.cursor()
 
             # Buscar nas duplicatas abertas
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*) FROM duplicatas WHERE venda_id = ?
-            """, (venda_id,))
+            """,
+                (venda_id,),
+            )
 
             count_abertas = cursor.fetchone()[0]
 
             # Buscar nas duplicatas pagas
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*) FROM duplicatas_pagas WHERE venda_id = ?
-            """, (venda_id,))
+            """,
+                (venda_id,),
+            )
 
             count_pagas = cursor.fetchone()[0]
 
@@ -512,7 +592,11 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
     def _preencher_vencimento(self, row, data_vencimento, status):
         """Preenche coluna de vencimento com cores - APENAS a coluna quando vencida"""
-        vencimento = formatar_data(data_vencimento, '%Y-%m-%d', '%d/%m/%Y') if data_vencimento else "N/A"
+        vencimento = (
+            formatar_data(data_vencimento, "%Y-%m-%d", "%d/%m/%Y")
+            if data_vencimento
+            else "N/A"
+        )
         venc_item = QTableWidgetItem(vencimento)
         venc_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -522,7 +606,9 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 data_venc = datetime.strptime(data_vencimento, "%Y-%m-%d").date()
                 if data_venc < datetime.now().date():
                     # Cor vermelha apenas para esta célula
-                    venc_item.setForeground(QBrush(QColor(140, 47, 47)))  # Vermelho mais forte
+                    venc_item.setForeground(
+                        QBrush(QColor(140, 47, 47))
+                    )  # Vermelho mais forte
                     # Opcional: deixar em negrito para maior destaque
                     font = venc_item.font()
                     font.setBold(True)
@@ -538,9 +624,11 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
         if status == "pago":
-            status_item.setForeground(QBrush(QColor(0, 150, 0)))      # Verde mais escuro
+            status_item.setForeground(QBrush(QColor(0, 150, 0)))  # Verde mais escuro
         elif status == "aberto":
-            status_item.setForeground(QBrush(QColor(237, 145, 33)))    # Amarelo mais escuro
+            status_item.setForeground(
+                QBrush(QColor(237, 145, 33))
+            )  # Amarelo mais escuro
 
         self.tabela_duplicatas.setItem(row, 2, status_item)
 
@@ -594,7 +682,9 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                     duplicata, valor_recebido, data_recebimento, forma_pagamento
                 )
 
-                QMessageBox.information(self, "Sucesso", "Recebimento processado com sucesso!")
+                QMessageBox.information(
+                    self, "Sucesso", "Recebimento processado com sucesso!"
+                )
 
                 # Perguntar sobre impressão
                 if self._confirmar_impressao():
@@ -603,9 +693,13 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 self._carregar_duplicatas()
 
             except Exception as e:
-                QMessageBox.critical(self, "Erro", f"Erro ao processar recebimento: {str(e)}")
+                QMessageBox.critical(
+                    self, "Erro", f"Erro ao processar recebimento: {str(e)}"
+                )
 
-    def _processar_recebimento_com_retorno(self, duplicata, valor_recebido, data_recebimento, forma_pagamento):
+    def _processar_recebimento_com_retorno(
+        self, duplicata, valor_recebido, data_recebimento, forma_pagamento
+    ):
         """Processa recebimento e retorna dados da duplicata paga"""
         try:
             duplicata_id = duplicata[0]
@@ -616,7 +710,9 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             data_vencimento = duplicata[5]
 
             # Processar o recebimento
-            success = Duplicata.marcar_como_paga(duplicata_id, valor_recebido, data_recebimento, forma_pagamento)
+            success = Duplicata.marcar_como_paga(
+                duplicata_id, valor_recebido, data_recebimento, forma_pagamento
+            )
 
             if not success:
                 raise Exception("Falha ao processar recebimento")
@@ -626,12 +722,15 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 conn = Database().get_connection()
                 cursor = conn.cursor()
 
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT c.nome, c.cpf_cnpj, c.endereco, v.total, v.data_venda
                     FROM clientes c
                     LEFT JOIN vendas v ON v.cliente_id = c.id
                     WHERE c.id = ? AND v.id = ?
-                """, (cliente_id, venda_id))
+                """,
+                    (cliente_id, venda_id),
+                )
 
                 cliente_venda = cursor.fetchone()
                 conn.close()
@@ -641,20 +740,20 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
                 # Montar dados completos para o comprovante
                 dados_comprovante = {
-                    'id': duplicata_id,
-                    'venda_id': venda_id,
-                    'cliente_id': cliente_id,
-                    'numero_parcela': numero_parcela,
-                    'valor_original': float(valor_original),
-                    'valor_recebido': float(valor_recebido),
-                    'data_vencimento': data_vencimento,
-                    'data_pagamento': data_recebimento,
-                    'forma_pagamento': forma_pagamento,
-                    'cliente_nome': cliente_venda[0],
-                    'cpf_cnpj': cliente_venda[1],
-                    'endereco': cliente_venda[2],
-                    'venda_total': float(cliente_venda[3]) if cliente_venda[3] else 0,
-                    'data_venda': cliente_venda[4],
+                    "id": duplicata_id,
+                    "venda_id": venda_id,
+                    "cliente_id": cliente_id,
+                    "numero_parcela": numero_parcela,
+                    "valor_original": float(valor_original),
+                    "valor_recebido": float(valor_recebido),
+                    "data_vencimento": data_vencimento,
+                    "data_pagamento": data_recebimento,
+                    "forma_pagamento": forma_pagamento,
+                    "cliente_nome": cliente_venda[0],
+                    "cpf_cnpj": cliente_venda[1],
+                    "endereco": cliente_venda[2],
+                    "venda_total": float(cliente_venda[3]) if cliente_venda[3] else 0,
+                    "data_venda": cliente_venda[4],
                 }
 
                 return dados_comprovante
@@ -668,23 +767,29 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
     def _imprimir_comprovante_direto(self, dados_duplicata):
         """Imprime comprovante usando dados diretos da duplicata"""
         try:
-            filename = PrintComprovanteRecebimento.gerar_comprovante(dados_duplicata, 'relatorios')
+            filename = PrintComprovanteRecebimento.gerar_comprovante(
+                dados_duplicata, "relatorios"
+            )
             if filename:
                 try:
                     if ExportUtils.abrir_arquivo(filename):
                         print(f"Comprovante gerado e aberto: {filename}")
                     else:
                         QMessageBox.information(
-                            self, "Sucesso",
-                            f"Comprovante salvo em:\n{filename}\n\nNão foi possível abrir automaticamente."
+                            self,
+                            "Sucesso",
+                            f"Comprovante salvo em:\n{filename}\n\nNão foi possível abrir automaticamente.",
                         )
                 except Exception as e:
                     QMessageBox.information(
-                        self, "Sucesso",
-                        f"Comprovante salvo em:\n{filename}\n\nNão foi possível abrir automaticamente."
+                        self,
+                        "Sucesso",
+                        f"Comprovante salvo em:\n{filename}\n\nNão foi possível abrir automaticamente.",
                     )
             else:
-                QMessageBox.warning(self, "Erro", "Não foi possível gerar o comprovante.")
+                QMessageBox.warning(
+                    self, "Erro", "Não foi possível gerar o comprovante."
+                )
 
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao gerar comprovante: {str(e)}")
@@ -692,9 +797,10 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
     def _confirmar_impressao(self):
         """Confirma se usuário quer imprimir comprovante"""
         resposta = QMessageBox.question(
-            self, "Imprimir Comprovante",
+            self,
+            "Imprimir Comprovante",
             "Deseja imprimir o comprovante de pagamento?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         return resposta == QMessageBox.StandardButton.Yes
 
@@ -704,7 +810,8 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             conn = Database().get_connection()
             cursor = conn.cursor()
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     dp.id, dp.venda_id, dp.cliente_id, dp.numero_parcela,
                     dp.valor_original, dp.valor_recebido, dp.data_vencimento,
@@ -715,7 +822,9 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 LEFT JOIN clientes c ON dp.cliente_id = c.id
                 LEFT JOIN vendas v ON dp.venda_id = v.id
                 WHERE dp.venda_id = ? AND dp.numero_parcela = ?
-            """, (duplicata[2], duplicata[3]))
+            """,
+                (duplicata[2], duplicata[3]),
+            )
 
             duplicata_paga = cursor.fetchone()
             conn.close()
@@ -723,10 +832,14 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             if duplicata_paga:
                 self._imprimir_comprovante(duplicata_paga)
             else:
-                QMessageBox.warning(self, "Aviso", "Duplicata paga não encontrada para impressão.")
+                QMessageBox.warning(
+                    self, "Aviso", "Duplicata paga não encontrada para impressão."
+                )
 
         except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao buscar duplicata paga: {str(e)}")
+            QMessageBox.critical(
+                self, "Erro", f"Erro ao buscar duplicata paga: {str(e)}"
+            )
 
     def _imprimir_comprovante(self, duplicata=None):
         """Imprime comprovante da duplicata - VERSÃO MELHORADA"""
@@ -752,7 +865,8 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                     cursor = conn.cursor()
 
                     # Buscar primeiro na tabela de duplicatas pagas
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT
                             dp.id, dp.venda_id, dp.cliente_id, dp.numero_parcela,
                             dp.valor_original, dp.valor_recebido, dp.data_vencimento,
@@ -763,24 +877,35 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                         LEFT JOIN clientes c ON dp.cliente_id = c.id
                         LEFT JOIN vendas v ON dp.venda_id = v.id
                         WHERE dp.venda_id = ? AND dp.numero_parcela = ?
-                    """, (venda_id, numero_parcela))
+                    """,
+                        (venda_id, numero_parcela),
+                    )
 
                     row = cursor.fetchone()
 
                     if row:
                         # Dados para duplicata paga
                         dados_comprovante = {
-                            'id': row[0], 'venda_id': row[1], 'cliente_id': row[2],
-                            'numero_parcela': row[3], 'valor_original': float(row[4]),
-                            'valor_recebido': float(row[5]), 'data_vencimento': row[6],
-                            'data_pagamento': row[7], 'forma_pagamento': row[8],
-                            'cliente_nome': row[9], 'cpf_cnpj': row[10], 'endereco': row[11],
-                            'venda_total': float(row[12]) if row[12] else 0, 'data_venda': row[13],
+                            "id": row[0],
+                            "venda_id": row[1],
+                            "cliente_id": row[2],
+                            "numero_parcela": row[3],
+                            "valor_original": float(row[4]),
+                            "valor_recebido": float(row[5]),
+                            "data_vencimento": row[6],
+                            "data_pagamento": row[7],
+                            "forma_pagamento": row[8],
+                            "cliente_nome": row[9],
+                            "cpf_cnpj": row[10],
+                            "endereco": row[11],
+                            "venda_total": float(row[12]) if row[12] else 0,
+                            "data_venda": row[13],
                         }
                         break
                     else:
                         # Se não encontrou na tabela de pagas, buscar na tabela de abertas
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             SELECT
                                 d.id, d.venda_id, d.cliente_id, d.numero_parcela,
                                 d.valor_parcela, d.data_vencimento, d.data_pagamento,
@@ -790,19 +915,29 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                             LEFT JOIN clientes c ON d.cliente_id = c.id
                             LEFT JOIN vendas v ON d.venda_id = v.id
                             WHERE d.venda_id = ? AND d.numero_parcela = ?
-                        """, (venda_id, numero_parcela))
+                        """,
+                            (venda_id, numero_parcela),
+                        )
 
                         row = cursor.fetchone()
 
                         if row:
                             # Dados para duplicata aberta
                             dados_comprovante = {
-                                'id': row[0], 'venda_id': row[1], 'cliente_id': row[2],
-                                'numero_parcela': row[3], 'valor_original': float(row[4]),
-                                'valor_recebido': float(row[4]), 'data_vencimento': row[5],
-                                'data_pagamento': row[6], 'forma_pagamento': "Não informada",
-                                'cliente_nome': row[8], 'cpf_cnpj': row[9], 'endereco': row[10],
-                                'venda_total': float(row[11]) if row[11] else 0, 'data_venda': row[12],
+                                "id": row[0],
+                                "venda_id": row[1],
+                                "cliente_id": row[2],
+                                "numero_parcela": row[3],
+                                "valor_original": float(row[4]),
+                                "valor_recebido": float(row[4]),
+                                "data_vencimento": row[5],
+                                "data_pagamento": row[6],
+                                "forma_pagamento": "Não informada",
+                                "cliente_nome": row[8],
+                                "cpf_cnpj": row[9],
+                                "endereco": row[10],
+                                "venda_total": float(row[11]) if row[11] else 0,
+                                "data_venda": row[12],
                             }
                             break
 
@@ -811,18 +946,22 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                     # Se não encontrou em nenhuma tabela na primeira tentativa, aguardar um pouco
                     if not dados_comprovante and tentativa < max_tentativas - 1:
                         import time
+
                         time.sleep(0.5)  # Aguardar 500ms
 
                 except Exception as e:
-                    if 'conn' in locals():
+                    if "conn" in locals():
                         conn.close()
                     if tentativa == max_tentativas - 1:  # Última tentativa
                         raise e
                     import time
+
                     time.sleep(0.5)
 
             if not dados_comprovante:
-                QMessageBox.warning(self, "Aviso", "Duplicata não encontrada para impressão.")
+                QMessageBox.warning(
+                    self, "Aviso", "Duplicata não encontrada para impressão."
+                )
                 return
 
         except Exception as e:
@@ -831,23 +970,29 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
         # Gerar comprovante
         if dados_comprovante:
-            filename = PrintComprovanteRecebimento.gerar_comprovante(dados_comprovante, 'relatorios')
+            filename = PrintComprovanteRecebimento.gerar_comprovante(
+                dados_comprovante, "relatorios"
+            )
             if filename:
                 try:
                     if ExportUtils.abrir_arquivo(filename):
                         print(f"Comprovante gerado: {filename}")
                     else:
                         QMessageBox.information(
-                            self, "Sucesso",
-                            f"Comprovante salvo em:\n{filename}\n\nNão foi possível abrir automaticamente."
+                            self,
+                            "Sucesso",
+                            f"Comprovante salvo em:\n{filename}\n\nNão foi possível abrir automaticamente.",
                         )
                 except Exception as e:
                     QMessageBox.information(
-                        self, "Sucesso",
-                        f"Comprovante salvo em:\n{filename}\n\nNão foi possível abrir automaticamente."
+                        self,
+                        "Sucesso",
+                        f"Comprovante salvo em:\n{filename}\n\nNão foi possível abrir automaticamente.",
                     )
             else:
-                QMessageBox.warning(self, "Erro", "Não foi possível gerar o comprovante.")
+                QMessageBox.warning(
+                    self, "Erro", "Não foi possível gerar o comprovante."
+                )
 
     def _imprimir_relatorio(self):
         """Imprime relatório de recebimentos"""
@@ -868,15 +1013,23 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 return
 
             filename = PrintRelatRecebimento.gerar_relatorio(
-                data_inicio_str, data_fim_str, status_filtro, cliente_id, 'relatorios'
+                data_inicio_str, data_fim_str, status_filtro, cliente_id, "relatorios"
             )
 
             if filename and ExportUtils.abrir_arquivo(filename):
-                QMessageBox.information(self, "Sucesso", f"Relatório exportado:\n{filename}")
+                QMessageBox.information(
+                    self, "Sucesso", f"Relatório exportado:\n{filename}"
+                )
             else:
-                QMessageBox.warning(self, "Arquivo salvo", f"Arquivo salvo em: {filename}\nNão foi possível abrir automaticamente.")
+                QMessageBox.warning(
+                    self,
+                    "Arquivo salvo",
+                    f"Arquivo salvo em: {filename}\nNão foi possível abrir automaticamente.",
+                )
         except Exception as e:
-            QMessageBox.critical(self, "Erro na Exportação", f"Erro ao exportar relatório:\n{str(e)}")
+            QMessageBox.critical(
+                self, "Erro na Exportação", f"Erro ao exportar relatório:\n{str(e)}"
+            )
 
     # ========== MÉTODOS DE VALIDAÇÃO ==========
 
@@ -931,9 +1084,13 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         """Método público para compatibilidade"""
         self._receber_duplicata()
 
-    def processar_recebimento(self, duplicata, valor_recebido, data_recebimento, forma_pagamento):
+    def processar_recebimento(
+        self, duplicata, valor_recebido, data_recebimento, forma_pagamento
+    ):
         """Método público para compatibilidade"""
-        self._processar_recebimento(duplicata, valor_recebido, data_recebimento, forma_pagamento)
+        self._processar_recebimento(
+            duplicata, valor_recebido, data_recebimento, forma_pagamento
+        )
 
     def imprimir_comprovante(self, duplicata=None):
         """Método público para compatibilidade"""
