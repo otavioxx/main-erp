@@ -9,6 +9,7 @@ import sys
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QColor
 from PyQt6.QtWidgets import (
+    QDialog,
     QFrame,
     QGroupBox,
     QHBoxLayout,
@@ -54,6 +55,46 @@ class NumericTableWidgetItem(QTableWidgetItem):
         except (ValueError, TypeError):
             # Se não conseguir converter para número, usa ordenação de string
             return self.text() < other.text()
+
+
+# ========== Diálogo Simples para Busca Específica ==========
+class BuscaEspecificaDialog(QDialog):
+    """Diálogo simples para busca específica"""
+    
+    def __init__(self, titulo, placeholder="", parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(titulo)
+        self.setModal(True)
+        self.setFixedWidth(300)
+        
+        layout = QVBoxLayout()
+        layout.setSpacing(10)
+        layout.setContentsMargins(15, 15, 15, 15)
+        
+        # Campo de entrada
+        self.input_field = QLineEdit()
+        self.input_field.setPlaceholderText(placeholder)
+        self.input_field.returnPressed.connect(self.accept)
+        layout.addWidget(self.input_field)
+        
+        # Botões
+        btn_layout = QHBoxLayout()
+        btn_cancelar = QPushButton("Cancelar")
+        btn_cancelar.clicked.connect(self.reject)
+        btn_buscar = QPushButton("Buscar")
+        btn_buscar.setProperty("class", "primary")
+        btn_buscar.clicked.connect(self.accept)
+        
+        btn_layout.addWidget(btn_cancelar)
+        btn_layout.addStretch()
+        btn_layout.addWidget(btn_buscar)
+        
+        layout.addLayout(btn_layout)
+        self.setLayout(layout)
+        
+    def get_valor(self):
+        """Retorna o valor digitado"""
+        return self.input_field.text().strip()
 
 
 class ProdutoView(TableScrollNavigationMixin, QWidget):
@@ -120,6 +161,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         )
         self.busca_edit.setMaximumWidth(300)
         self.busca_edit.textChanged.connect(self._filtrar_produtos)
+        # REMOVIDO: self.busca_edit.returnPressed.connect(self._executar_busca_especifica)
         filtro_layout.addWidget(self.busca_edit)
 
         filtro_layout.addStretch()
@@ -449,6 +491,87 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         self.busca_edit.clear()
         self._carregar_produtos()
 
+    # ========== MÉTODOS DE BUSCA ESPECÍFICA ==========
+
+    def _buscar_por_id(self):
+        """Abre diálogo para buscar por ID (F3)"""
+        dialog = BuscaEspecificaDialog(
+            "Buscar por ID", 
+            "Digite o ID do produto..."
+        )
+        
+        if dialog.exec():
+            id_busca = dialog.get_valor()
+            if id_busca:
+                try:
+                    # Busca exata por ID
+                    id_num = int(id_busca)
+                    produtos = [p for p in self.dados if p.id == id_num]
+                    
+                    if produtos:
+                        self.tabela_produtos.setRowCount(len(produtos))
+                        self._preencher_tabela_produtos(produtos)
+                        
+                        # Seleciona o produto encontrado
+                        if len(produtos) == 1:
+                            self.tabela_produtos.selectRow(0)
+                            self.tabela_produtos.setFocus()
+                    else:
+                        self._mostrar_aviso(f"Nenhum produto encontrado com ID: {id_busca}")
+                        
+                except ValueError:
+                    self._mostrar_aviso("ID inválido. Digite um número válido.")
+
+    def _buscar_por_ean(self):
+        """Abre diálogo para buscar por EAN (F4)"""
+        dialog = BuscaEspecificaDialog(
+            "Buscar por EAN", 
+            "Digite o código EAN..."
+        )
+        
+        if dialog.exec():
+            ean_busca = dialog.get_valor()
+            if ean_busca:
+                # Busca por EAN (busca parcial)
+                produtos = [p for p in self.dados if ean_busca in str(p.ea or "")]
+                
+                if produtos:
+                    self.tabela_produtos.setRowCount(len(produtos))
+                    self._preencher_tabela_produtos(produtos)
+                    
+                    # Seleciona o primeiro resultado
+                    self.tabela_produtos.selectRow(0)
+                    self.tabela_produtos.setFocus()
+                else:
+                    self._mostrar_aviso(f"Nenhum produto encontrado com EAN: {ean_busca}")
+
+    def _buscar_por_referencia(self):
+        """Abre diálogo para buscar por Referência (F5)"""
+        dialog = BuscaEspecificaDialog(
+            "Buscar por Referência", 
+            "Digite a referência do produto..."
+        )
+        
+        if dialog.exec():
+            ref_busca = dialog.get_valor()
+            if ref_busca:
+                # Busca por referência (busca parcial, case-insensitive)
+                ref_busca_lower = ref_busca.lower()
+                produtos = [
+                    p for p in self.dados 
+                    if ref_busca_lower in str(p.referencia or "").lower()
+                ]
+                
+                if produtos:
+                    self.tabela_produtos.setRowCount(len(produtos))
+                    self._preencher_tabela_produtos(produtos)
+                    
+                    # Seleciona o primeiro resultado
+                    self.tabela_produtos.selectRow(0)
+                    self.tabela_produtos.setFocus()
+                else:
+                    self._mostrar_aviso(f"Nenhum produto encontrado com referência: {ref_busca}")
+
     # ========== MÉTODOS DE AÇÕES ==========
 
     def _novo_produto(self):
@@ -675,8 +798,28 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         self._carregar_produtos()
 
     def keyPressEvent(self, event):
-        """Manipula eventos de teclado"""
-        if event.key() == Qt.Key.Key_F11:
+        """Manipula eventos de teclado - atalhos funcionam em qualquer lugar"""
+        key = event.key()
+        
+        if key == Qt.Key.Key_F11:
             self.toggle_mostrar_inativos()
+            event.accept()
+        elif key == Qt.Key.Key_F3:
+            self._buscar_por_id()
+            event.accept()
+        elif key == Qt.Key.Key_F4:
+            self._buscar_por_ean()
+            event.accept()
+        elif key == Qt.Key.Key_F5:
+            self._buscar_por_referencia()
+            event.accept()
+        elif key == Qt.Key.Key_Escape:
+            # ESC limpa o campo de busca
+            if self.busca_edit.text():
+                self.busca_edit.clear()
+                self.busca_edit.setFocus()
+                event.accept()
+            else:
+                super().keyPressEvent(event)
         else:
             super().keyPressEvent(event)
