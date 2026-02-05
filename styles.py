@@ -26,7 +26,7 @@ class CoresPaleta:
     
     # Cores de acento
     accent_primary: str = "#1A4968"
-    accent_hover: str = "#0c5991"
+    accent_hover: str = "#4c687a"
     accent_pressed: str = "#024f83"
     
     # Cores de borda - mais escuras
@@ -43,7 +43,7 @@ class CoresPaleta:
     danger_border: str = "#6b3d3d"
     
     # Cores de seleção
-    selection_bg: str = "#025a94"
+    selection_bg: str = "#4c687a"
     selection_text: str = "#ffffff"
     hover_bg: str = "#2a2a2a"  # Mais escuro
 
