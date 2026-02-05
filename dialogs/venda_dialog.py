@@ -37,6 +37,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self._init_ui()
         self._configurar_comportamento_enter()
         self._configurar_tamanho_dialog()
+        self.showMaximized()
 
     def _init_ui(self):
         """Inicializa interface usando classes CSS semânticas"""
@@ -659,38 +660,81 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             )
             return
 
-        # Solicitar quantidade
-        quantidade, ok = QInputDialog.getInt(
-            self, "Quantidade",
-            f"Quantidade:",
-            value=1, min=1, max=produto.estoque, step=1
+        # ========== DIÁLOGO DE QUANTIDADE (SEM REDIMENSIONAMENTO) ==========
+        quantidade_dialog = QInputDialog(self)
+        
+        # Configurar propriedades do diálogo
+        quantidade_dialog.setWindowTitle("Quantidade")
+        quantidade_dialog.setLabelText(f"{produto.nome}{produto.cor}{produto.tamanho}")
+        quantidade_dialog.setIntValue(1)
+        quantidade_dialog.setIntMinimum(1)
+        quantidade_dialog.setIntMaximum(produto.estoque)
+        quantidade_dialog.setIntStep(1)
+        
+        # Configurar flags da janela
+        # Remover botão de ajuda, minimizar e maximizar
+        quantidade_dialog.setWindowFlags(
+            Qt.WindowType.Dialog |
+            Qt.WindowType.CustomizeWindowHint |
+            Qt.WindowType.WindowTitleHint |
+            Qt.WindowType.WindowCloseButtonHint |
+            Qt.WindowType.MSWindowsFixedSizeDialogHint
         )
-
-        if ok and validar_quantidade(quantidade, produto.estoque):
-            # Solicitar preço de venda
-            preco_venda, ok_preco = QInputDialog.getDouble(
-                self, "Preço de Venda",
-                f"Preço de venda:",
-                value=produto.preco_venda, min=0.01, decimals=2
-            )
-
-            if ok_preco:
-                # Criar uma cópia do produto com o novo preço
-                produto_venda = Produto(
-                    id=produto.id,
-                    nome=produto.nome,
-                    preco_custo=produto.preco_custo,
-                    preco_venda=preco_venda,  # Usar o preço confirmado
-                    estoque=produto.estoque,
-                    fornecedor_id=produto.fornecedor_id,
-                    ativo=produto.ativo,
-                    tamanho=produto.tamanho,
-                    cor=produto.cor,
-                    ea=produto.ea,
-                    referencia=produto.referencia
+        
+        # Tamanho fixo
+        quantidade_dialog.setFixedSize(400, 150)
+        
+        # Executar o diálogo e verificar se foi aceito
+        if quantidade_dialog.exec() == QDialog.DialogCode.Accepted:
+            quantidade = quantidade_dialog.intValue()
+            
+            # CORREÇÃO AQUI: Remover a variável 'ok' e usar diretamente
+            if validar_quantidade(quantidade, produto.estoque):
+                # ========== DIÁLOGO DE PREÇO (SEM REDIMENSIONAMENTO) ==========
+                preco_dialog = QInputDialog(self)
+                
+                # Configurar propriedades do diálogo
+                preco_dialog.setWindowTitle("Preço de Venda")
+                preco_dialog.setLabelText(
+                    f"Digite o preço de venda:"
                 )
+                preco_dialog.setDoubleValue(produto.preco_venda)
+                preco_dialog.setDoubleMinimum(0.01)
+                preco_dialog.setDoubleDecimals(2)
+                
+                # Configurar flags da janela (igual ao anterior)
+                preco_dialog.setWindowFlags(
+                    Qt.WindowType.Dialog |
+                    Qt.WindowType.CustomizeWindowHint |
+                    Qt.WindowType.WindowTitleHint |
+                    Qt.WindowType.WindowCloseButtonHint |
+                    Qt.WindowType.MSWindowsFixedSizeDialogHint
+                )
+                
+                # Tamanho fixo
+                preco_dialog.setFixedSize(400, 200)
+                
+                # Executar e verificar se foi aceito
+                if preco_dialog.exec() == QDialog.DialogCode.Accepted:
+                    preco_venda = preco_dialog.doubleValue()
+                    
+                    if preco_venda:
+                        # Criar uma cópia do produto com o novo preço
+                        produto_venda = Produto(
+                            id=produto.id,
+                            nome=produto.nome,
+                            preco_custo=produto.preco_custo,
+                            preco_venda=preco_venda,  # Usar o preço confirmado
+                            estoque=produto.estoque,
+                            fornecedor_id=produto.fornecedor_id,
+                            ativo=produto.ativo,
+                            tamanho=produto.tamanho,
+                            cor=produto.cor,
+                            ea=produto.ea,
+                            referencia=produto.referencia
+                        )
 
-                self._adicionar_produto(produto_venda, quantidade)
+                        self._adicionar_produto(produto_venda, quantidade)
 
     def _adicionar_produto(self, produto, quantidade):
         """Adiciona produto à venda"""

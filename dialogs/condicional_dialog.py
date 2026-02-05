@@ -40,6 +40,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self._configurar_tamanho_dialog()
         self._configurar_comportamento_enter()
         self._carregar_dados()
+        self.showMaximized()
 
     def _init_ui(self):
         """Inicializa interface usando classes CSS semânticas"""

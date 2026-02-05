@@ -37,6 +37,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         aplicar_maiuscula_formulario(self)
         self._configurar_tamanho_dialog()
         self._carregar_dados_existentes()
+        self.showMaximized()
 
     def _init_ui(self):
         """Inicializa interface otimizada"""
