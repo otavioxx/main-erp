@@ -104,6 +104,12 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         super().__init__()
         self.mostrar_inativos = False
         self.dados = []
+        
+        # Variáveis para manter o estado da tabela
+        self.ultima_ordenacao_coluna = 0  # ID por padrão
+        self.ultima_ordenacao_ordem = Qt.SortOrder.DescendingOrder  # Decrescente por padrão
+        self.ultimo_produto_selecionado_id = None  # ID do último produto selecionado
+        
         self._init_ui()
         self._carregar_produtos()
 
@@ -263,6 +269,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
 
         # Tabela
         self.tabela_produtos = QTableWidget()
+        self.tabela_produtos.sortItems(0, Qt.SortOrder.DescendingOrder)  # Ordena por ID decrescente inicialmente
         self._configurar_tabela_produtos()
         container_layout.addWidget(self.tabela_produtos)
 
@@ -279,10 +286,27 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             "Preço Venda", "Estoque", "Lucro %", "Markup %", "Fornecedor"]
         )
         
-        # Larguras
-        larguras = [50, 200, 120, 70, 100, 100, 100, 80, 80, 80, 180]
+        # Larguras fixas para todas as colunas, exceto Nome
+        larguras = [50, 200, 120, 70, 100, 100, 100, 80, 80, 80, 180]  # Valor inicial para Nome
+        
         for i, largura in enumerate(larguras):
             self.tabela_produtos.setColumnWidth(i, largura)
+        
+        # Configurar o header horizontal para expansão
+        header = self.tabela_produtos.horizontalHeader()
+        
+        # Todas as colunas com tamanho fixo, exceto Nome
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome - PREENCHE ESPAÇO
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Cor
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Tamanho
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Referência
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Preço Custo
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Preço Venda
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)  # Estoque
+        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)  # Lucro %
+        header.setSectionResizeMode(9, QHeaderView.ResizeMode.Fixed)  # Markup %
+        header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)  # Fornecedor
         
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # 1. REMOVER QUALQUER ESTILO EXISTENTE
@@ -328,6 +352,9 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         self.tabela_produtos.setAlternatingRowColors(True)
         self.tabela_produtos.setSortingEnabled(True)
         
+        # Conectar sinal de ordenação para salvar o estado
+        self.tabela_produtos.horizontalHeader().sectionClicked.connect(self._salvar_estado_ordenacao)
+        
         # Menu e navegação
         self.tabela_produtos.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tabela_produtos.customContextMenuRequested.connect(self._mostrar_menu_contexto)
@@ -345,11 +372,54 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             if vheader.sectionSize(row) != altura_desejada:
                 vheader.resizeSection(row, altura_desejada)
 
+    def _salvar_estado_ordenacao(self, coluna):
+        """Salva o estado atual da ordenação da tabela"""
+        self.ultima_ordenacao_coluna = coluna
+        self.ultima_ordenacao_ordem = self.tabela_produtos.horizontalHeader().sortIndicatorOrder()
+
+    def _salvar_estado_selecao(self):
+        """Salva o ID do produto atualmente selecionado"""
+        produto = self._get_produto_selecionado()
+        if produto:
+            self.ultimo_produto_selecionado_id = produto.id
+        else:
+            self.ultimo_produto_selecionado_id = None
+
+    def _restaurar_estado_tabela(self):
+        """Restaura o estado da tabela (ordenação e seleção)"""
+        try:
+            # Restaurar ordenação
+            self.tabela_produtos.sortItems(self.ultima_ordenacao_coluna, self.ultima_ordenacao_ordem)
+            
+            # Restaurar seleção se houver um produto para selecionar
+            if self.ultimo_produto_selecionado_id:
+                self._selecionar_produto_por_id(self.ultimo_produto_selecionado_id)
+        except Exception as e:
+            print(f"Erro ao restaurar estado da tabela: {e}")
+
+    def _selecionar_produto_por_id(self, produto_id):
+        """Seleciona um produto na tabela pelo ID"""
+        for row in range(self.tabela_produtos.rowCount()):
+            item_id = self.tabela_produtos.item(row, 0)
+            if item_id and item_id.text() == str(produto_id):
+                self.tabela_produtos.selectRow(row)
+                
+                # Garantir que a linha seja visível
+                self.tabela_produtos.scrollToItem(
+                    item_id, 
+                    QTableWidget.ScrollHint.PositionAtCenter
+                )
+                return True
+        return False
+
     # ========== MÉTODOS DE CARREGAMENTO E FILTROS ==========
 
     def _carregar_produtos(self):
         """Carrega produtos na tabela com tratamento de erros"""
         try:
+            # Salvar estado atual antes de recarregar
+            self._salvar_estado_selecao()
+            
             if self.mostrar_inativos:
                 self.dados = Produto.buscar_todos(apenas_ativos=False)
                 self.label_filtro.setText(
@@ -370,6 +440,9 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         """CORREÇÃO: Filtra produtos por texto de busca - sempre usa dados originais"""
         texto_busca = self.busca_edit.text().lower().strip()
 
+        # Salvar estado atual antes de filtrar
+        self._salvar_estado_selecao()
+
         # CORREÇÃO: Sempre trabalhar com os dados originais
         if texto_busca:
             dados_filtrados = [
@@ -382,6 +455,9 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
 
         self.tabela_produtos.setRowCount(len(dados_filtrados))
         self._preencher_tabela_produtos(dados_filtrados)
+        
+        # Restaurar o estado após preencher
+        self._restaurar_estado_tabela()
 
     def _produto_corresponde_busca(self, produto, texto_busca):
         """Verifica se produto corresponde à busca"""
@@ -519,12 +595,13 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         # CORREÇÃO: Reabilitar ordenação após preenchimento
         self.tabela_produtos.setSortingEnabled(True)
 
-        # CORREÇÃO: Ordenar por ID em ordem decrescente por padrão
-        self.tabela_produtos.sortItems(0, Qt.SortOrder.DescendingOrder)
-
     def _limpar_filtros(self):
         """Limpa todos os filtros e recarrega produtos"""
         self.busca_edit.clear()
+        # Resetar para ordenação padrão ao limpar filtros
+        self.ultima_ordenacao_coluna = 0
+        self.ultima_ordenacao_ordem = Qt.SortOrder.DescendingOrder
+        self.ultimo_produto_selecionado_id = None
         self._carregar_produtos()
 
     # ========== MÉTODOS DE BUSCA ESPECÍFICA ==========
@@ -614,6 +691,8 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         """Abre dialog para novo produto"""
         dialog = ProdutoDialog()
         if dialog.exec():
+            # Salvar estado antes de recarregar
+            self._salvar_estado_selecao()
             self._carregar_produtos()
             self._mostrar_sucesso("Produto cadastrado com sucesso!")
 
@@ -635,6 +714,9 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             self._mostrar_aviso("Selecione um produto para editar")
             return
 
+        # Salvar estado atual antes de abrir o diálogo
+        self._salvar_estado_selecao()
+        
         dialog = ProdutoDialog(produto)
         if dialog.exec():
             self._carregar_produtos()
@@ -647,6 +729,9 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             self._mostrar_aviso("Selecione um produto para inativar")
             return
 
+        # Salvar estado atual antes de processar
+        self._salvar_estado_selecao()
+        
         # Verifica se o produto pode ser inativado
         verificacao = produto.pode_ser_inativado()
 
@@ -668,7 +753,6 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             try:
                 produto.inativar()
                 self._carregar_produtos()
-                self.tabela_produtos.clearSelection()
                 self._mostrar_sucesso("Produto inativado com sucesso!")
             except Exception as e:
                 self._mostrar_erro("Erro ao inativar produto", str(e))
@@ -680,11 +764,13 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             self._mostrar_aviso("Selecione um produto para reativar")
             return
 
+        # Salvar estado atual antes de processar
+        self._salvar_estado_selecao()
+
         try:
             produto.ativo = True
             produto.salvar()
             self._carregar_produtos()
-            self.tabela_produtos.clearSelection()
             self._mostrar_sucesso("Produto reativado com sucesso!")
         except Exception as e:
             self._mostrar_erro("Erro ao reativar produto", str(e))
