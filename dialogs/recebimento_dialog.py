@@ -20,6 +20,7 @@ class RecebimentoDialog(QDialog):
     def __init__(self, duplicata, parent=None):
         super().__init__(parent)
         self.duplicata = duplicata
+        self.valor_original = float(duplicata[4])
         self._init_ui()
 
         aplicar_maiuscula_formulario(self)
@@ -57,7 +58,7 @@ class RecebimentoDialog(QDialog):
             f"Cliente: {self._get_nome_cliente()}",
             f"Parcela: {self.duplicata[3]}",
             f"Vencimento: {formatar_data(self.duplicata[5])}",
-            f"Valor Original: {formatar_moeda(self.duplicata[4])}"
+            f"Valor Original: {formatar_moeda(self.valor_original)}"
         ]
 
         for item in info_items:
@@ -79,9 +80,17 @@ class RecebimentoDialog(QDialog):
         valor_layout.addWidget(QLabel("Valor Recebido:"))
         self.valor_recebido_input = SelectAllDoubleSpinBox()
         self.valor_recebido_input.setMaximum(999999.99)
-        self.valor_recebido_input.setValue(float(self.duplicata[4]))
+        self.valor_recebido_input.setValue(self.valor_original)
         self.valor_recebido_input.setDecimals(2)
+        self.valor_recebido_input.valueChanged.connect(self._verificar_diferenca_valor)
         valor_layout.addWidget(self.valor_recebido_input)
+
+        # Label para mostrar diferença
+        self.diferenca_label = QLabel("")
+        self.diferenca_label.setProperty("class", "info-label")
+        self.diferenca_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.diferenca_label.setVisible(False)
+        valor_layout.addWidget(self.diferenca_label)
 
         # Data recebimento
         valor_layout.addWidget(QLabel("Data do Recebimento:"))
@@ -96,6 +105,30 @@ class RecebimentoDialog(QDialog):
 
         valor_group.setLayout(valor_layout)
         layout.addWidget(valor_group)
+
+    def _verificar_diferenca_valor(self):
+        """Verifica e exibe diferença entre valor recebido e original"""
+        valor_recebido = self.valor_recebido_input.value()
+        diferenca = valor_recebido - self.valor_original
+        
+        # Limpar label se não houver diferença
+        if abs(diferenca) < 0.01:  # Considera diferença menor que 1 centavo
+            self.diferenca_label.setVisible(False)
+            self.diferenca_label.setText("")
+            return
+        
+        # Mostrar diferença
+        self.diferenca_label.setVisible(True)
+        
+        if diferenca > 0:
+            texto = f"Valor maior em: {formatar_moeda(diferenca)}"
+            cor = "green"
+        else:
+            texto = f"Valor menor em: {formatar_moeda(abs(diferenca))}"
+            cor = "red"
+        
+        self.diferenca_label.setText(texto)
+        self.diferenca_label.setStyleSheet(f"color: {cor}; font-weight: bold;")
 
     def _criar_forma_pagamento(self, layout):
         """Cria seção de forma de pagamento"""
@@ -164,11 +197,68 @@ class RecebimentoDialog(QDialog):
             QMessageBox.warning(self, "Aviso", "Data inválida. Use DD/MM/AAAA.")
             return
 
-        if self.valor_recebido_input.value() <= 0:
+        valor_recebido = self.valor_recebido_input.value()
+        
+        if valor_recebido <= 0:
             QMessageBox.warning(self, "Aviso", "Valor deve ser maior que zero.")
             return
 
+        # Verificar se há diferença significativa
+        diferenca = abs(valor_recebido - self.valor_original)
+        
+        if diferenca > 0.01:  # Se diferença maior que 1 centavo
+            resposta = self._mostrar_aviso_diferenca(valor_recebido)
+            
+            if resposta != QMessageBox.StandardButton.Yes:
+                return  # Usuário cancelou
+
         self.accept()
+
+    def _mostrar_aviso_diferenca(self, valor_recebido):
+        """Mostra aviso sobre diferença de valor"""
+        diferenca = valor_recebido - self.valor_original
+        
+        # Determinar o tipo de diferença
+        if diferenca > 0:
+            tipo = "maior"
+            acao = "reduzidos"
+            simbolo = "+"
+        else:
+            tipo = "menor"
+            acao = "aumentados"
+            simbolo = "-"
+        
+        # Título único
+        titulo_janela = "Valor Divergente"
+        
+        # Mensagem formatada com quebras explícitas
+        mensagem = f"""<b>Valor {tipo.capitalize()} que o original</b><br><br>
+
+    <code>Valor original:  {formatar_moeda(self.valor_original)}</code><br>
+    <code>Valor recebido: {formatar_moeda(valor_recebido)}</code><br>
+    <code>Diferença:      {simbolo}{formatar_moeda(abs(diferenca))}</code><br><br>
+
+    As próximas parcelas terão seus valores {acao}<br>
+    proporcionalmente para compensar esta diferença.<br><br>
+
+    Deseja continuar com o recebimento?"""
+        
+        # Criar message box
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle(titulo_janela)
+        msg_box.setTextFormat(Qt.TextFormat.RichText)
+        msg_box.setText(mensagem)
+        msg_box.setIcon(QMessageBox.Icon.Warning)
+        
+        # Botões
+        btn_sim = msg_box.addButton("Confirmar", QMessageBox.ButtonRole.YesRole)
+        btn_sim.setProperty("class", "primary-button")
+        
+        btn_nao = msg_box.addButton("Corrigir", QMessageBox.ButtonRole.NoRole)
+        btn_nao.setProperty("class", "secondary-button")
+        msg_box.setDefaultButton(btn_nao)
+        
+        return msg_box.exec()
 
     def _get_nome_cliente(self):
         """Obtém nome do cliente - MÉTODO CORRIGIDO"""
