@@ -64,7 +64,7 @@ class ProdutoDialog(QDialog):
         info_layout.setSpacing(6)
 
         # Nome
-        info_layout.addWidget(QLabel("Nome:"))
+        info_layout.addWidget(QLabel("Nome*:"))
         self.nome_edit = SelectAllLineEdit(self.produto.nome)
         self.nome_edit.setPlaceholderText("Nome completo do produto")
         self.nome_edit.setMinimumHeight(35)
@@ -76,16 +76,16 @@ class ProdutoDialog(QDialog):
 
         # Tamanho
         tamanho_layout = QVBoxLayout()
-        tamanho_layout.addWidget(QLabel("Tamanho:"))
+        tamanho_layout.addWidget(QLabel("Tamanho*:"))
         self.tamanho_edit = SelectAllLineEdit(self.produto.tamanho or "")
-        self.tamanho_edit.setPlaceholderText("P, M, G, etc.")
+        self.tamanho_edit.setPlaceholderText("P, M, G, Unico, etc.")
         self.tamanho_edit.setMinimumHeight(35)
         self.campos_navegacao.append(self.tamanho_edit)
         tamanho_layout.addWidget(self.tamanho_edit)
 
         # Cor
         cor_layout = QVBoxLayout()
-        cor_layout.addWidget(QLabel("Cor:"))
+        cor_layout.addWidget(QLabel("Cor*:"))
         self.cor_edit = SelectAllLineEdit(self.produto.cor or "")
         self.cor_edit.setPlaceholderText("Azul, Verde, etc.")
         self.cor_edit.setMinimumHeight(35)
@@ -103,7 +103,7 @@ class ProdutoDialog(QDialog):
         ea_layout = QVBoxLayout()
         ea_layout.addWidget(QLabel("EAN:"))
         self.ea_edit = SelectAllLineEdit(self.produto.ea or "")
-        self.ea_edit.setPlaceholderText("Unidade, Peça, etc.")
+        self.ea_edit.setPlaceholderText("Código EAN de 13 dígitos")
         self.ea_edit.setMinimumHeight(35)
         self.campos_navegacao.append(self.ea_edit)
         ea_layout.addWidget(self.ea_edit)
@@ -112,7 +112,7 @@ class ProdutoDialog(QDialog):
         ref_layout = QVBoxLayout()
         ref_layout.addWidget(QLabel("Referência:"))
         self.referencia_edit = SelectAllLineEdit(self.produto.referencia or "")
-        self.referencia_edit.setPlaceholderText("Código de referência")
+        self.referencia_edit.setPlaceholderText("Código do fornecedor")
         self.referencia_edit.setMinimumHeight(35)
         self.campos_navegacao.append(self.referencia_edit)
         ref_layout.addWidget(self.referencia_edit)
@@ -390,6 +390,18 @@ class ProdutoDialog(QDialog):
             if not self.nome_edit.text().strip():
                 QMessageBox.warning(self, "Erro", "O nome do produto é obrigatório!")
                 self.nome_edit.setFocus()
+                return
+            
+            # Valida se a cor foi preenchida
+            if not self.cor_edit.text().strip():
+                QMessageBox.warning(self, "Erro", "A cor do produto é obrigatória!")
+                self.cor_edit.setFocus()
+                return
+            
+            # Valida se o tamanho foi preenchido
+            if not self.tamanho_edit.text().strip():
+                QMessageBox.warning(self, "Erro", "O tamanho do produto é obrigatório!")
+                self.tamanho_edit.setFocus()
                 return
 
             # Obtém os dados do formulário

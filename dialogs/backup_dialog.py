@@ -223,7 +223,7 @@ class BackupDialog(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
         
         # Título
-        titulo = QLabel("BACKUP DO SISTEMA ERP")
+        titulo = QLabel("BACKUP")
         titulo.setProperty("class", "title")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         titulo.setStyleSheet("font-size: 18px; font-weight: bold; color: #1A4968;")
@@ -273,7 +273,7 @@ class BackupDialog(QDialog):
         
         self.caminho_label = QLabel(f"<b>Pasta selecionada:</b> {self.destination_folder}")
         self.caminho_label.setWordWrap(True)
-        self.caminho_label.setStyleSheet("padding: 8px; background-color: #f5f5f5; border-radius: 4px;")
+        self.caminho_label.setStyleSheet("padding: 8px; background-color: #404040; border-radius: 4px;")
         destino_layout.addWidget(self.caminho_label)
         
         # Botão para selecionar pasta
