@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                              QTableWidget, QTableWidgetItem, QHeaderView,
                              QProgressBar, QTextEdit, QSplitter, QFrame)
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, QTimer
-from PyQt6.QtGui import QIcon, QFont, QColor
+from PyQt6.QtGui import QIcon, QFont, QColor, QGuiApplication
 import os
 from datetime import datetime
 import json
@@ -161,6 +161,32 @@ class RestoreBackupDialog(DialogBase):
         self._init_ui()
         self._carregar_backups_locais()
     
+    def showEvent(self, event):
+        """Centraliza quando o diálogo é exibido"""
+        super().showEvent(event)
+        # Centraliza depois que a janela já tem seu tamanho calculado
+        self._centralizar_janela()
+    
+    def resizeEvent(self, event):
+        """Recentraliza quando redimensionado (opcional)"""
+        super().resizeEvent(event)
+        self._centralizar_janela()
+    
+    def _centralizar_janela(self):
+        """Centraliza a janela na tela"""
+        # Força o cálculo do tamanho da janela
+        self.adjustSize()
+        
+        # Obtém a geometria da tela
+        screen = QGuiApplication.primaryScreen().geometry()
+        
+        # Calcula a posição central
+        x = (screen.width() - self.width()) // 2
+        y = (screen.height() - self.height()) // 2
+        
+        # Move a janela para a posição calculada
+        self.move(x, y)
+    
     def _init_ui(self):
         """Inicializa interface do diálogo"""
         self.setWindowTitle("Restauração de Backup")
@@ -171,14 +197,13 @@ class RestoreBackupDialog(DialogBase):
         layout.setContentsMargins(15, 15, 15, 15)
         
         # Título
-        titulo = QLabel("🔄 RESTAURAÇÃO DE BACKUP")
+        titulo = QLabel("RESTAURAÇÃO DE BACKUP")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         titulo.setStyleSheet("""
             font-size: 18px;
             font-weight: bold;
             color: #1A4968;
             padding: 10px;
-            background-color: #f0f7ff;
             border-radius: 8px;
         """)
         layout.addWidget(titulo)
@@ -193,7 +218,7 @@ class RestoreBackupDialog(DialogBase):
         splitter = QSplitter(Qt.Orientation.Vertical)
         
         # Painel superior: Seleção de arquivo
-        top_panel = QGroupBox("📁 SELECIONAR BACKUP")
+        top_panel = QGroupBox("Selecionar Backup")
         top_layout = QVBoxLayout()
         
         # Caminho do arquivo
@@ -204,8 +229,7 @@ class RestoreBackupDialog(DialogBase):
         self.file_label.setStyleSheet("""
             QLabel {
                 padding: 8px;
-                background-color: #f8f9fa;
-                border: 1px solid #dee2e6;
+                background-color: #404040;
                 border-radius: 4px;
                 min-height: 20px;
             }
@@ -233,7 +257,7 @@ class RestoreBackupDialog(DialogBase):
         top_layout.addLayout(file_layout)
         
         # Backups locais
-        local_backups_group = QGroupBox("📦 Backups Locais")
+        local_backups_group = QGroupBox("Backups Locais")
         local_layout = QVBoxLayout()
         
         self.backups_table = QTableWidget()
@@ -252,7 +276,7 @@ class RestoreBackupDialog(DialogBase):
         splitter.addWidget(top_panel)
         
         # Painel inferior: Informações e ações
-        bottom_panel = QGroupBox("📊 INFORMAÇÕES DO BACKUP")
+        bottom_panel = QGroupBox("Informações do Backup")
         bottom_layout = QVBoxLayout()
         
         # Área de informações
@@ -261,8 +285,7 @@ class RestoreBackupDialog(DialogBase):
         self.info_text.setMaximumHeight(150)
         self.info_text.setStyleSheet("""
             QTextEdit {
-                background-color: #f8f9fa;
-                border: 1px solid #dee2e6;
+                background-color: #404040;
                 border-radius: 4px;
                 font-family: 'Consolas', monospace;
                 font-size: 10pt;
@@ -292,7 +315,7 @@ class RestoreBackupDialog(DialogBase):
         button_layout = QHBoxLayout()
         
         # Botão Verificar
-        self.btn_verify = QPushButton("🔍 Verificar Backup")
+        self.btn_verify = QPushButton("Verificar Backup")
         self.btn_verify.clicked.connect(self._verificar_backup)
         self.btn_verify.setEnabled(False)
         self.btn_verify.setStyleSheet("""
@@ -314,7 +337,7 @@ class RestoreBackupDialog(DialogBase):
         """)
         
         # Botão Restaurar
-        self.btn_restore = QPushButton("🔄 Restaurar Backup")
+        self.btn_restore = QPushButton("Restaurar Backup")
         self.btn_restore.clicked.connect(self._iniciar_restauracao)
         self.btn_restore.setEnabled(False)
         self.btn_restore.setStyleSheet("""
@@ -336,7 +359,7 @@ class RestoreBackupDialog(DialogBase):
         """)
         
         # Botão Cancelar
-        btn_cancel = QPushButton("❌ Cancelar")
+        btn_cancel = QPushButton("Cancelar")
         btn_cancel.clicked.connect(self.reject)
         btn_cancel.setStyleSheet("""
             QPushButton {
