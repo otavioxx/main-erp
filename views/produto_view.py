@@ -277,7 +277,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         layout.addWidget(container)
 
     def _configurar_tabela_produtos(self):
-        """Configura a tabela de produtos - VERSÃO FINAL"""
+        """Configura a tabela de produtos - VERSÃO FINAL COM STRETCH"""
         
         # Configuração básica das colunas
         self.tabela_produtos.setColumnCount(11)
@@ -286,27 +286,30 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             "Preço Venda", "Estoque", "Lucro %", "Markup %", "Fornecedor"]
         )
         
-        # Larguras fixas para todas as colunas, exceto Nome
-        larguras = [50, 200, 120, 70, 100, 100, 100, 80, 80, 80, 180]  # Valor inicial para Nome
-        
-        for i, largura in enumerate(larguras):
-            self.tabela_produtos.setColumnWidth(i, largura)
-        
-        # Configurar o header horizontal para expansão
+        # Configuração das colunas (com Stretch na coluna Nome)
         header = self.tabela_produtos.horizontalHeader()
         
-        # Todas as colunas com tamanho fixo, exceto Nome
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome - PREENCHE ESPAÇO
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Cor
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Tamanho
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Referência
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Preço Custo
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Preço Venda
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)  # Estoque
-        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)  # Lucro %
-        header.setSectionResizeMode(9, QHeaderView.ResizeMode.Fixed)  # Markup %
-        header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)  # Fornecedor
+        # Modo Interactive para permitir redimensionamento manual
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        
+        # Configurações específicas por coluna
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)      # ID
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)    # Nome
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)      # Cor
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)      # Tamanho
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)      # Referência
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)      # Preço Custo
+        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)      # Preço Venda
+        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)      # Estoque
+        header.setSectionResizeMode(8, QHeaderView.ResizeMode.Fixed)      # Lucro %
+        header.setSectionResizeMode(9, QHeaderView.ResizeMode.Fixed)      # Markup %
+        header.setSectionResizeMode(10, QHeaderView.ResizeMode.Fixed)     # Fornecedor
+        
+        # Larguras para colunas fixas (a coluna Nome será stretch)
+        larguras_fixas = [50, 0, 120, 70, 100, 100, 100, 80, 80, 80, 180]  # 0 para Nome pois será stretch
+        for i, largura in enumerate(larguras_fixas):
+            if largura > 0:  # Aplica apenas larguras positivas
+                self.tabela_produtos.setColumnWidth(i, largura)
         
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # 1. REMOVER QUALQUER ESTILO EXISTENTE
@@ -315,7 +318,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         # 2. Configurar VERTICAL HEADER
         vheader = self.tabela_produtos.verticalHeader()
         
-        # ALTURA DESEJADA (ajuste este valor)
+        # ALTURA DESEJADA (use o mesmo valor da tabela de vendas)
         altura_desejada = 22
         
         vheader.setDefaultSectionSize(altura_desejada)
@@ -326,7 +329,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         vheader.setStretchLastSection(False)
         vheader.setVisible(False)  # Opcional: esconder números
         
-        # 3. CSS SIMPLES que FUNCIONA
+        # 3. CSS SIMPLES que FUNCIONA - IDÊNTICO AO DA TABELA DE VENDAS
         css = f"""
         QTableWidget::item {{
             min-height: {altura_desejada}px !important;
@@ -359,6 +362,18 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         self.tabela_produtos.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tabela_produtos.customContextMenuRequested.connect(self._mostrar_menu_contexto)
         self.setup_scroll_navigation(tabela=self.tabela_produtos, scroll_sensibilidade=1, auto_select_first=True)
+
+    def _forcar_altura_final(self, altura_desejada):
+        """Força a altura após renderização"""
+        if not hasattr(self, 'tabela_produtos'):
+            return
+        
+        vheader = self.tabela_produtos.verticalHeader()
+        
+        # Forçar linha por linha (só se necessário)
+        for row in range(self.tabela_produtos.rowCount()):
+            if vheader.sectionSize(row) != altura_desejada:
+                vheader.resizeSection(row, altura_desejada)
 
     def _forcar_altura_final(self, altura_desejada):
         """Força a altura após renderização"""
