@@ -1,2 +1,5 @@
 pywin32
 pytz
+PyQt6
+psutil
+reportlab
