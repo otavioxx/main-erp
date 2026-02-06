@@ -855,7 +855,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 self._marcar_como_modificado()  # NOVO: Marca como modificado
 
     def _processar_produto(self, produto):
-        """Processa produto selecionado com validações"""
+        """Processa produto selecionado com validações - VERSÃO COM DIÁLOGOS IDÊNTICOS AO MÓDULO VENDAS"""
         # Validações
         if produto.preco_venda <= 0:
             QMessageBox.warning(
@@ -873,47 +873,92 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             )
             return
 
-        # Solicitar quantidade
-        quantidade, ok = QInputDialog.getInt(
-            self,
-            "Quantidade",
-            f"Quantidade:",
-            value=1,
-            min=1,
-            max=produto.estoque,
-            step=1,
+        # ========== DIÁLOGO DE QUANTIDADE (IGUAL AO MÓDULO VENDAS) ==========
+        quantidade_dialog = QInputDialog(self)
+
+        # Configurar propriedades do diálogo
+        quantidade_dialog.setWindowTitle("Quantidade")
+        nome_produto = produto.nome
+        if produto.cor:
+            nome_produto += f"{produto.cor}"
+        if produto.tamanho:
+            nome_produto += f"{produto.tamanho}"
+        quantidade_dialog.setLabelText(f"{nome_produto}")
+        quantidade_dialog.setIntValue(1)
+        quantidade_dialog.setIntMinimum(1)
+        quantidade_dialog.setIntMaximum(produto.estoque)
+        quantidade_dialog.setIntStep(1)
+
+        # Configurar flags da janela (idêntico ao módulo vendas)
+        quantidade_dialog.setWindowFlags(
+            Qt.WindowType.Dialog
+            | Qt.WindowType.CustomizeWindowHint
+            | Qt.WindowType.WindowTitleHint
+            | Qt.WindowType.WindowCloseButtonHint
+            | Qt.WindowType.MSWindowsFixedSizeDialogHint
         )
 
-        if ok and validar_quantidade(quantidade, produto.estoque):
-            # Solicitar preço de venda
-            preco_venda, ok_preco = QInputDialog.getDouble(
-                self,
-                "Preço de Venda",
-                f"Preço de venda:",
-                value=produto.preco_venda,
-                min=0.01,
-                decimals=2,
+        # Tamanho fixo (idêntico ao módulo vendas)
+        quantidade_dialog.setFixedSize(400, 150)
+
+        # Executar o diálogo e verificar se foi aceito
+        if quantidade_dialog.exec() == QDialog.DialogCode.Accepted:
+            quantidade = quantidade_dialog.intValue()
+
+            # Validação básica
+            if quantidade <= 0 or quantidade > produto.estoque:
+                QMessageBox.warning(
+                    self,
+                    "Quantidade inválida",
+                    f"Quantidade deve estar entre 1 e {produto.estoque}.",
+                )
+                return
+
+            # ========== DIÁLOGO DE PREÇO (IGUAL AO MÓDULO VENDAS) ==========
+            preco_dialog = QInputDialog(self)
+
+            # Configurar propriedades do diálogo
+            preco_dialog.setWindowTitle("Preço de Venda")
+            preco_dialog.setLabelText(f"Digite o preço de venda:")
+            preco_dialog.setDoubleValue(produto.preco_venda)
+            preco_dialog.setDoubleMinimum(0.01)
+            preco_dialog.setDoubleDecimals(2)
+
+            # Configurar flags da janela (igual ao módulo vendas)
+            preco_dialog.setWindowFlags(
+                Qt.WindowType.Dialog
+                | Qt.WindowType.CustomizeWindowHint
+                | Qt.WindowType.WindowTitleHint
+                | Qt.WindowType.WindowCloseButtonHint
+                | Qt.WindowType.MSWindowsFixedSizeDialogHint
             )
 
-            if ok_preco:
-                # Criar uma cópia do produto com o novo preço
-                from models.produto import Produto
+            # Tamanho fixo (idêntico ao módulo vendas)
+            preco_dialog.setFixedSize(400, 200)
 
-                produto_condicional = Produto(
-                    id=produto.id,
-                    nome=produto.nome,
-                    preco_custo=produto.preco_custo,
-                    preco_venda=preco_venda,  # Usar o preço confirmado
-                    estoque=produto.estoque,
-                    fornecedor_id=produto.fornecedor_id,
-                    ativo=produto.ativo,
-                    tamanho=produto.tamanho,
-                    cor=produto.cor,
-                    ea=produto.ea,
-                    referencia=produto.referencia,
-                )
+            # Executar e verificar se foi aceito
+            if preco_dialog.exec() == QDialog.DialogCode.Accepted:
+                preco_venda = preco_dialog.doubleValue()
 
-                self._adicionar_produto(produto_condicional, quantidade)
+                if preco_venda and preco_venda > 0:
+                    # Criar uma cópia do produto com o novo preço
+                    from models.produto import Produto
+
+                    produto_condicional = Produto(
+                        id=produto.id,
+                        nome=produto.nome,
+                        preco_custo=produto.preco_custo,
+                        preco_venda=preco_venda,  # Usar o preço confirmado
+                        estoque=produto.estoque,
+                        fornecedor_id=produto.fornecedor_id,
+                        ativo=produto.ativo,
+                        tamanho=produto.tamanho,
+                        cor=produto.cor,
+                        ea=produto.ea,
+                        referencia=produto.referencia,
+                    )
+
+                    self._adicionar_produto(produto_condicional, quantidade)
 
     def _adicionar_produto(self, produto, quantidade):
         """Adiciona produto à condicional"""
@@ -983,7 +1028,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             QMessageBox.warning(self, "Seleção", "Selecione um produto para remover.")
 
     def _aplicar_desconto(self):
-        """F10 - Aplicar desconto"""
+        """F10 - Aplicar desconto (DIÁLOGO IDÊNTICO AO MÓDULO VENDAS)"""
         if not self.produtos_selecionados:
             QMessageBox.warning(
                 self, "Aviso", "Adicione produtos antes de aplicar desconto."
@@ -994,20 +1039,34 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             prod["subtotal"] for prod in self.produtos_selecionados
         )
 
-        desconto, ok = QInputDialog.getDouble(
-            self,
-            "Desconto na Condicional",
-            f"Valor total: R$ {total_sem_desconto:.2f}\n\nDigite o valor do desconto:",
-            value=self.desconto_total,
-            min=0.0,
-            max=total_sem_desconto,
-            decimals=2,
+        # Criar diálogo personalizado igual ao módulo vendas
+        desconto_dialog = QInputDialog(self)
+        desconto_dialog.setWindowTitle("Desconto na Condicional")
+        desconto_dialog.setLabelText(
+            f"Valor total: R$ {total_sem_desconto:.2f}\n\nDigite o valor do desconto:"
+        )
+        desconto_dialog.setDoubleValue(self.desconto_total)
+        desconto_dialog.setDoubleMinimum(0.0)
+        desconto_dialog.setDoubleMaximum(total_sem_desconto)
+        desconto_dialog.setDoubleDecimals(2)
+
+        # Configurar flags da janela (igual ao módulo vendas)
+        desconto_dialog.setWindowFlags(
+            Qt.WindowType.Dialog
+            | Qt.WindowType.CustomizeWindowHint
+            | Qt.WindowType.WindowTitleHint
+            | Qt.WindowType.WindowCloseButtonHint
+            | Qt.WindowType.MSWindowsFixedSizeDialogHint
         )
 
-        if ok:
+        # Tamanho fixo (ajustado para o texto maior)
+        desconto_dialog.setFixedSize(450, 200)
+
+        if desconto_dialog.exec() == QDialog.DialogCode.Accepted:
+            desconto = desconto_dialog.doubleValue()
             self.desconto_total = desconto
             self._calcular_total()
-            self._marcar_como_modificado()  # NOVO: Marca como modificado
+            self._marcar_como_modificado()
 
     def _calcular_total(self):
         """Calcula total da condicional com desconto"""
