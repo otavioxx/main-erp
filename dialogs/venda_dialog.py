@@ -1,11 +1,13 @@
 """
 Dialog de Venda - Versão Final com Frame de Entrada Rápida - CORRIGIDO
 Com suporte a redimensionamento inteligente via DialogSizeMixin
+E verificação de modificações não salvas
 """
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
+    QApplication,
     QDialog,
     QFrame,
     QGroupBox,
@@ -29,8 +31,6 @@ from mixins.dialog_size_mixin import DialogSizeMixin
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
 from models.produto import Produto
 from utils.helpers import (
-    SelectAllDoubleSpinBox,
-    SelectAllLineEdit,
     aplicar_desconto_total,
     calcular_subtotal,
     formatar_moeda,
@@ -51,6 +51,8 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.cliente_selecionado = None
         self.desconto_total = 0.0
         self.observacao = ""
+        self._primeira_exibicao = True
+        self._modificacoes_nao_salvas = False  # NOVO: controle de modificações
         self._init_ui()
         self._configurar_comportamento_enter()
         self._configurar_tamanho_dialog()
@@ -84,6 +86,64 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.setLayout(layout)
         self._configurar_atalhos()
 
+    def showEvent(self, event):
+        """Chamado quando a janela é exibida - garante centralização"""
+        super().showEvent(event)
+
+        # Na primeira exibição, centralizar a janela
+        if self._primeira_exibicao:
+            self._primeira_exibicao = False
+            # Usar QApplication para forçar processamento de eventos
+            QApplication.processEvents()
+            # Agora centralizar
+            self._center_on_screen()
+
+    def closeEvent(self, event):
+        """NOVIDADE: Pergunta se deseja salvar antes de fechar"""
+        # Se há modificações não salvas, perguntar ao usuário
+        if self._modificacoes_nao_salvas and self._tem_dados_para_salvar():
+            reply = QMessageBox.question(
+                self,
+                "Modificações não salvas",
+                "Você tem modificações não salvas. Deseja salvar antes de sair?",
+                QMessageBox.StandardButton.Save
+                | QMessageBox.StandardButton.Discard
+                | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save,
+            )
+
+            if reply == QMessageBox.StandardButton.Save:
+                # Tenta finalizar a venda
+                try:
+                    self._finalizar_venda()
+                    event.accept()  # Fecha após salvar
+                except Exception as e:
+                    QMessageBox.warning(
+                        self, "Erro ao salvar", f"Não foi possível salvar: {str(e)}"
+                    )
+                    event.ignore()  # Não fecha se houver erro
+                    return
+
+            elif reply == QMessageBox.StandardButton.Discard:
+                event.accept()  # Descarta modificações e fecha
+
+            elif reply == QMessageBox.StandardButton.Cancel:
+                event.ignore()  # Cancela o fechamento
+                return
+
+        super().closeEvent(event)
+
+    def _tem_dados_para_salvar(self):
+        """Verifica se há dados que podem ser salvos"""
+        return (
+            self.cliente_selecionado is not None and len(self.produtos_selecionados) > 0
+        )
+
+    def _marcar_como_modificado(self):
+        """Marca que houve modificações não salvas"""
+        self._modificacoes_nao_salvas = True
+        self._atualizar_indicador_modificacoes()
+
     def _configurar_tamanho_dialog(self):
         """Configura o tamanho inteligente do diálogo usando o mixin"""
         self.setup_dialog_size(
@@ -105,6 +165,12 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         titulo.setProperty("class", "title")
         header_layout.addWidget(titulo)
         header_layout.addStretch()
+
+        # NOVO: Indicador de modificações não salvas
+        self.label_modificacoes = QLabel("")
+        self.label_modificacoes.setProperty("class", "warning")
+        self.label_modificacoes.setVisible(False)
+        header_layout.addWidget(self.label_modificacoes)
 
         layout.addWidget(header_frame)
 
@@ -159,6 +225,8 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         # Conectar eventos corrigidos
         self.entry_codigo.returnPressed.connect(self._processar_enter_codigo)
         self.entry_codigo.textChanged.connect(self._buscar_produto_por_codigo)
+        # NOVO: Conectar alterações
+        self.entry_codigo.textChanged.connect(self._marcar_como_modificado)
         codigo_layout.addWidget(self.entry_codigo)
         campos_layout.addLayout(codigo_layout)
 
@@ -170,6 +238,8 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.entry_quantidade.setText("1")
         self.entry_quantidade.setMaximumWidth(100)
         self.entry_quantidade.returnPressed.connect(self._processar_enter_quantidade)
+        # NOVO: Conectar alterações
+        self.entry_quantidade.textChanged.connect(self._marcar_como_modificado)
         qtd_layout.addWidget(self.entry_quantidade)
         campos_layout.addLayout(qtd_layout)
 
@@ -180,6 +250,8 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.entry_valor.setPlaceholderText("R$ 0,00")
         self.entry_valor.setMaximumWidth(120)
         self.entry_valor.returnPressed.connect(self._processar_enter_valor)
+        # NOVO: Conectar alterações
+        self.entry_valor.textChanged.connect(self._marcar_como_modificado)
         valor_layout.addWidget(self.entry_valor)
         campos_layout.addLayout(valor_layout)
 
@@ -374,7 +446,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         btn_cancelar = QPushButton("Cancelar")
         btn_cancelar.setProperty("class", "danger")
         btn_cancelar.setAutoDefault(False)
-        btn_cancelar.clicked.connect(self.reject)
+        btn_cancelar.clicked.connect(self._cancelar_venda)  # Alterado para método próprio
         buttons_layout.addWidget(btn_cancelar)
 
         layout.addLayout(buttons_layout)
@@ -651,6 +723,45 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
     # ========== MÉTODOS DE AÇÃO ==========
 
+    def _cancelar_venda(self):
+        """Método próprio para cancelar - verifica modificações"""
+        # Se não há modificações, apenas fecha
+        if not self._modificacoes_nao_salvas:
+            self.reject()
+            return
+
+        # Se há modificações, pergunta ao usuário
+        if self._tem_dados_para_salvar():
+            reply = QMessageBox.question(
+                self,
+                "Modificações não salvas",
+                "Você tem modificações não salvas. Deseja salvar antes de cancelar?",
+                QMessageBox.StandardButton.Save
+                | QMessageBox.StandardButton.Discard
+                | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save,
+            )
+
+            if reply == QMessageBox.StandardButton.Save:
+                # Tenta finalizar
+                try:
+                    self._finalizar_venda()
+                    # Se salvou com sucesso, fecha a janela
+                    self.reject()
+                except Exception as e:
+                    # Se houver erro ao salvar, não fecha
+                    QMessageBox.warning(
+                        self, "Erro ao salvar", f"Não foi possível salvar: {str(e)}"
+                    )
+                    return
+
+            elif reply == QMessageBox.StandardButton.Discard:
+                self.reject()  # Descarta modificações e fecha
+
+            # Se escolheu Cancelar, não faz nada (permanece na tela)
+        else:
+            self.reject()
+
     def _selecionar_cliente(self):
         """F2 - Selecionar cliente"""
         dialog = ClienteSelectionDialog(self)
@@ -659,6 +770,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             if cliente:
                 self.cliente_selecionado = cliente
                 self.label_cliente.setText(cliente.nome)
+                self._marcar_como_modificado()  # NOVO: Marca como modificado
                 self._verificar_habilitar_finalizacao()
 
     def _selecionar_produto(self):
@@ -673,7 +785,10 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         """F4 - Abrir dialog de observação"""
         dialog = ObservacaoDialog(self.observacao, self)
         if dialog.exec():
-            self.observacao = dialog.get_observacao()
+            nova_observacao = dialog.get_observacao()
+            if nova_observacao != self.observacao:
+                self.observacao = nova_observacao
+                self._marcar_como_modificado()  # NOVO: Marca como modificado
 
     def _processar_produto(self, produto):
         """Processa produto selecionado com validações"""
@@ -800,6 +915,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     produto.preco_venda, nova_quantidade
                 )
                 self._atualizar_tabela()
+                self._marcar_como_modificado()  # NOVO: Marca como modificado
                 return
 
         # Adicionar novo produto
@@ -814,6 +930,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         )
 
         self._atualizar_tabela()
+        self._marcar_como_modificado()  # NOVO: Marca como modificado
 
     def _remover_produto(self):
         """Delete - Remove produto selecionado"""
@@ -829,6 +946,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             if reply == QMessageBox.StandardButton.Yes:
                 self.produtos_selecionados.pop(current_row)
                 self._atualizar_tabela()
+                self._marcar_como_modificado()  # NOVO: Marca como modificado
         else:
             QMessageBox.warning(self, "Seleção", "Selecione um produto para remover.")
 
@@ -857,6 +975,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         if ok:
             self.desconto_total = desconto
             self._calcular_total()
+            self._marcar_como_modificado()  # NOVO: Marca como modificado
 
     def _calcular_total(self):
         """Calcula total da venda com desconto"""
@@ -866,6 +985,17 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.label_subtotal.setText(formatar_moeda(total_produtos))
         self.label_desconto_aplicado.setText(formatar_moeda(self.desconto_total))
         self.label_total_final.setText(formatar_moeda(total_venda))
+
+        # NOVO: Atualiza indicador visual de modificações
+        self._atualizar_indicador_modificacoes()
+
+    def _atualizar_indicador_modificacoes(self):
+        """Atualiza indicador visual de modificações não salvas"""
+        if self._modificacoes_nao_salvas:
+            self.label_modificacoes.setText("✎ Modificações não salvas")
+            self.label_modificacoes.setVisible(True)
+        else:
+            self.label_modificacoes.setVisible(False)
 
     def _atualizar_tabela(self):
         """Atualiza tabela de produtos"""
@@ -1008,6 +1138,11 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
                 QMessageBox.information(self, "Sucesso", "Venda realizada com sucesso!")
                 self.venda_realizada.emit()
+                
+                # Limpar flag de modificações após salvar com sucesso
+                self._modificacoes_nao_salvas = False
+                self._atualizar_indicador_modificacoes()
+                
                 self.accept()
 
             except Exception as e:

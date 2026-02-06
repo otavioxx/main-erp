@@ -1,6 +1,7 @@
 """
 Dialog de Pedido - Modificado para incluir desconto e campos Cor, Tamanho, Referência - CORRIGIDO
 Com suporte a redimensionamento inteligente via DialogSizeMixin
+E verificação de modificações não salvas
 """
 
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -49,6 +50,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.pedido_editando = pedido
         self.observacao = ""
         self._primeira_exibicao = True
+        self._modificacoes_nao_salvas = False  # NOVO: controle de modificações
         self._init_ui()
         aplicar_maiuscula_formulario(self)
         self._configurar_tamanho_dialog()
@@ -92,6 +94,53 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             # Agora centralizar
             self._center_on_screen()
 
+    def closeEvent(self, event):
+        """NOVIDADE: Pergunta se deseja salvar antes de fechar"""
+        # Se há modificações não salvas, perguntar ao usuário
+        if self._modificacoes_nao_salvas and self._tem_dados_para_salvar():
+            reply = QMessageBox.question(
+                self,
+                "Modificações não salvas",
+                "Você tem modificações não salvas. Deseja salvar antes de sair?",
+                QMessageBox.StandardButton.Save
+                | QMessageBox.StandardButton.Discard
+                | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save,
+            )
+
+            if reply == QMessageBox.StandardButton.Save:
+                # Tenta finalizar o pedido
+                try:
+                    self._finalizar_pedido()
+                    event.accept()  # Fecha após salvar
+                except Exception as e:
+                    QMessageBox.warning(
+                        self, "Erro ao salvar", f"Não foi possível salvar: {str(e)}"
+                    )
+                    event.ignore()  # Não fecha se houver erro
+                    return
+
+            elif reply == QMessageBox.StandardButton.Discard:
+                event.accept()  # Descarta modificações e fecha
+
+            elif reply == QMessageBox.StandardButton.Cancel:
+                event.ignore()  # Cancela o fechamento
+                return
+
+        super().closeEvent(event)
+
+    def _tem_dados_para_salvar(self):
+        """Verifica se há dados que podem ser salvos"""
+        return (
+            self.fornecedor_selecionado is not None 
+            and len(self.produtos_selecionados) > 0
+        )
+
+    def _marcar_como_modificado(self):
+        """Marca que houve modificações não salvas"""
+        self._modificacoes_nao_salvas = True
+        self._atualizar_indicador_modificacoes()
+
     def _configurar_tamanho_dialog(self):
         """Configura o tamanho inteligente do diálogo usando o mixin"""
         self.setup_dialog_size(
@@ -113,6 +162,12 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         titulo.setProperty("class", "title")
         header_layout.addWidget(titulo)
         header_layout.addStretch()
+
+        # NOVO: Indicador de modificações não salvas
+        self.label_modificacoes = QLabel("")
+        self.label_modificacoes.setProperty("class", "warning")
+        self.label_modificacoes.setVisible(False)
+        header_layout.addWidget(self.label_modificacoes)
 
         layout.addWidget(header_frame)
 
@@ -331,12 +386,10 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.btn_finalizar.setDefault(False)
         buttons_layout.addWidget(self.btn_finalizar)
 
-        self.btn_frete_desconto = QPushButton("F10 - Frete e Desconto")  # MODIFICADO
+        self.btn_frete_desconto = QPushButton("F10 - Frete e Desconto")
         self.btn_frete_desconto.setProperty("class", "warning")
         self.btn_frete_desconto.setAutoDefault(False)
-        self.btn_frete_desconto.clicked.connect(
-            self._definir_frete_desconto
-        )  # MODIFICADO
+        self.btn_frete_desconto.clicked.connect(self._definir_frete_desconto)
         buttons_layout.addWidget(self.btn_frete_desconto)
 
         buttons_layout.addStretch()
@@ -344,7 +397,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         btn_cancelar = QPushButton("Cancelar")
         btn_cancelar.setProperty("class", "danger")
         btn_cancelar.setAutoDefault(False)
-        btn_cancelar.clicked.connect(self.reject)
+        btn_cancelar.clicked.connect(self._cancelar_pedido)  # Alterado para método próprio
         buttons_layout.addWidget(btn_cancelar)
 
         layout.addLayout(buttons_layout)
@@ -364,7 +417,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.shortcut_f5.activated.connect(self._finalizar_pedido)
 
         self.shortcut_f10 = QShortcut("F10", self)
-        self.shortcut_f10.activated.connect(self._definir_frete_desconto)  # MODIFICADO
+        self.shortcut_f10.activated.connect(self._definir_frete_desconto)
 
         self.shortcut_delete = QShortcut(
             QKeySequence(QKeySequence.StandardKey.Delete), self
@@ -372,6 +425,45 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.shortcut_delete.activated.connect(self._remover_produto)
 
     # ========== MÉTODOS DE AÇÃO ==========
+
+    def _cancelar_pedido(self):
+        """Método próprio para cancelar - verifica modificações"""
+        # Se não há modificações, apenas fecha
+        if not self._modificacoes_nao_salvas:
+            self.reject()
+            return
+
+        # Se há modificações, pergunta ao usuário
+        if self._tem_dados_para_salvar():
+            reply = QMessageBox.question(
+                self,
+                "Modificações não salvas",
+                "Você tem modificações não salvas. Deseja salvar antes de cancelar?",
+                QMessageBox.StandardButton.Save
+                | QMessageBox.StandardButton.Discard
+                | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Save,
+            )
+
+            if reply == QMessageBox.StandardButton.Save:
+                # Tenta finalizar
+                try:
+                    self._finalizar_pedido()
+                    # Se salvou com sucesso, fecha a janela
+                    self.reject()
+                except Exception as e:
+                    # Se houver erro ao salvar, não fecha
+                    QMessageBox.warning(
+                        self, "Erro ao salvar", f"Não foi possível salvar: {str(e)}"
+                    )
+                    return
+
+            elif reply == QMessageBox.StandardButton.Discard:
+                self.reject()  # Descarta modificações e fecha
+
+            # Se escolheu Cancelar, não faz nada (permanece na tela)
+        else:
+            self.reject()
 
     def _selecionar_fornecedor(self):
         """F2 - Selecionar fornecedor"""
@@ -383,6 +475,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             if fornecedor:
                 self.fornecedor_selecionado = fornecedor
                 self.label_fornecedor.setText(fornecedor.nome)
+                self._marcar_como_modificado()  # NOVO: Marca como modificado
                 self._verificar_habilitar_finalizacao()
 
     def _selecionar_produto(self):
@@ -399,7 +492,10 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         """F4 - Abrir dialog de observação"""
         dialog = ObservacaoDialog(self.observacao, self)
         if dialog.exec():
-            self.observacao = dialog.get_observacao()
+            nova_observacao = dialog.get_observacao()
+            if nova_observacao != self.observacao:
+                self.observacao = nova_observacao
+                self._marcar_como_modificado()  # NOVO: Marca como modificado
 
     def _processar_produto(self, produto):
         """Processa produto selecionado - MODIFICADO para incluir valor de venda"""
@@ -462,6 +558,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     preco_custo, nova_quantidade
                 )
                 self._atualizar_tabela()
+                self._marcar_como_modificado()  # NOVO: Marca como modificado
                 return
 
         # Adicionar novo produto
@@ -477,6 +574,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         )
 
         self._atualizar_tabela()
+        self._marcar_como_modificado()  # NOVO: Marca como modificado
 
     def _remover_produto(self):
         """Delete - Remove produto selecionado"""
@@ -492,11 +590,12 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             if reply == QMessageBox.StandardButton.Yes:
                 self.produtos_selecionados.pop(current_row)
                 self._atualizar_tabela()
+                self._marcar_como_modificado()  # NOVO: Marca como modificado
         else:
             QMessageBox.warning(self, "Seleção", "Selecione um produto para remover.")
 
     def _definir_frete_desconto(self):
-        """F10 - Definir frete e desconto - NOVO MÉTODO"""
+        """F10 - Definir frete e desconto"""
         subtotal_produtos = sum(prod["subtotal"] for prod in self.produtos_selecionados)
 
         dialog = FreteDescontoDialog(
@@ -510,6 +609,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             self.valor_frete = dialog.get_frete()
             self.valor_desconto = dialog.get_desconto()
             self._calcular_total()
+            self._marcar_como_modificado()  # NOVO: Marca como modificado
 
     def _calcular_total(self):
         """Calcula total do pedido - ATUALIZADO com desconto"""
@@ -519,9 +619,20 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         total = max(0, total)
 
         self.label_subtotal.setText(formatar_moeda(subtotal))
-        self.label_desconto.setText(formatar_moeda(self.valor_desconto))  # NOVO
+        self.label_desconto.setText(formatar_moeda(self.valor_desconto))
         self.label_frete.setText(formatar_moeda(self.valor_frete))
         self.label_total.setText(formatar_moeda(total))
+
+        # NOVO: Atualiza indicador visual de modificações
+        self._atualizar_indicador_modificacoes()
+
+    def _atualizar_indicador_modificacoes(self):
+        """Atualiza indicador visual de modificações não salvas"""
+        if self._modificacoes_nao_salvas:
+            self.label_modificacoes.setText("✎ Modificações não salvas")
+            self.label_modificacoes.setVisible(True)
+        else:
+            self.label_modificacoes.setVisible(False)
 
     def _atualizar_tabela(self):
         """Atualiza tabela de produtos - MODIFICADO para incluir Cor, Tamanho, Referência e scroll automático"""
@@ -611,7 +722,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             return
 
         subtotal = sum(prod["subtotal"] for prod in self.produtos_selecionados)
-        total = max(0, subtotal - self.valor_desconto + self.valor_frete)  # ATUALIZADO
+        total = max(0, subtotal - self.valor_desconto + self.valor_frete)
 
         if self._confirmar_pedido(subtotal, total):
             try:
@@ -627,6 +738,11 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 self._salvar_itens_pedido(pedido_id)
 
                 QMessageBox.information(self, "Sucesso", mensagem)
+                
+                # Limpar flag de modificações após salvar com sucesso
+                self._modificacoes_nao_salvas = False
+                self._atualizar_indicador_modificacoes()
+                
                 self.pedido_realizado.emit()
                 self.accept()
 
@@ -675,7 +791,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.pedido_editando.fornecedor_id = self.fornecedor_selecionado.id
         self.pedido_editando.valor_total = total
         self.pedido_editando.valor_frete = self.valor_frete
-        self.pedido_editando.desconto = self.valor_desconto  # NOVO CAMPO
+        self.pedido_editando.desconto = self.valor_desconto
         self.pedido_editando.observacao = observacao
         return self.pedido_editando.salvar()
 
@@ -685,7 +801,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             fornecedor_id=self.fornecedor_selecionado.id,
             valor_total=total,
             valor_frete=self.valor_frete,
-            desconto=self.valor_desconto,  # NOVO CAMPO
+            desconto=self.valor_desconto,
             observacao=observacao,
             status="pendente",
         )
@@ -720,7 +836,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             self.observacao = self.pedido_editando.observacao
 
         self.valor_frete = self.pedido_editando.valor_frete or 0.0
-        self.valor_desconto = self.pedido_editando.desconto or 0.0  # NOVO CAMPO
+        self.valor_desconto = self.pedido_editando.desconto or 0.0
 
         # Carregar produtos
         itens = self.pedido_editando.obter_itens()
@@ -740,6 +856,10 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         self._atualizar_tabela()
         self._verificar_habilitar_finalizacao()
+        
+        # Após carregar dados, não há modificações não salvas inicialmente
+        self._modificacoes_nao_salvas = False
+        self._atualizar_indicador_modificacoes()
 
     # ========== MÉTODOS PÚBLICOS PARA COMPATIBILIDADE ==========
 
