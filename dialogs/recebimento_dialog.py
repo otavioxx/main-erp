@@ -207,9 +207,9 @@ class RecebimentoDialog(QDialog):
         diferenca = abs(valor_recebido - self.valor_original)
         
         if diferenca > 0.01:  # Se diferença maior que 1 centavo
-            resposta = self._mostrar_aviso_diferenca(valor_recebido)
+            confirmado = self._mostrar_aviso_diferenca(valor_recebido)
             
-            if resposta != QMessageBox.StandardButton.Yes:
+            if not confirmado:
                 return  # Usuário cancelou
 
         self.accept()
@@ -251,14 +251,23 @@ class RecebimentoDialog(QDialog):
         msg_box.setIcon(QMessageBox.Icon.Warning)
         
         # Botões
-        btn_sim = msg_box.addButton("Confirmar", QMessageBox.ButtonRole.YesRole)
-        btn_sim.setProperty("class", "primary-button")
+        btn_confirmar = msg_box.addButton("Confirmar", QMessageBox.ButtonRole.YesRole)
+        btn_confirmar.setProperty("class", "primary-button")
         
-        btn_nao = msg_box.addButton("Corrigir", QMessageBox.ButtonRole.NoRole)
-        btn_nao.setProperty("class", "secondary-button")
-        msg_box.setDefaultButton(btn_nao)
+        btn_corrigir = msg_box.addButton("Corrigir", QMessageBox.ButtonRole.NoRole)
+        btn_corrigir.setProperty("class", "secondary-button")
         
-        return msg_box.exec()
+        # Definir botão padrão
+        msg_box.setDefaultButton(btn_corrigir)
+        
+        # Executar message box
+        msg_box.exec()
+        
+        # Verificar qual botão foi pressionado
+        botao_pressionado = msg_box.clickedButton()
+        
+        # Retornar True se o usuário clicou em "Confirmar"
+        return botao_pressionado == btn_confirmar
 
     def _get_nome_cliente(self):
         """Obtém nome do cliente - MÉTODO CORRIGIDO"""
