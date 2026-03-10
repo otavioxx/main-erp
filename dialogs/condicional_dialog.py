@@ -1,5 +1,5 @@
 """
-Dialog de Condicional - Versão com Frame de Entrada Rápida - CORRIGIDO
+Dialog de Condicional - Versão com Frame de Entrada Rápida - LAYOUT AJUSTADO
 Com suporte a redimensionamento inteligente via DialogSizeMixin
 """
 
@@ -22,6 +22,8 @@ from PyQt6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
+    QGridLayout,  # NOVO: Importado para layout em grid
+    QSizePolicy,  # NOVO: Para controle de tamanho
 )
 
 from dialogs.cliente_selection_dialog import ClienteSelectionDialog
@@ -52,7 +54,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.desconto_total = 0.0
         self.observacao = ""
         self._primeira_exibicao = True
-        self._modificacoes_nao_salvas = False  # NOVO: controle de modificações
+        self._modificacoes_nao_salvas = False
         self._init_ui()
         aplicar_maiuscula_formulario(self)
         self._configurar_tamanho_dialog()
@@ -72,13 +74,22 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         # Header
         self._criar_header(layout)
 
-        # Informações do cliente e data
-        self._criar_secao_cliente_data(layout)
+        # ========== LAYOUT MODIFICADO: Cliente + Data lado a lado com Entrada Rápida ==========
+        # Criar um layout horizontal para os dois frames
+        cliente_entrada_layout = QHBoxLayout()
+        cliente_entrada_layout.setSpacing(12)
 
-        # Frame de entrada rápida
-        self._criar_frame_entrada_rapida(layout)
+        # Frame do cliente + data (lado esquerdo) - OCUPA 40% DO ESPAÇO
+        self._criar_secao_cliente_data(cliente_entrada_layout, 40)
 
-        # Tabela de produtos
+        # Frame de entrada rápida (lado direito) - OCUPA 60% DO ESPAÇO
+        self._criar_frame_entrada_rapida(cliente_entrada_layout, 60)
+
+        # Adicionar o layout horizontal ao layout principal
+        layout.addLayout(cliente_entrada_layout)
+        # ========== FIM DA MODIFICAÇÃO ==========
+
+        # Tabela de produtos (agora com mais espaço vertical)
         self._criar_secao_produtos(layout)
 
         # Resumo financeiro
@@ -146,6 +157,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
     def _marcar_como_modificado(self):
         """Marca que houve modificações não salvas"""
         self._modificacoes_nao_salvas = True
+        self._atualizar_indicador_modificacoes()
 
     def _configurar_tamanho_dialog(self):
         """Configura o tamanho inteligente do diálogo usando o mixin"""
@@ -153,9 +165,9 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             min_width=700,  # Largura mínima adequada para a tabela
             min_height=500,  # Altura mínima para ter espaço suficiente
             default_width_percent=0.95,  # 85% da tela
-            default_height_percent=0.80,  # 90% da tela
+            default_height_percent=0.85,  # 90% da tela (aumentado para tabela maior)
             max_width_percent=0.85,  # Máximo 95% da tela
-            max_height_percent=0.85,  # Máximo 95% da tela
+            max_height_percent=0.90,  # Máximo 95% da tela (aumentado)
         )
 
     def _criar_header(self, layout):
@@ -171,7 +183,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         header_layout.addWidget(titulo)
         header_layout.addStretch()
 
-        # NOVO: Indicador de modificações não salvas
+        # Indicador de modificações não salvas
         self.label_modificacoes = QLabel("")
         self.label_modificacoes.setProperty("class", "warning")
         self.label_modificacoes.setVisible(False)
@@ -179,131 +191,136 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         layout.addWidget(header_frame)
 
-    def _criar_secao_cliente_data(self, layout):
+    # ========== MÉTODO MODIFICADO: Agora recebe layout pai e percentual ==========
+    def _criar_secao_cliente_data(self, parent_layout, percentual=40):
         """Cria seção combinada de cliente e data de devolução"""
         grupo_cliente_data = QGroupBox("Informações da Condicional")
         grupo_cliente_data.setProperty("class", "clean-group")
+        
+        # Configurar tamanho mínimo e altura fixa
+        grupo_cliente_data.setMinimumWidth(250)
+        grupo_cliente_data.setFixedHeight(130)  # Altura fixa igual à entrada rápida
 
-        main_layout = QHBoxLayout()
+        main_layout = QVBoxLayout()  # Mudou para VBox para melhor organização
         main_layout.setContentsMargins(8, 12, 8, 12)
+        main_layout.setSpacing(10)
 
-        # Seção do cliente (esquerda)
-        cliente_layout = QVBoxLayout()
-
-        # Header do cliente com atalho
+        # Seção do cliente
         cliente_header = QHBoxLayout()
-        cliente_header.addWidget(QLabel("Cliente selecionado:"))
-
+        cliente_header.addWidget(QLabel("Cliente:"))
         cliente_atalho = QLabel("F2 - Selecionar")
         cliente_atalho.setProperty("class", "muted")
         cliente_header.addWidget(cliente_atalho)
         cliente_header.addStretch()
-        cliente_layout.addLayout(cliente_header)
+        main_layout.addLayout(cliente_header)
 
-        # Label do cliente selecionado
+        # Label do cliente selecionado (com quebra de linha)
         self.label_cliente = QLabel("Não selecionado")
-        cliente_layout.addWidget(self.label_cliente)
+        self.label_cliente.setWordWrap(True)
+        main_layout.addWidget(self.label_cliente)
 
-        main_layout.addLayout(cliente_layout)
-
-        # Separador vertical
+        # Separador visual
         separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.VLine)
+        separator.setFrameShape(QFrame.Shape.HLine)
         separator.setFrameShadow(QFrame.Shadow.Sunken)
-        separator.setMaximumWidth(1)
+        separator.setMaximumHeight(1)
         main_layout.addWidget(separator)
 
-        # Adicionar stretch para empurrar a seção de data para a direita
-        main_layout.addStretch()
-
-        # Seção da data (direita)
+        # Seção da data
         data_layout = QHBoxLayout()
-        data_layout.addWidget(QLabel("Data prevista para devolução:"))
-
+        data_layout.addWidget(QLabel("Data prevista:"))
+        
         self.date_devolucao = QLineEdit()
         data_futura = (datetime.now() + timedelta(days=2)).strftime("%d/%m/%Y")
         self.date_devolucao.setText(data_futura)
         self.date_devolucao.setPlaceholderText("DD/MM/AAAA")
-        self.date_devolucao.setMaximumWidth(120)
-        # NOVO: Conectar alterações
+        self.date_devolucao.setMaximumWidth(100)
         self.date_devolucao.textChanged.connect(self._marcar_como_modificado)
         data_layout.addWidget(self.date_devolucao)
-
+        data_layout.addStretch()
+        
         main_layout.addLayout(data_layout)
+        main_layout.addStretch()
 
         grupo_cliente_data.setLayout(main_layout)
-        layout.addWidget(grupo_cliente_data)
+        parent_layout.addWidget(grupo_cliente_data)
 
-    def _criar_frame_entrada_rapida(self, layout):
+    # ========== MÉTODO MODIFICADO: Agora recebe layout pai e percentual ==========
+    def _criar_frame_entrada_rapida(self, parent_layout, percentual=60):
         """Cria frame para entrada rápida de produtos"""
         grupo_entrada = QGroupBox("Entrada Rápida de Produto")
         grupo_entrada.setProperty("class", "clean-group")
+        
+        # Configurar tamanho mínimo e altura fixa
+        grupo_entrada.setMinimumWidth(350)
+        grupo_entrada.setFixedHeight(130)  # Altura fixa igual à seção cliente
 
         entrada_layout = QVBoxLayout()
         entrada_layout.setContentsMargins(8, 12, 8, 12)
+        entrada_layout.setSpacing(8)
 
-        # Header com instrução
-        header_entrada = QHBoxLayout()
-        header_entrada.addStretch()
-        entrada_layout.addLayout(header_entrada)
+        # Campos de entrada em grid para melhor organização
+        campos_grid = QGridLayout()
+        campos_grid.setHorizontalSpacing(10)
+        campos_grid.setVerticalSpacing(5)
 
-        # Campos de entrada em linha horizontal
-        campos_layout = QHBoxLayout()
-        campos_layout.setSpacing(12)
+        # Linha 0: Labels
+        campos_grid.addWidget(QLabel("Código:"), 0, 0)
+        campos_grid.addWidget(QLabel("Quantidade:"), 0, 1)
+        campos_grid.addWidget(QLabel("Valor de Venda:"), 0, 2)
 
-        # Campo Código do Produto
-        codigo_layout = QVBoxLayout()
-        codigo_layout.addWidget(QLabel("Código:"))
+        # Linha 1: Campos de entrada
         self.entry_codigo = QLineEdit()
         self.entry_codigo.setPlaceholderText("ID do produto")
-        self.entry_codigo.setMaximumWidth(120)
-        # Conectar eventos
-        self.entry_codigo.returnPressed.connect(self._processar_enter_codigo)
-        self.entry_codigo.textChanged.connect(self._buscar_produto_por_codigo)
-        codigo_layout.addWidget(self.entry_codigo)
-        campos_layout.addLayout(codigo_layout)
+        campos_grid.addWidget(self.entry_codigo, 1, 0)
 
-        # Campo Quantidade
-        qtd_layout = QVBoxLayout()
-        qtd_layout.addWidget(QLabel("Quantidade:"))
         self.entry_quantidade = QLineEdit()
         self.entry_quantidade.setPlaceholderText("1")
         self.entry_quantidade.setText("1")
-        self.entry_quantidade.setMaximumWidth(100)
-        self.entry_quantidade.returnPressed.connect(self._processar_enter_quantidade)
-        # NOVO: Conectar alterações
-        self.entry_quantidade.textChanged.connect(self._marcar_como_modificado)
-        qtd_layout.addWidget(self.entry_quantidade)
-        campos_layout.addLayout(qtd_layout)
+        campos_grid.addWidget(self.entry_quantidade, 1, 1)
 
-        # Campo Valor de Venda (editável)
-        valor_layout = QVBoxLayout()
-        valor_layout.addWidget(QLabel("Valor de Venda:"))
         self.entry_valor = QLineEdit()
         self.entry_valor.setPlaceholderText("R$ 0,00")
-        self.entry_valor.setMaximumWidth(120)
-        self.entry_valor.returnPressed.connect(self._processar_enter_valor)
-        # NOVO: Conectar alterações
-        self.entry_valor.textChanged.connect(self._marcar_como_modificado)
-        valor_layout.addWidget(self.entry_valor)
-        campos_layout.addLayout(valor_layout)
+        campos_grid.addWidget(self.entry_valor, 1, 2)
 
-        campos_layout.addStretch()
+        # Configurar expansão das colunas do grid
+        campos_grid.setColumnStretch(0, 1)  # Código
+        campos_grid.setColumnStretch(1, 1)  # Quantidade
+        campos_grid.setColumnStretch(2, 2)  # Valor (maior)
 
-        entrada_layout.addLayout(campos_layout)
+        entrada_layout.addLayout(campos_grid)
 
         # Label para mostrar produto encontrado
         self.label_produto_encontrado = QLabel("")
         self.label_produto_encontrado.setProperty("class", "muted")
+        self.label_produto_encontrado.setWordWrap(True)
         entrada_layout.addWidget(self.label_produto_encontrado)
 
-        grupo_entrada.setLayout(entrada_layout)
-        layout.addWidget(grupo_entrada)
+        # Conectar eventos
+        self.entry_codigo.returnPressed.connect(self._processar_enter_codigo)
+        self.entry_codigo.textChanged.connect(self._buscar_produto_por_codigo)
+        self.entry_codigo.textChanged.connect(self._marcar_como_modificado)
+        
+        self.entry_quantidade.returnPressed.connect(self._processar_enter_quantidade)
+        self.entry_quantidade.textChanged.connect(self._marcar_como_modificado)
+        
+        self.entry_valor.returnPressed.connect(self._processar_enter_valor)
+        self.entry_valor.textChanged.connect(self._marcar_como_modificado)
 
+        grupo_entrada.setLayout(entrada_layout)
+        parent_layout.addWidget(grupo_entrada)
+
+    # ========== MÉTODO MODIFICADO: Aumentado para ocupar mais espaço vertical ==========
     def _criar_secao_produtos(self, layout):
-        """Cria seção da tabela de produtos"""
+        """Cria seção da tabela de produtos - AGORA COM MAIS ESPAÇO"""
         grupo_produtos = QGroupBox("Produtos da Condicional")
         grupo_produtos.setProperty("class", "clean-group")
+        
+        # Fazer este grupo ocupar mais espaço vertical
+        grupo_produtos.setSizePolicy(
+            QSizePolicy.Policy.Expanding,  # Horizontal
+            QSizePolicy.Policy.Expanding   # Vertical
+        )
 
         produtos_layout = QVBoxLayout()
         produtos_layout.setContentsMargins(8, 12, 8, 12)
@@ -323,7 +340,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         produtos_layout.addWidget(self.tabela_produtos)
 
         grupo_produtos.setLayout(produtos_layout)
-        layout.addWidget(grupo_produtos)
+        layout.addWidget(grupo_produtos, 1)  # Stretch=1 para ocupar espaço extra
 
     def _criar_tabela_produtos(self):
         """Configura tabela de produtos - VERSÃO COM ALTURA FIXA"""
@@ -353,7 +370,6 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.tabela_produtos.setColumnWidth(6, 60)  # Qtd
         self.tabela_produtos.setColumnWidth(7, 90)  # Subtotal
 
-        # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
         vheader = self.tabela_produtos.verticalHeader()
         altura_desejada = 22
@@ -375,7 +391,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             except Exception:
                 pass
 
-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+        # Conectar ao sinal de dados alterados
         try:
             if hasattr(self.tabela_produtos, "model"):
                 model = self.tabela_produtos.model()
@@ -384,7 +400,6 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 )
         except Exception:
             pass
-        # ========== FIM DA CONFIGURAÇÃO ==========
 
         # Configurações gerais
         self.tabela_produtos.setSelectionBehavior(
@@ -399,8 +414,8 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         self.setup_scroll_navigation(
             tabela=self.tabela_produtos,
-            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
-            auto_select_first=True,  # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,
+            auto_select_first=True,
         )
 
     def _criar_resumo_financeiro(self, layout):
@@ -461,7 +476,6 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.btn_salvar.setProperty("class", "success")
         self.btn_salvar.setEnabled(False)
         self.btn_salvar.clicked.connect(self._salvar_condicional)
-        # IMPORTANTE: Não definir como botão padrão para não interceptar Enter
         self.btn_salvar.setAutoDefault(False)
         self.btn_salvar.setDefault(False)
         buttons_layout.addWidget(self.btn_salvar)
@@ -479,9 +493,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         btn_cancelar = QPushButton("Cancelar")
         btn_cancelar.setProperty("class", "danger")
         btn_cancelar.setAutoDefault(False)
-        btn_cancelar.clicked.connect(
-            self._cancelar_condicional
-        )  # Alterado para método próprio
+        btn_cancelar.clicked.connect(self._cancelar_condicional)
         buttons_layout.addWidget(btn_cancelar)
 
         layout.addLayout(buttons_layout)
@@ -518,7 +530,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         # Definir foco inicial no campo código
         self.entry_codigo.setFocus()
 
-    # ========== MÉTODOS DE ENTRADA RÁPIDA - CORRIGIDOS ==========
+    # ========== MÉTODOS DE ENTRADA RÁPIDA (mantidos iguais) ==========
 
     def _processar_enter_codigo(self):
         """Enter no campo código - busca produto e vai para quantidade"""
@@ -560,7 +572,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             self.entry_quantidade.selectAll()
             return
 
-        # Ir para campo valor (valor já foi atualizado automaticamente no textChanged do código)
+        # Ir para campo valor
         self.entry_valor.setFocus()
         self.entry_valor.selectAll()
 
@@ -628,9 +640,9 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 self._atualizar_valor_automatico(produto_id)
 
         except ValueError:
-            if len(codigo_texto) > 0:  # Só mostrar erro se há texto
+            if len(codigo_texto) > 0:
                 self.label_produto_encontrado.setText("❌ Digite apenas números")
-                self.entry_valor.clear()  # Limpar valor se código inválido
+                self.entry_valor.clear()
 
     def _atualizar_valor_automatico(self, produto_id):
         """Atualiza valor automaticamente sempre que um produto válido for encontrado"""
@@ -640,20 +652,17 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             produto = Produto.buscar_por_id(produto_id)
 
             if produto and produto.preco_venda > 0:
-                # Sempre atualizar o valor com o preço do produto atual
                 valor_formatado = f"{produto.preco_venda:.2f}".replace(".", ",")
                 self.entry_valor.setText(valor_formatado)
             else:
-                # Se produto não tem preço válido, limpar campo
                 self.entry_valor.clear()
         except Exception:
-            # Em caso de erro, limpar campo
             self.entry_valor.clear()
 
     def _limpar_info_produto(self):
         """Limpa informações do produto"""
         self.label_produto_encontrado.clear()
-        self.entry_valor.clear()  # Agora também limpa o valor quando não há produto
+        self.entry_valor.clear()
 
     def _exibir_produto_encontrado(self, produto):
         """Exibe informações do produto encontrado"""
@@ -701,8 +710,6 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         try:
             produto_id = int(codigo_texto)
             quantidade = int(quantidade_texto)
-
-            # Converter valor (aceita vírgula ou ponto)
             valor_venda = float(valor_texto.replace(",", "."))
 
             if quantidade <= 0:
@@ -750,12 +757,12 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 self.entry_quantidade.selectAll()
                 return
 
-            # Criar uma cópia do produto com o novo preço para esta condicional
+            # Criar uma cópia do produto com o novo preço
             produto_condicional = Produto(
                 id=produto.id,
                 nome=produto.nome,
                 preco_custo=produto.preco_custo,
-                preco_venda=valor_venda,  # Usar o valor digitado
+                preco_venda=valor_venda,
                 estoque=produto.estoque,
                 fornecedor_id=produto.fornecedor_id,
                 ativo=produto.ativo,
@@ -779,20 +786,16 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.entry_quantidade.setText("1")
         self.entry_valor.clear()
         self.label_produto_encontrado.clear()
-
-        # Voltar foco para o campo código para continuar fluxo
         self.entry_codigo.setFocus()
 
-    # ========== MÉTODOS DE AÇÃO ==========
+    # ========== MÉTODOS DE AÇÃO (mantidos iguais) ==========
 
     def _cancelar_condicional(self):
         """Método próprio para cancelar - verifica modificações"""
-        # Se não há modificações, apenas fecha
         if not self._modificacoes_nao_salvas:
             self.reject()
             return
 
-        # Se há modificações, pergunta ao usuário
         if self._tem_dados_para_salvar():
             reply = QMessageBox.question(
                 self,
@@ -805,22 +808,16 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             )
 
             if reply == QMessageBox.StandardButton.Save:
-                # Tenta salvar
                 try:
                     self._salvar_condicional()
-                    # Se salvou com sucesso, fecha a janela
                     self.reject()
                 except Exception as e:
-                    # Se houver erro ao salvar, não fecha
                     QMessageBox.warning(
                         self, "Erro ao salvar", f"Não foi possível salvar: {str(e)}"
                     )
                     return
-
             elif reply == QMessageBox.StandardButton.Discard:
-                self.reject()  # Descarta modificações e fecha
-
-            # Se escolheu Cancelar, não faz nada (permanece na tela)
+                self.reject()
         else:
             self.reject()
 
@@ -832,7 +829,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             if cliente:
                 self.cliente_selecionado = cliente
                 self.label_cliente.setText(cliente.nome)
-                self._marcar_como_modificado()  # NOVO: Marca como modificado
+                self._marcar_como_modificado()
                 self._verificar_habilitar_salvamento()
 
     def _selecionar_produto(self):
@@ -850,11 +847,10 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             nova_observacao = dialog.get_observacao()
             if nova_observacao != self.observacao:
                 self.observacao = nova_observacao
-                self._marcar_como_modificado()  # NOVO: Marca como modificado
+                self._marcar_como_modificado()
 
     def _processar_produto(self, produto):
-        """Processa produto selecionado com validações - VERSÃO COM DIÁLOGOS IDÊNTICOS AO MÓDULO VENDAS"""
-        # Validações
+        """Processa produto selecionado com validações"""
         if produto.preco_venda <= 0:
             QMessageBox.warning(
                 self,
@@ -871,13 +867,9 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             )
             return
 
-        # ========== DIÁLOGO DE QUANTIDADE (IGUAL AO MÓDULO VENDAS) ==========
         quantidade_dialog = QInputDialog(self)
-
-        # Configurar propriedades do diálogo
         quantidade_dialog.setWindowTitle("Quantidade")
         
-        # CORREÇÃO: Adicionar espaços entre os atributos
         nome_produto = produto.nome
         if produto.cor:
             nome_produto += f" {produto.cor}"
@@ -890,7 +882,6 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         quantidade_dialog.setIntMaximum(produto.estoque)
         quantidade_dialog.setIntStep(1)
 
-        # Configurar flags da janela (idêntico ao módulo vendas)
         quantidade_dialog.setWindowFlags(
             Qt.WindowType.Dialog
             | Qt.WindowType.CustomizeWindowHint
@@ -899,14 +890,11 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             | Qt.WindowType.MSWindowsFixedSizeDialogHint
         )
 
-        # Tamanho fixo (idêntico ao módulo vendas)
         quantidade_dialog.setFixedSize(400, 150)
 
-        # Executar o diálogo e verificar se foi aceito
         if quantidade_dialog.exec() == QDialog.DialogCode.Accepted:
             quantidade = quantidade_dialog.intValue()
 
-            # Validação básica
             if quantidade <= 0 or quantidade > produto.estoque:
                 QMessageBox.warning(
                     self,
@@ -915,17 +903,13 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 )
                 return
 
-            # ========== DIÁLOGO DE PREÇO (CORRIGIDO PARA ACEITAR NÚMEROS GRANDES) ==========
             preco_dialog = QInputDialog(self)
-
-            # Configurar propriedades do diálogo
             preco_dialog.setWindowTitle("Preço de Venda")
             preco_dialog.setLabelText("Digite o preço de venda:")
             preco_dialog.setDoubleValue(produto.preco_venda)
             preco_dialog.setDoubleMinimum(0.01)
             preco_dialog.setDoubleDecimals(2)
 
-            # Configurar flags da janela (igual ao módulo vendas)
             preco_dialog.setWindowFlags(
                 Qt.WindowType.Dialog
                 | Qt.WindowType.CustomizeWindowHint
@@ -934,42 +918,33 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 | Qt.WindowType.MSWindowsFixedSizeDialogHint
             )
 
-            # Aumentar tamanho para acomodar números maiores
             preco_dialog.setFixedSize(450, 220)
 
-            # ===== SOLUÇÃO: Configurar o QDoubleSpinBox interno para aceitar números grandes =====
             from PyQt6.QtCore import QTimer
             from PyQt6.QtWidgets import QDoubleSpinBox
             
             def configurar_spinbox():
-                # Encontrar o QDoubleSpinBox dentro do diálogo
                 spinboxes = preco_dialog.findChildren(QDoubleSpinBox)
                 for spinbox in spinboxes:
-                    spinbox.setRange(0.01, 9999999.99)  # Aumentar limite máximo
-                    spinbox.setFixedWidth(220)  # Aumentar largura para números grandes
-                    spinbox.setGroupSeparatorShown(True)  # Mostra separador de milhar
-                    # Opcional: Remover botões de incremento para campo mais limpo
+                    spinbox.setRange(0.01, 9999999.99)
+                    spinbox.setFixedWidth(220)
+                    spinbox.setGroupSeparatorShown(True)
                     spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
                     break
             
-            # Configurar após o diálogo ser mostrado
             QTimer.singleShot(50, configurar_spinbox)
-            # ===== FIM DA SOLUÇÃO =====
 
-            # Executar e verificar se foi aceito
             if preco_dialog.exec() == QDialog.DialogCode.Accepted:
                 preco_venda = preco_dialog.doubleValue()
 
-                # CORREÇÃO: Validar se o preço é > 0
                 if preco_venda > 0:
-                    # Criar uma cópia do produto com o novo preço
                     from models.produto import Produto
 
                     produto_condicional = Produto(
                         id=produto.id,
                         nome=produto.nome,
                         preco_custo=produto.preco_custo,
-                        preco_venda=preco_venda,  # Usar o preço confirmado
+                        preco_venda=preco_venda,
                         estoque=produto.estoque,
                         fornecedor_id=produto.fornecedor_id,
                         ativo=produto.ativo,
@@ -989,7 +964,6 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
     def _adicionar_produto(self, produto, quantidade):
         """Adiciona produto à condicional"""
-        # Validações finais
         if produto.preco_venda <= 0 or produto.estoque <= 0:
             return
 
@@ -1019,7 +993,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     produto.preco_venda, nova_quantidade
                 )
                 self._atualizar_tabela()
-                self._marcar_como_modificado()  # NOVO: Marca como modificado
+                self._marcar_como_modificado()
                 return
 
         # Adicionar novo produto
@@ -1034,7 +1008,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         )
 
         self._atualizar_tabela()
-        self._marcar_como_modificado()  # NOVO: Marca como modificado
+        self._marcar_como_modificado()
 
     def _remover_produto(self):
         """Delete - Remove produto selecionado"""
@@ -1050,12 +1024,12 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             if reply == QMessageBox.StandardButton.Yes:
                 self.produtos_selecionados.pop(current_row)
                 self._atualizar_tabela()
-                self._marcar_como_modificado()  # NOVO: Marca como modificado
+                self._marcar_como_modificado()
         else:
             QMessageBox.warning(self, "Seleção", "Selecione um produto para remover.")
 
     def _aplicar_desconto(self):
-        """F10 - Aplicar desconto (DIÁLOGO IDÊNTICO AO MÓDULO VENDAS)"""
+        """F10 - Aplicar desconto"""
         if not self.produtos_selecionados:
             QMessageBox.warning(
                 self, "Aviso", "Adicione produtos antes de aplicar desconto."
@@ -1066,7 +1040,6 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             prod["subtotal"] for prod in self.produtos_selecionados
         )
 
-        # Criar diálogo personalizado igual ao módulo vendas
         desconto_dialog = QInputDialog(self)
         desconto_dialog.setWindowTitle("Desconto na Condicional")
         desconto_dialog.setLabelText(
@@ -1077,7 +1050,6 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         desconto_dialog.setDoubleMaximum(total_sem_desconto)
         desconto_dialog.setDoubleDecimals(2)
 
-        # Configurar flags da janela (igual ao módulo vendas)
         desconto_dialog.setWindowFlags(
             Qt.WindowType.Dialog
             | Qt.WindowType.CustomizeWindowHint
@@ -1086,7 +1058,6 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             | Qt.WindowType.MSWindowsFixedSizeDialogHint
         )
 
-        # Tamanho fixo (ajustado para o texto maior)
         desconto_dialog.setFixedSize(450, 200)
 
         if desconto_dialog.exec() == QDialog.DialogCode.Accepted:
@@ -1104,7 +1075,6 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.label_desconto_aplicado.setText(formatar_moeda(self.desconto_total))
         self.label_total_final.setText(formatar_moeda(total_condicional))
 
-        # NOVO: Atualiza indicador visual de modificações
         self._atualizar_indicador_modificacoes()
 
     def _atualizar_indicador_modificacoes(self):
@@ -1120,59 +1090,47 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.tabela_produtos.setRowCount(len(self.produtos_selecionados))
 
         for row, produto in enumerate(self.produtos_selecionados):
-            # Buscar dados completos do produto para cor, tamanho e referência
             from models.produto import Produto
-
             produto_obj = Produto.buscar_por_id(produto["id"])
 
-            # ID
             id_item = QTableWidgetItem(str(produto["id"]))
             id_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 0, id_item)
 
-            # Nome
             self.tabela_produtos.setItem(row, 1, QTableWidgetItem(produto["nome"]))
 
-            # Cor
             cor_item = QTableWidgetItem(
                 produto_obj.cor if produto_obj and produto_obj.cor else ""
             )
             cor_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 2, cor_item)
 
-            # Tamanho
             tamanho_item = QTableWidgetItem(
                 produto_obj.tamanho if produto_obj and produto_obj.tamanho else ""
             )
             tamanho_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 3, tamanho_item)
 
-            # Referência
             ref_item = QTableWidgetItem(
                 produto_obj.referencia if produto_obj and produto_obj.referencia else ""
             )
             ref_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 4, ref_item)
 
-            # Preço
             preco_item = QTableWidgetItem(formatar_moeda(produto["preco"]))
             preco_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 5, preco_item)
 
-            # Quantidade
             qtde_item = QTableWidgetItem(str(produto["quantidade"]))
             qtde_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 6, qtde_item)
 
-            # Subtotal
             subtotal_item = QTableWidgetItem(formatar_moeda(produto["subtotal"]))
             subtotal_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 7, subtotal_item)
 
-        # Rolar para o final da tabela para mostrar o produto recém-adicionado
         if self.produtos_selecionados:
             self.tabela_produtos.scrollToBottom()
-            # Também selecionar a última linha para destacar o produto adicionado
             ultima_linha = len(self.produtos_selecionados) - 1
             self.tabela_produtos.selectRow(ultima_linha)
 
@@ -1224,7 +1182,6 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                         )
 
                     self._atualizar_tabela()
-                    # Após carregar dados, não há modificações não salvas
                     self._modificacoes_nao_salvas = False
             except Exception as e:
                 QMessageBox.warning(
@@ -1295,14 +1252,10 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 ),
             )
 
-            # Atualizar o estado após salvar
-            self.condicional_id = condicional_id  # Atualiza ID se for novo
-            self._modificacoes_nao_salvas = False  # Limpa flag de modificações
-            self._atualizar_indicador_modificacoes()  # Atualiza indicador
-
+            self.condicional_id = condicional_id
+            self._modificacoes_nao_salvas = False
+            self._atualizar_indicador_modificacoes()
             self.condicional_salva.emit()
-            # Não fecha automaticamente após salvar, permite continuar editando
-            # self.accept()
 
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao salvar condicional: {str(e)}")
