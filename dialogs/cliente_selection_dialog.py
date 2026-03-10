@@ -96,7 +96,7 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
                 if hasattr(self, 'tabela') and self.tabela:
                     for row in range(self.tabela.rowCount()):
                         self.tabela.setRowHeight(row, altura_desejada)
-            except:
+            except Exception:
                 pass
         
         # Conectar ao sinal de dados alterados (quando a tabela for populada)
@@ -106,7 +106,7 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
                 model.rowsInserted.connect(
                     lambda parent, first, last: aplicar_altura_quando_necessario()
                 )
-        except:
+        except Exception:
             pass
         # ========== FIM DA CONFIGURAÇÃO ==========
 
@@ -216,7 +216,7 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
             if hasattr(self, 'tabela') and self.tabela:
                 for row in range(self.tabela.rowCount()):
                     self.tabela.setRowHeight(row, 21)
-        except:
+        except Exception:
             pass
 
     def selecionar_cliente(self, index):
