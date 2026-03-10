@@ -3,7 +3,6 @@ Arquivo de configuração simples para o ERP
 Use este arquivo para centralizr configurações que você pode querer mudar
 """
 
-import os
 from pathlib import Path
 
 
@@ -50,7 +49,7 @@ class ConfigERP:
     @classmethod
     def criar_pastas_necessarias(cls):
         """Cria pastas necessárias se não existirem"""
-        pastas = [cls.PASTA_RELATORIOS, "icons"]
+        pastas = [cls.PASTA_RELATORIOS]
 
         for pasta in pastas:
             Path(pasta).mkdir(exist_ok=True)
