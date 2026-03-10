@@ -7,9 +7,7 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.units import mm
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from PIL import Image as PILImage
 
 from models.condicional import Condicional
@@ -99,7 +97,7 @@ class PrintCondicional:
         finally:
             try:
                 conn.close()
-            except:
+            except Exception:
                 pass
 
     @staticmethod
@@ -188,31 +186,6 @@ class PrintCondicional:
                 fontSize=9,
                 spaceAfter=4,
                 alignment=TA_LEFT
-            )
-
-            estilo_normal_negrito = ParagraphStyle(
-                'NormalNegrito',
-                parent=styles['Normal'],
-                fontSize=9,
-                spaceAfter=4,
-                alignment=TA_LEFT,
-                fontName='Helvetica-Bold'
-            )
-
-            estilo_normal_centro = ParagraphStyle(
-                'NormalCentro',
-                parent=styles['Normal'],
-                fontSize=9,
-                spaceAfter=4,
-                alignment=TA_CENTER
-            )
-
-            estilo_normal_direita = ParagraphStyle(
-                'NormalDireita',
-                parent=styles['Normal'],
-                fontSize=9,
-                spaceAfter=4,
-                alignment=TA_RIGHT
             )
 
             estilo_rodape = ParagraphStyle(
