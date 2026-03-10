@@ -1,23 +1,16 @@
 import os
 from datetime import datetime
-from reportlab.lib.pagesizes import A4, letter, landscape
+from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
-from reportlab.lib.units import mm, inch
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
-from reportlab.graphics.barcode import code39, code128, code93
-from reportlab.graphics.barcode.qr import QrCodeWidget
-from reportlab.graphics.shapes import Drawing
-from reportlab.lib.colors import Color, black, white, grey, lightgrey, darkgrey
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.units import mm
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 import io
 from PIL import Image as PILImage
 
 from models.venda import Venda
 from models.empresa import Empresa
-from models.duplicata import Duplicata
 from database import Database
 
 class PrintVenda:
@@ -63,7 +56,7 @@ class PrintVenda:
         finally:
             try:
                 conn.close()
-            except:
+            except Exception:
                 pass
 
     @staticmethod
@@ -106,7 +99,7 @@ class PrintVenda:
         finally:
             try:
                 conn.close()
-            except:
+            except Exception:
                 pass
 
     @staticmethod
@@ -211,14 +204,6 @@ class PrintVenda:
                 spaceAfter=6,
                 alignment=TA_LEFT,
                 fontName='Helvetica-Bold'
-            )
-
-            estilo_normal_direita = ParagraphStyle(
-                'NormalDireita',
-                parent=styles['Normal'],
-                fontSize=10,
-                spaceAfter=6,
-                alignment=TA_RIGHT
             )
 
             estilo_rodape = ParagraphStyle(
@@ -334,7 +319,7 @@ class PrintVenda:
                                 else:
                                     data_obj = data_vencimento
                                 data_formatada = data_obj.strftime('%d/%m/%Y')
-                            except:
+                            except Exception:
                                 data_formatada = str(data_vencimento)
                         else:
                             data_formatada = "N/A"

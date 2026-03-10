@@ -3,16 +3,15 @@ from datetime import datetime
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.units import mm
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 import io
 from PIL import Image as PILImage
 
 from models.pedido import Pedido
 from models.empresa import Empresa
 from database import Database
-from utils.helpers import formatar_moeda
 
 class PrintPedido:
     @staticmethod
@@ -58,7 +57,7 @@ class PrintPedido:
                     db.close_connection()
                 elif hasattr(db, 'connection') and db.connection:
                     db.connection.close()
-            except:
+            except Exception:
                 pass
 
     @staticmethod
@@ -128,22 +127,6 @@ class PrintPedido:
                 alignment=TA_LEFT
             )
 
-            estilo_normal_negrito = ParagraphStyle(
-                'NormalNegrito',
-                parent=styles['Normal'],
-                fontSize=10,
-                spaceAfter=6,
-                alignment=TA_LEFT,
-                fontName='Helvetica-Bold'
-            )
-
-            estilo_normal_direita = ParagraphStyle(
-                'NormalDireita',
-                parent=styles['Normal'],
-                fontSize=10,
-                spaceAfter=6,
-                alignment=TA_RIGHT
-            )
 
             estilo_rodape = ParagraphStyle(
                 'Rodape',
@@ -452,5 +435,5 @@ class PrintPedido:
                     db.close_connection()
                 elif hasattr(db, 'connection') and db.connection:
                     db.connection.close()
-            except:
+            except Exception:
                 pass

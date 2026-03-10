@@ -5,13 +5,13 @@ from datetime import datetime
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.units import mm
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from PIL import Image as PILImage
 
 from database import Database
-from utils.helpers import formatar_moeda, formatar_data, validar_data
+from utils.helpers import formatar_moeda, validar_data
 from models.empresa import Empresa
 
 logging.basicConfig(level=logging.INFO)

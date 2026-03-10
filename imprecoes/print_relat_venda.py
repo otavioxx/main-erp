@@ -5,16 +5,11 @@ from datetime import datetime
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.units import mm
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
-from reportlab.graphics.barcode import code39
-from reportlab.graphics.shapes import Drawing
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from PIL import Image as PILImage
 
-from models.venda import Venda
 from models.empresa import Empresa
 from database import Database
 
@@ -140,22 +135,6 @@ class PrintRelatVenda:
                 spaceAfter=2,
                 alignment=TA_LEFT,
                 fontName='Helvetica-Bold'
-            )
-
-            estilo_normal_centro = ParagraphStyle(
-                'NormalCentro',
-                parent=styles['Normal'],
-                fontSize=8,
-                spaceAfter=2,
-                alignment=TA_CENTER
-            )
-
-            estilo_normal_direita = ParagraphStyle(
-                'NormalDireita',
-                parent=styles['Normal'],
-                fontSize=8,
-                spaceAfter=2,
-                alignment=TA_RIGHT
             )
 
             estilo_rodape = ParagraphStyle(
@@ -343,7 +322,7 @@ class PrintRelatVenda:
                 if isinstance(venda_data, str):
                     try:
                         venda_data = datetime.strptime(venda_data, "%Y-%m-%d").date()
-                    except:
+                    except Exception:
                         continue
 
                 # Filtro por data

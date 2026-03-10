@@ -5,16 +5,11 @@ from datetime import datetime
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.units import mm
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
-from reportlab.graphics.barcode import code39
-from reportlab.graphics.shapes import Drawing
+from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from PIL import Image as PILImage
 
-from models.pedido import Pedido
 from models.empresa import Empresa
 from database import Database
 
@@ -82,7 +77,7 @@ class PrintRelatPedido:
                 if isinstance(data_inicio, str):
                     try:
                         data_inicio = datetime.strptime(data_inicio, '%d/%m/%Y').strftime('%Y-%m-%d')
-                    except:
+                    except Exception:
                         pass
                 params.append(data_inicio)
 
@@ -91,7 +86,7 @@ class PrintRelatPedido:
                 if isinstance(data_fim, str):
                     try:
                         data_fim = datetime.strptime(data_fim, '%d/%m/%Y').strftime('%Y-%m-%d')
-                    except:
+                    except Exception:
                         pass
                 params.append(data_fim)
 
@@ -115,7 +110,7 @@ class PrintRelatPedido:
             try:
                 if conn:
                     conn.close()
-            except:
+            except Exception:
                 pass
 
     @staticmethod
@@ -184,22 +179,6 @@ class PrintRelatPedido:
                 spaceAfter=2,
                 alignment=TA_LEFT,
                 fontName='Helvetica-Bold'
-            )
-
-            estilo_normal_centro = ParagraphStyle(
-                'NormalCentro',
-                parent=styles['Normal'],
-                fontSize=8,
-                spaceAfter=2,
-                alignment=TA_CENTER
-            )
-
-            estilo_normal_direita = ParagraphStyle(
-                'NormalDireita',
-                parent=styles['Normal'],
-                fontSize=8,
-                spaceAfter=2,
-                alignment=TA_RIGHT
             )
 
             estilo_observacao = ParagraphStyle(
