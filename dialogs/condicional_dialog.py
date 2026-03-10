@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
     QFrame,
-    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
@@ -37,7 +36,6 @@ from utils.helpers import (
     aplicar_maiuscula_formulario,
     calcular_subtotal,
     formatar_moeda,
-    validar_quantidade,
 )
 
 
@@ -374,7 +372,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 if hasattr(self, "tabela_produtos") and self.tabela_produtos:
                     for row in range(self.tabela_produtos.rowCount()):
                         self.tabela_produtos.setRowHeight(row, altura_desejada)
-            except:
+            except Exception:
                 pass
 
         # Conectar ao sinal de dados alterados (quando a tabela for populada)
@@ -384,7 +382,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 model.rowsInserted.connect(
                     lambda parent, first, last: aplicar_altura_quando_necessario()
                 )
-        except:
+        except Exception:
             pass
         # ========== FIM DA CONFIGURAÇÃO ==========
 
@@ -878,11 +876,14 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         # Configurar propriedades do diálogo
         quantidade_dialog.setWindowTitle("Quantidade")
+        
+        # CORREÇÃO: Adicionar espaços entre os atributos
         nome_produto = produto.nome
         if produto.cor:
-            nome_produto += f"{produto.cor}"
+            nome_produto += f" {produto.cor}"
         if produto.tamanho:
-            nome_produto += f"{produto.tamanho}"
+            nome_produto += f" {produto.tamanho}"
+        
         quantidade_dialog.setLabelText(f"{nome_produto}")
         quantidade_dialog.setIntValue(1)
         quantidade_dialog.setIntMinimum(1)
@@ -914,12 +915,12 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 )
                 return
 
-            # ========== DIÁLOGO DE PREÇO (IGUAL AO MÓDULO VENDAS) ==========
+            # ========== DIÁLOGO DE PREÇO (CORRIGIDO PARA ACEITAR NÚMEROS GRANDES) ==========
             preco_dialog = QInputDialog(self)
 
             # Configurar propriedades do diálogo
             preco_dialog.setWindowTitle("Preço de Venda")
-            preco_dialog.setLabelText(f"Digite o preço de venda:")
+            preco_dialog.setLabelText("Digite o preço de venda:")
             preco_dialog.setDoubleValue(produto.preco_venda)
             preco_dialog.setDoubleMinimum(0.01)
             preco_dialog.setDoubleDecimals(2)
@@ -933,14 +934,34 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 | Qt.WindowType.MSWindowsFixedSizeDialogHint
             )
 
-            # Tamanho fixo (idêntico ao módulo vendas)
-            preco_dialog.setFixedSize(400, 200)
+            # Aumentar tamanho para acomodar números maiores
+            preco_dialog.setFixedSize(450, 220)
+
+            # ===== SOLUÇÃO: Configurar o QDoubleSpinBox interno para aceitar números grandes =====
+            from PyQt6.QtCore import QTimer
+            from PyQt6.QtWidgets import QDoubleSpinBox
+            
+            def configurar_spinbox():
+                # Encontrar o QDoubleSpinBox dentro do diálogo
+                spinboxes = preco_dialog.findChildren(QDoubleSpinBox)
+                for spinbox in spinboxes:
+                    spinbox.setRange(0.01, 9999999.99)  # Aumentar limite máximo
+                    spinbox.setFixedWidth(220)  # Aumentar largura para números grandes
+                    spinbox.setGroupSeparatorShown(True)  # Mostra separador de milhar
+                    # Opcional: Remover botões de incremento para campo mais limpo
+                    spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
+                    break
+            
+            # Configurar após o diálogo ser mostrado
+            QTimer.singleShot(50, configurar_spinbox)
+            # ===== FIM DA SOLUÇÃO =====
 
             # Executar e verificar se foi aceito
             if preco_dialog.exec() == QDialog.DialogCode.Accepted:
                 preco_venda = preco_dialog.doubleValue()
 
-                if preco_venda and preco_venda > 0:
+                # CORREÇÃO: Validar se o preço é > 0
+                if preco_venda > 0:
                     # Criar uma cópia do produto com o novo preço
                     from models.produto import Produto
 
@@ -959,6 +980,12 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     )
 
                     self._adicionar_produto(produto_condicional, quantidade)
+                else:
+                    QMessageBox.warning(
+                        self, 
+                        "Aviso", 
+                        "O preço de venda deve ser maior que zero."
+                    )
 
     def _adicionar_produto(self, produto, quantidade):
         """Adiciona produto à condicional"""
