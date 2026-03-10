@@ -147,7 +147,7 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
                 if hasattr(self, 'tabela_produtos') and self.tabela_produtos:
                     for row in range(self.tabela_produtos.rowCount()):
                         self.tabela_produtos.setRowHeight(row, altura_desejada)
-            except:
+            except Exception:
                 pass
         
         # Conectar ao sinal de dados alterados (quando a tabela for populada)
@@ -157,7 +157,7 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
                 model.rowsInserted.connect(
                     lambda parent, first, last: aplicar_altura_quando_necessario()
                 )
-        except:
+        except Exception:
             pass
         # ========== FIM DA CONFIGURAÇÃO ==========
 

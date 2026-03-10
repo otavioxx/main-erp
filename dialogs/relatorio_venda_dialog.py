@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                              QLabel, QGroupBox, QRadioButton, QButtonGroup,
-                             QLineEdit, QFrame, QGridLayout, QSizePolicy, QApplication)
+                             QLineEdit, QFrame, QApplication)
 from PyQt6.QtCore import Qt, QDate
 from dialogs.cliente_selection_dialog import ClienteSelectionDialog
 

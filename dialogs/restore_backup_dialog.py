@@ -2,15 +2,15 @@
 Diálogo para Restauração de Backup
 """
 
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
+from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QPushButton,
                              QLabel, QMessageBox, QFileDialog, QGroupBox,
                              QTableWidget, QTableWidgetItem, QHeaderView,
                              QProgressBar, QTextEdit, QSplitter, QFrame)
 from PyQt6.QtCore import Qt, pyqtSignal, QThread, QTimer
-from PyQt6.QtGui import QIcon, QFont, QColor, QGuiApplication
+from PyQt6.QtGui import QGuiApplication
 import os
+import shutil
 from datetime import datetime
-import json
 
 from utils.dialog_base import DialogBase
 from utils.db_utils import DatabaseManager
@@ -128,8 +128,13 @@ class RestoreBackupThread(QThread):
             # Criar backup do estado atual
             backup_dir = os.path.join(os.path.dirname(self.target_db), "backups")
             os.makedirs(backup_dir, exist_ok=True)
+
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             pre_restore = os.path.join(backup_dir, f"pre_restore_{timestamp}.db")
+
+            # Criar backup do banco atual
+            if os.path.exists(self.target_db):
+                shutil.copy2(self.target_db, pre_restore)
             
             self.progress_changed.emit(40)
             

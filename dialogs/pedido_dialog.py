@@ -4,7 +4,7 @@ Com suporte a redimensionamento inteligente via DialogSizeMixin
 E verificação de modificações não salvas
 """
 
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
@@ -15,16 +15,13 @@ from PyQt6.QtWidgets import (
     QHeaderView,
     QInputDialog,
     QLabel,
-    QLineEdit,
     QMessageBox,
-    QDoubleSpinBox,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
 )
 
-from dialogs.frete_desconto_dialog import FreteDescontoDialog
 from dialogs.observacao_dialog import ObservacaoDialog
 from mixins.dialog_size_mixin import DialogSizeMixin
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
@@ -282,7 +279,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 if hasattr(self, "tabela_produtos") and self.tabela_produtos:
                     for row in range(self.tabela_produtos.rowCount()):
                         self.tabela_produtos.setRowHeight(row, altura_desejada)
-            except:
+            except Exception:
                 pass
 
         # Conectar ao sinal de dados alterados (quando a tabela for populada)
@@ -292,7 +289,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 model.rowsInserted.connect(
                     lambda parent, first, last: aplicar_altura_quando_necessario()
                 )
-        except:
+        except Exception:
             pass
         # ========== FIM DA CONFIGURAÇÃO ==========
 
@@ -549,7 +546,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
             # Configurar propriedades do diálogo
             preco_custo_dialog.setWindowTitle("Preço de Custo")
-            preco_custo_dialog.setLabelText(f"Digite o preço de custo:")
+            preco_custo_dialog.setLabelText("Digite o preço de custo:")
             
             # Usar preço de custo existente ou sugerir um valor
             valor_sugerido = getattr(produto, 'preco_custo', 0) or 0
@@ -604,7 +601,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
                 # Configurar propriedades do diálogo
                 preco_venda_dialog.setWindowTitle("Preço de Venda")
-                preco_venda_dialog.setLabelText(f"Digite o preço de venda:")
+                preco_venda_dialog.setLabelText("Digite o preço de venda:")
                 
                 # Calcular sugestão de preço de venda (30% sobre custo)
                 sugestao_venda = preco_custo * 1.3

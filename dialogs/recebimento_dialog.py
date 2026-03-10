@@ -2,9 +2,9 @@
 Dialog de Recebimento - Otimizado para novo sistema de estilos
 """
 
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QLabel, QMessageBox, QLineEdit, QGroupBox,
-                             QDialogButtonBox, QDoubleSpinBox,
+from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
+                             QLabel, QMessageBox, QGroupBox,
+                             QDialogButtonBox,
                              QRadioButton, QButtonGroup)
 from PyQt6.QtCore import Qt
 from datetime import datetime

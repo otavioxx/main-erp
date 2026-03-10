@@ -1,5 +1,5 @@
 #\erp\views\fornecedor_view.py
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLineEdit,
+from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
                              QLabel, QDialogButtonBox, QFrame, QTextEdit, QCheckBox, QGroupBox)
 from PyQt6.QtGui import QIcon
 from models.fornecedor import Fornecedor

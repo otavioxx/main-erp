@@ -4,7 +4,6 @@ Dialog para inserção de observações na venda
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                              QTextEdit, QLabel, QGroupBox)
-from PyQt6.QtCore import Qt
 from utils.helpers import aplicar_maiuscula_formulario
 
 
