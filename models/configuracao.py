@@ -40,7 +40,7 @@ class configuracao:
             },
             'backup': {
                 'auto_backup': True,
-                'backup_interval_days': 7,
+                'backup_interval_days': 1,
                 'max_backups': 10,
                 'backup_path': 'backups'
             },

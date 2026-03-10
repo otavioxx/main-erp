@@ -2,6 +2,7 @@ import os
 import platform
 from datetime import datetime
 
+from dialogs.backup_dialog import BackupConfig
 import psutil
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QAction
@@ -13,6 +14,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QMessageBox,
     QPushButton,
     QStackedWidget,
     QStatusBar,
@@ -57,6 +59,9 @@ class StatusBarWidget(QWidget):
 
 
 class MainWindow(QMainWindow):
+    # Sinal para quando backup é realizado
+    backup_realizado = pyqtSignal(str)
+    
     def __init__(self):
         super().__init__()
         self.setWindowTitle("MainERP")
@@ -260,54 +265,47 @@ class MainWindow(QMainWindow):
             backup_dialog = BackupDialog(self)
             backup_dialog.setWindowTitle(f"Backup - {self.windowTitle()}")
 
-            # Conectar sinais
+            # Conectar sinal de backup realizado
             backup_dialog.backup_realizado.connect(self._backup_concluido)
-            backup_dialog.fechar_sem_backup.connect(self._fechar_sem_backup)
 
             # Mostrar diálogo modalmente
             result = backup_dialog.exec()
-
-            # Verificar o resultado
+            
+            # VERIFICAÇÃO EXPLÍCITA: Se o diálogo foi aceito, fecha o sistema
             if result == QDialog.DialogCode.Accepted:
-                # Backup foi feito e diálogo fechado automaticamente
-                QApplication.instance().quit()
-            elif result == QDialog.DialogCode.Rejected:
-                # Usuário clicou em "Fechar sem Backup"
+                print("✅ Backup concluído, fechando sistema...")
                 QApplication.instance().quit()
 
         except Exception as e:
             print(f"Erro ao mostrar diálogo de backup: {e}")
-            # Fallback: perguntar se quer fechar mesmo assim
-            self._perguntar_fechamento_direto()
+            self._perguntar_fechamento_emergencial()
 
     def _backup_concluido(self, backup_path):
-        """Chamado quando backup é concluído com sucesso"""
-        print(f"✅ Backup criado com sucesso: {backup_path}")
+        """Chamado quando o backup é concluído com sucesso"""
+        # Salvar a data do backup
+        BackupConfig.save_last_backup_date()
+        
+        # Não tenta acessar status_label que não existe
+        # Opcional: mostrar mensagem na status bar
+        if hasattr(self, 'status_bar'):
+            self.status_bar.showMessage("✅ Backup concluído com sucesso!", 3000)
+        
+        # Emitir sinal de backup realizado (se necessário)
+        self.backup_realizado.emit(backup_path)
+        
+        # O fechamento do sistema será feito no método _mostrar_dialogo_backup
+        # após verificar o resultado do diálogo
 
-        # Aqui você pode adicionar log no sistema
-        try:
-            from datetime import datetime
+    def _perguntar_fechamento_emergencial(self):
+        """Fallback: pergunta se quer fechar sem backup (apenas em caso de erro no diálogo)"""
+        reply = QMessageBox.question(
+            self,
+            "Erro no Backup",
+            "Não foi possível abrir o diálogo de backup.\n\n"
+            "Deseja fechar o sistema mesmo assim?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
 
-            log_msg = f"Backup realizado: {datetime.now().strftime('%d/%m/%Y %H:%M')} - {backup_path}"
-
-            # Salvar log se tiver um sistema de logs
-            if hasattr(self, "salvar_log"):
-                self.salvar_log("backup", log_msg)
-
-        except Exception as e:
-            print(f"Erro ao registrar backup: {e}")
-
-    def _fechar_sem_backup(self):
-        """Chamado quando usuário escolhe fechar sem backup"""
-
-        # Aqui você pode adicionar log no sistema
-        try:
-            from datetime import datetime
-
-            log_msg = f"Sistema fechado sem backup: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
-
-            if hasattr(self, "salvar_log"):
-                self.salvar_log("sistema", log_msg)
-
-        except Exception as e:
-            print(f"Erro ao registrar fechamento: {e}")
+        if reply == QMessageBox.StandardButton.Yes:
+            QApplication.instance().quit()

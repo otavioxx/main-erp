@@ -1,15 +1,14 @@
 """
 Diálogo de Backup - Exibido ao fechar o sistema
+VERSÃO MODIFICADA: Apenas botão de backup, não permite fechar sem salvar
 """
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QLabel, QMessageBox, QFileDialog, QGroupBox,
-                             QDialogButtonBox, QProgressBar)
+                             QLabel, QMessageBox, QFileDialog, QGroupBox)
 from PyQt6.QtCore import Qt, pyqtSignal, QThread
 from PyQt6.QtGui import QIcon, QGuiApplication
 import os
-import shutil
-from datetime import datetime, timedelta
+from datetime import datetime
 import zipfile
 import json
 
@@ -29,7 +28,7 @@ class BackupConfig:
                     last_path = data.get('last_backup_path', '')
                     if last_path and os.path.exists(last_path):
                         return last_path
-            except:
+            except Exception:
                 pass
         # Retorna Desktop se não houver configuração válida
         return os.path.join(os.path.expanduser("~"), "Desktop")
@@ -42,7 +41,7 @@ class BackupConfig:
             with open(cls.CONFIG_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             return True
-        except:
+        except Exception:
             return False
     
     @classmethod
@@ -55,7 +54,7 @@ class BackupConfig:
                     last_date_str = data.get('last_backup_date', '')
                     if last_date_str:
                         return datetime.fromisoformat(last_date_str)
-            except:
+            except Exception:
                 pass
         return None
     
@@ -77,7 +76,7 @@ class BackupConfig:
             with open(cls.CONFIG_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             return True
-        except:
+        except Exception:
             return False
     
     @classmethod
@@ -156,7 +155,6 @@ class BackupDialog(QDialog):
     """Diálogo para realizar backup do sistema ao fechar"""
     BackupConfig = BackupConfig 
     backup_realizado = pyqtSignal(str)  # Sinal emitido quando backup é feito
-    fechar_sem_backup = pyqtSignal()    # Sinal para fechar sem backup
     
     def __init__(self, parent=None, force_show=False):
         """
@@ -173,6 +171,9 @@ class BackupDialog(QDialog):
         
         # Carregar último caminho salvo
         self.destination_folder = BackupConfig.get_last_path()
+        
+        # Configurar a janela para não permitir fechar pelo "X"
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowCloseButtonHint)
         
         self._init_ui()
         
@@ -214,8 +215,8 @@ class BackupDialog(QDialog):
     
     def _init_ui(self):
         """Inicializa interface do diálogo"""
-        self.setWindowTitle("Backup do Sistema")
-        self.setMinimumSize(500, 500)  # Menor altura sem a barra de progresso
+        self.setWindowTitle("Backup do Sistema - Obrigatório")
+        self.setMinimumSize(500, 450)  # Altura reduzida sem o botão extra
         self.setWindowIcon(QIcon("icon.ico") if os.path.exists("icon.ico") else QIcon())
         
         layout = QVBoxLayout()
@@ -223,7 +224,7 @@ class BackupDialog(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
         
         # Título
-        titulo = QLabel("BACKUP")
+        titulo = QLabel("BACKUP OBRIGATÓRIO")
         titulo.setProperty("class", "title")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         titulo.setStyleSheet("font-size: 18px; font-weight: bold; color: #1A4968;")
@@ -232,8 +233,7 @@ class BackupDialog(QDialog):
         # Mensagem informativa
         last_backup_info = self._get_last_backup_info()
         mensagem_text = (
-            "O sistema será fechado. Deseja realizar backup do banco de dados antes de sair?\n\n"
-            "É recomendado fazer backup regularmente para evitar perda de dados."
+            "Para fechar o sistema é necessário realizar um backup.\n"
         )
         
         if last_backup_info:
@@ -242,6 +242,7 @@ class BackupDialog(QDialog):
         mensagem = QLabel(mensagem_text)
         mensagem.setWordWrap(True)
         mensagem.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        mensagem.setStyleSheet("font-size: 12px;")
         layout.addWidget(mensagem)
         
         layout.addSpacing(10)
@@ -284,7 +285,7 @@ class BackupDialog(QDialog):
         destino_group.setLayout(destino_layout)
         layout.addWidget(destino_group)
         
-        # Mensagem de status (sem barra de progresso)
+        # Mensagem de status
         self.status_label = QLabel("")
         self.status_label.setVisible(False)
         self.status_label.setWordWrap(True)
@@ -293,46 +294,33 @@ class BackupDialog(QDialog):
         
         layout.addStretch()
         
-        # Botões
+        # Botões - APENAS O BOTÃO DE BACKUP
         button_layout = QHBoxLayout()
         
-        # Botão Fechar sem Backup
-        self.btn_fechar = QPushButton("Fechar sem Backup")
-        self.btn_fechar.clicked.connect(self._fechar_sem_backup)
-        self.btn_fechar.setStyleSheet("""
-            QPushButton {
-                padding: 10px 20px;
-                background-color: #dc3545;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #c82333;
-            }
-        """)
-        
-        # Botão Realizar Backup
-        self.btn_backup = QPushButton("Realizar Backup")
+        # Botão Realizar Backup (centralizado)
+        self.btn_backup = QPushButton("REALIZAR BACKUP E FECHAR")
         self.btn_backup.clicked.connect(self._iniciar_backup)
         self.btn_backup.setStyleSheet("""
             QPushButton {
-                padding: 10px 20px;
+                padding: 15px 30px;
                 background-color: #28a745;
                 color: white;
                 border: none;
-                border-radius: 6px;
+                border-radius: 8px;
                 font-weight: bold;
+                font-size: 14px;
             }
             QPushButton:hover {
                 background-color: #218838;
             }
+            QPushButton:disabled {
+                background-color: #6c757d;
+            }
         """)
         
-        button_layout.addWidget(self.btn_fechar)
         button_layout.addStretch()
         button_layout.addWidget(self.btn_backup)
+        button_layout.addStretch()
         
         layout.addLayout(button_layout)
         
@@ -343,7 +331,7 @@ class BackupDialog(QDialog):
         last_backup_date = BackupConfig.get_last_backup_date()
         
         if last_backup_date is None:
-            return "⚠️ Nunca foi feito backup do sistema!"
+            return "Nunca foi feito backup do sistema!"
         
         days_since = self._get_days_since_last_backup()
         
@@ -355,7 +343,7 @@ class BackupDialog(QDialog):
             elif days_since < 7:
                 return f"✅ Backup realizado há {days_since} dias"
             else:
-                return f"⚠️ O último backup foi há {days_since} dias (recomenda-se fazer backup a cada 7 dias)"
+                return f"⚠️ O último backup foi há {days_since} dias"
         
         return ""
     
@@ -389,31 +377,6 @@ class BackupDialog(QDialog):
             # Salvar o novo caminho
             BackupConfig.save_last_path(folder)
     
-    def _fechar_sem_backup(self):
-        """Fecha o programa sem fazer backup"""
-        days_since = self._get_days_since_last_backup()
-        
-        warning_msg = "Tem certeza que deseja fechar sem fazer backup?\n\n"
-        
-        if days_since is None:
-            warning_msg += "⚠️ NUNCA foi feito backup do sistema!\nQualquer dado poderá ser perdido permanentemente."
-        elif days_since >= 7:
-            warning_msg += f"⚠️ O último backup foi há {days_since} dias.\nQualquer dado não salvo poderá ser perdido."
-        else:
-            warning_msg += "Qualquer dado não salvo poderá ser perdido."
-        
-        reply = QMessageBox.question(
-            self,
-            "Confirmar Fechamento",
-            warning_msg,
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
-        )
-        
-        if reply == QMessageBox.StandardButton.Yes:
-            self.fechar_sem_backup.emit()
-            self.accept()
-    
     def _iniciar_backup(self):
         """Inicia o processo de backup"""
         # Validar se o arquivo do banco existe
@@ -440,9 +403,8 @@ class BackupDialog(QDialog):
         # Salvar o caminho atual (caso tenha sido alterado mas não salvo)
         BackupConfig.save_last_path(self.destination_folder)
         
-        # Desabilitar botões durante o backup
+        # Desabilitar botão durante o backup
         self.btn_backup.setEnabled(False)
-        self.btn_fechar.setEnabled(False)
         
         # Mostrar status de processamento
         self.status_label.setVisible(True)
@@ -473,20 +435,20 @@ class BackupDialog(QDialog):
             f"Backup realizado com sucesso!\n\n"
             f"Arquivo: {os.path.basename(backup_path)}\n"
             f"Local: {os.path.dirname(backup_path)}\n\n"
-            f"{last_backup_info}"
+            f"{last_backup_info}\n\n"
+            f"O sistema será fechado."
         )
         
         # Emitir sinal de backup realizado
         self.backup_realizado.emit(backup_path)
         
-        # Fechar diálogo
+        # Fechar o diálogo de backup
         self.accept()
     
     def _backup_erro(self, mensagem_erro):
         """Chamado quando ocorre erro no backup"""
-        # Habilitar botões novamente
+        # Habilitar botão novamente
         self.btn_backup.setEnabled(True)
-        self.btn_fechar.setEnabled(True)
         
         # Esconder status
         self.status_label.setVisible(False)
@@ -494,7 +456,8 @@ class BackupDialog(QDialog):
         QMessageBox.critical(
             self,
             "Erro no Backup",
-            f"Ocorreu um erro durante o backup:\n\n{mensagem_erro}"
+            f"Ocorreu um erro durante o backup:\n\n{mensagem_erro}\n\n"
+            f"Por favor, tente novamente ou selecione outra pasta."
         )
     
     def _abrir_pasta(self, backup_path):
@@ -513,20 +476,23 @@ class BackupDialog(QDialog):
             )
     
     def closeEvent(self, event):
-        """Intercepta o fechamento da janela"""
+        """Intercepta o fechamento da janela - NÃO PERMITE FECHAR SEM BACKUP"""
         if self.backup_thread and self.backup_thread.isRunning():
             reply = QMessageBox.question(
                 self,
                 "Backup em Andamento",
-                "O backup ainda está em andamento. Deseja cancelar e fechar?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
+                "O backup ainda está em andamento.\n\n"
+                "Aguarde a conclusão do backup para fechar o sistema.",
+                QMessageBox.StandardButton.Ok,
+                QMessageBox.StandardButton.Ok
             )
-            
-            if reply == QMessageBox.StandardButton.Yes:
-                self.backup_thread.terminate()
-                event.accept()
-            else:
-                event.ignore()
+            event.ignore()  # Não permite fechar enquanto o backup está rodando
         else:
-            event.accept()
+            # Se tentou fechar sem fazer backup, mostra mensagem
+            QMessageBox.warning(
+                self,
+                "Backup Obrigatório",
+                "Para fechar o sistema é necessário realizar o backup.\n\n"
+                "Clique no botão 'REALIZAR BACKUP E FECHAR' para continuhar."
+            )
+            event.ignore()  # NÃO PERMITE FECHAR SEM BACKUP
