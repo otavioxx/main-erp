@@ -1,5 +1,5 @@
 """
-Dialog de Venda - Versão Final com Frame de Entrada Rápida - CORRIGIDO
+Dialog de Venda - Versão Final com Frame de Entrada Rápida - LAYOUT AJUSTADO
 Com suporte a redimensionamento inteligente via DialogSizeMixin
 E verificação de modificações não salvas
 """
@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
+    QGridLayout,  # NOVO: Importado para layout em grid
 )
 
 from dialogs.cliente_selection_dialog import ClienteSelectionDialog
@@ -52,7 +53,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.desconto_total = 0.0
         self.observacao = ""
         self._primeira_exibicao = True
-        self._modificacoes_nao_salvas = False  # NOVO: controle de modificações
+        self._modificacoes_nao_salvas = False
         self._init_ui()
         self._configurar_comportamento_enter()
         self._configurar_tamanho_dialog()
@@ -68,13 +69,22 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         # Header
         self._criar_header(layout)
 
-        # Informações do cliente
-        self._criar_secao_cliente(layout)
+        # ========== LAYOUT MODIFICADO: Cliente + Entrada Rápida lado a lado ==========
+        # Criar um layout horizontal para os dois frames
+        cliente_entrada_layout = QHBoxLayout()
+        cliente_entrada_layout.setSpacing(12)
 
-        # Frame de entrada rápida
-        self._criar_frame_entrada_rapida(layout)
+        # Frame do cliente (lado esquerdo) - OCUPA 40% DO ESPAÇO
+        self._criar_secao_cliente(cliente_entrada_layout, 40)
 
-        # Tabela de produtos
+        # Frame de entrada rápida (lado direito) - OCUPA 60% DO ESPAÇO
+        self._criar_frame_entrada_rapida(cliente_entrada_layout, 60)
+
+        # Adicionar o layout horizontal ao layout principal
+        layout.addLayout(cliente_entrada_layout)
+        # ========== FIM DA MODIFICAÇÃO ==========
+
+        # Tabela de produtos (agora com mais espaço vertical)
         self._criar_secao_produtos(layout)
 
         # Resumo financeiro
@@ -150,9 +160,9 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             min_width=700,  # Largura mínima adequada para a tabela
             min_height=500,  # Altura mínima para ter espaço suficiente
             default_width_percent=0.95,  # 85% da tela
-            default_height_percent=0.80,  # 90% da tela
+            default_height_percent=0.85,  # 90% da tela (aumentado para tabela maior)
             max_width_percent=0.85,  # Máximo 95% da tela
-            max_height_percent=0.85,  # Máximo 95% da tela
+            max_height_percent=0.90,  # Máximo 95% da tela (aumentado)
         )
 
     def _criar_header(self, layout):
@@ -174,10 +184,15 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         layout.addWidget(header_frame)
 
-    def _criar_secao_cliente(self, layout):
+    # ========== MÉTODO MODIFICADO: Agora recebe layout pai e percentual ==========
+    def _criar_secao_cliente(self, parent_layout, percentual=40):
         """Cria seção de seleção de cliente"""
         grupo_cliente = QGroupBox("Cliente")
         grupo_cliente.setProperty("class", "clean-group")
+        
+        # Configurar tamanho mínimo e altura fixa
+        grupo_cliente.setMinimumWidth(250)
+        grupo_cliente.setFixedHeight(120)  # <-- ALTURA FIXA AQUI
 
         cliente_layout = QVBoxLayout()
         cliente_layout.setContentsMargins(8, 12, 8, 12)
@@ -194,83 +209,89 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         # Label do cliente selecionado
         self.label_cliente = QLabel("Não selecionado")
+        self.label_cliente.setWordWrap(True)
         cliente_layout.addWidget(self.label_cliente)
-
+        
         grupo_cliente.setLayout(cliente_layout)
-        layout.addWidget(grupo_cliente)
+        parent_layout.addWidget(grupo_cliente)
 
-    def _criar_frame_entrada_rapida(self, layout):
+    def _criar_frame_entrada_rapida(self, parent_layout, percentual=60):
         """Cria frame para entrada rápida de produtos"""
         grupo_entrada = QGroupBox("Entrada Rápida de Produto")
         grupo_entrada.setProperty("class", "clean-group")
+        
+        # Configurar tamanho mínimo e altura fixa
+        grupo_entrada.setMinimumWidth(350)
+        grupo_entrada.setFixedHeight(120)  # <-- ALTURA FIXA AQUI (mesma do cliente)
 
         entrada_layout = QVBoxLayout()
         entrada_layout.setContentsMargins(8, 12, 8, 12)
+        entrada_layout.setSpacing(8)
 
-        # Header com instrução
-        header_entrada = QHBoxLayout()
-        header_entrada.addStretch()
-        entrada_layout.addLayout(header_entrada)
+        # Campos de entrada em grid
+        campos_grid = QGridLayout()
+        campos_grid.setHorizontalSpacing(10)
+        campos_grid.setVerticalSpacing(5)
 
-        # Campos de entrada em linha horizontal
-        campos_layout = QHBoxLayout()
-        campos_layout.setSpacing(12)
+        # Linha 0: Labels
+        campos_grid.addWidget(QLabel("Código:"), 0, 0)
+        campos_grid.addWidget(QLabel("Quantidade:"), 0, 1)
+        campos_grid.addWidget(QLabel("Valor de Venda:"), 0, 2)
 
-        # Campo Código do Produto
-        codigo_layout = QVBoxLayout()
-        codigo_layout.addWidget(QLabel("Código:"))
+        # Linha 1: Campos de entrada
         self.entry_codigo = QLineEdit()
         self.entry_codigo.setPlaceholderText("ID do produto")
-        self.entry_codigo.setMaximumWidth(120)
-        # Conectar eventos corrigidos
-        self.entry_codigo.returnPressed.connect(self._processar_enter_codigo)
-        self.entry_codigo.textChanged.connect(self._buscar_produto_por_codigo)
-        # NOVO: Conectar alterações
-        self.entry_codigo.textChanged.connect(self._marcar_como_modificado)
-        codigo_layout.addWidget(self.entry_codigo)
-        campos_layout.addLayout(codigo_layout)
+        campos_grid.addWidget(self.entry_codigo, 1, 0)
 
-        # Campo Quantidade
-        qtd_layout = QVBoxLayout()
-        qtd_layout.addWidget(QLabel("Quantidade:"))
         self.entry_quantidade = QLineEdit()
         self.entry_quantidade.setPlaceholderText("1")
         self.entry_quantidade.setText("1")
-        self.entry_quantidade.setMaximumWidth(100)
-        self.entry_quantidade.returnPressed.connect(self._processar_enter_quantidade)
-        # NOVO: Conectar alterações
-        self.entry_quantidade.textChanged.connect(self._marcar_como_modificado)
-        qtd_layout.addWidget(self.entry_quantidade)
-        campos_layout.addLayout(qtd_layout)
+        campos_grid.addWidget(self.entry_quantidade, 1, 1)
 
-        # Campo Valor de Venda (editável)
-        valor_layout = QVBoxLayout()
-        valor_layout.addWidget(QLabel("Valor de Venda:"))
         self.entry_valor = QLineEdit()
         self.entry_valor.setPlaceholderText("R$ 0,00")
-        self.entry_valor.setMaximumWidth(120)
-        self.entry_valor.returnPressed.connect(self._processar_enter_valor)
-        # NOVO: Conectar alterações
-        self.entry_valor.textChanged.connect(self._marcar_como_modificado)
-        valor_layout.addWidget(self.entry_valor)
-        campos_layout.addLayout(valor_layout)
+        campos_grid.addWidget(self.entry_valor, 1, 2)
 
-        campos_layout.addStretch()
+        # Configurar expansão das colunas
+        campos_grid.setColumnStretch(0, 1)
+        campos_grid.setColumnStretch(1, 1)
+        campos_grid.setColumnStretch(2, 2)
 
-        entrada_layout.addLayout(campos_layout)
+        entrada_layout.addLayout(campos_grid)
 
         # Label para mostrar produto encontrado
         self.label_produto_encontrado = QLabel("")
         self.label_produto_encontrado.setProperty("class", "muted")
+        self.label_produto_encontrado.setWordWrap(True)
         entrada_layout.addWidget(self.label_produto_encontrado)
 
-        grupo_entrada.setLayout(entrada_layout)
-        layout.addWidget(grupo_entrada)
+        # Conectar eventos
+        self.entry_codigo.returnPressed.connect(self._processar_enter_codigo)
+        self.entry_codigo.textChanged.connect(self._buscar_produto_por_codigo)
+        self.entry_codigo.textChanged.connect(self._marcar_como_modificado)
+        
+        self.entry_quantidade.returnPressed.connect(self._processar_enter_quantidade)
+        self.entry_quantidade.textChanged.connect(self._marcar_como_modificado)
+        
+        self.entry_valor.returnPressed.connect(self._processar_enter_valor)
+        self.entry_valor.textChanged.connect(self._marcar_como_modificado)
 
+        grupo_entrada.setLayout(entrada_layout)
+        parent_layout.addWidget(grupo_entrada)
+
+    # ========== MÉTODO MODIFICADO: Aumentado para ocupar mais espaço vertical ==========
     def _criar_secao_produtos(self, layout):
-        """Cria seção da tabela de produtos"""
+        """Cria seção da tabela de produtos - AGORA COM MAIS ESPAÇO"""
+        from PyQt6.QtWidgets import QSizePolicy  # IMPORT ADICIONADO AQUI
+        
         grupo_produtos = QGroupBox("Produtos da Venda")
         grupo_produtos.setProperty("class", "clean-group")
+        
+        # Fazer este grupo ocupar mais espaço vertical
+        grupo_produtos.setSizePolicy(
+            QSizePolicy.Policy.Expanding,  # Horizontal
+            QSizePolicy.Policy.Expanding   # Vertical
+        )
 
         produtos_layout = QVBoxLayout()
         produtos_layout.setContentsMargins(8, 12, 8, 12)
@@ -290,7 +311,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         produtos_layout.addWidget(self.tabela_produtos)
 
         grupo_produtos.setLayout(produtos_layout)
-        layout.addWidget(grupo_produtos)
+        layout.addWidget(grupo_produtos, 1)  # Stretch=1 para ocupar espaço extra
 
     def _criar_tabela_produtos(self):
         """Configura tabela de produtos - VERSÃO COM ALTURA FIXA"""
@@ -320,7 +341,6 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.tabela_produtos.setColumnWidth(6, 60)  # Qtd
         self.tabela_produtos.setColumnWidth(7, 90)  # Subtotal
 
-        # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
         vheader = self.tabela_produtos.verticalHeader()
         altura_desejada = 22
@@ -339,19 +359,18 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 if hasattr(self, "tabela_produtos") and self.tabela_produtos:
                     for row in range(self.tabela_produtos.rowCount()):
                         self.tabela_produtos.setRowHeight(row, altura_desejada)
-            except:
+            except Exception:
                 pass
 
-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+        # Conectar ao sinal de dados alterados
         try:
             if hasattr(self.tabela_produtos, "model"):
                 model = self.tabela_produtos.model()
                 model.rowsInserted.connect(
                     lambda parent, first, last: aplicar_altura_quando_necessario()
                 )
-        except:
+        except Exception:
             pass
-        # ========== FIM DA CONFIGURAÇÃO ==========
 
         # Configurações gerais
         self.tabela_produtos.setSelectionBehavior(
@@ -366,8 +385,8 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         self.setup_scroll_navigation(
             tabela=self.tabela_produtos,
-            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
-            auto_select_first=True,  # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,
+            auto_select_first=True,
         )
 
     def _criar_resumo_financeiro(self, layout):
@@ -428,7 +447,6 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.btn_finalizar.setProperty("class", "success")
         self.btn_finalizar.setEnabled(False)
         self.btn_finalizar.clicked.connect(self._finalizar_venda)
-        # IMPORTANTE: Não definir como botão padrão para não interceptar Enter
         self.btn_finalizar.setAutoDefault(False)
         self.btn_finalizar.setDefault(False)
         buttons_layout.addWidget(self.btn_finalizar)
@@ -446,7 +464,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         btn_cancelar = QPushButton("Cancelar")
         btn_cancelar.setProperty("class", "danger")
         btn_cancelar.setAutoDefault(False)
-        btn_cancelar.clicked.connect(self._cancelar_venda)  # Alterado para método próprio
+        btn_cancelar.clicked.connect(self._cancelar_venda)
         buttons_layout.addWidget(btn_cancelar)
 
         layout.addLayout(buttons_layout)
@@ -483,7 +501,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         # Definir foco inicial no campo código
         self.entry_codigo.setFocus()
 
-    # ========== MÉTODOS DE ENTRADA RÁPIDA - CORRIGIDOS ==========
+    # ========== MÉTODOS DE ENTRADA RÁPIDA (mantidos iguais) ==========
 
     def _processar_enter_codigo(self):
         """Enter no campo código - busca produto e vai para quantidade"""
@@ -525,7 +543,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             self.entry_quantidade.selectAll()
             return
 
-        # Ir para campo valor (valor já foi atualizado automaticamente no textChanged do código)
+        # Ir para campo valor
         self.entry_valor.setFocus()
         self.entry_valor.selectAll()
 
@@ -593,7 +611,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
     def _limpar_info_produto(self):
         """Limpa informações do produto"""
         self.label_produto_encontrado.clear()
-        self.entry_valor.clear()  # Agora também limpa o valor quando não há produto
+        self.entry_valor.clear()
 
     def _exibir_produto_encontrado(self, produto):
         """Exibe informações do produto encontrado"""
@@ -721,7 +739,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         # Voltar foco para o campo código para continuar fluxo
         self.entry_codigo.setFocus()
 
-    # ========== MÉTODOS DE AÇÃO ==========
+    # ========== MÉTODOS DE AÇÃO (mantidos iguais) ==========
 
     def _cancelar_venda(self):
         """Método próprio para cancelar - verifica modificações"""
@@ -770,7 +788,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             if cliente:
                 self.cliente_selecionado = cliente
                 self.label_cliente.setText(cliente.nome)
-                self._marcar_como_modificado()  # NOVO: Marca como modificado
+                self._marcar_como_modificado()
                 self._verificar_habilitar_finalizacao()
 
     def _selecionar_produto(self):
@@ -788,7 +806,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             nova_observacao = dialog.get_observacao()
             if nova_observacao != self.observacao:
                 self.observacao = nova_observacao
-                self._marcar_como_modificado()  # NOVO: Marca como modificado
+                self._marcar_como_modificado()
 
     def _processar_produto(self, produto):
         """Processa produto selecionado com validações"""
@@ -809,13 +827,11 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             )
             return
 
-        # ========== DIÁLOGO DE QUANTIDADE (SEM REDIMENSIONAMENTO) ==========
+        # Diálogo de quantidade
         quantidade_dialog = QInputDialog(self)
 
-        # Configurar propriedades do diálogo
         quantidade_dialog.setWindowTitle("Quantidade")
         
-        # CORREÇÃO: Adicionar espaços entre os atributos
         nome_completo = produto.nome
         if hasattr(produto, 'cor') and produto.cor:
             nome_completo += f" {produto.cor}"
@@ -828,7 +844,6 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         quantidade_dialog.setIntMaximum(produto.estoque)
         quantidade_dialog.setIntStep(1)
 
-        # Configurar flags da janela
         quantidade_dialog.setWindowFlags(
             Qt.WindowType.Dialog
             | Qt.WindowType.CustomizeWindowHint
@@ -837,25 +852,21 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             | Qt.WindowType.MSWindowsFixedSizeDialogHint
         )
 
-        # Tamanho fixo
         quantidade_dialog.setFixedSize(400, 150)
 
-        # Executar o diálogo e verificar se foi aceito
         if quantidade_dialog.exec() == QDialog.DialogCode.Accepted:
             quantidade = quantidade_dialog.intValue()
 
             if validar_quantidade(quantidade, produto.estoque):
-                # ========== DIÁLOGO DE PREÇO (CORRIGIDO PARA ACEITAR NÚMEROS GRANDES) ==========
+                # Diálogo de preço
                 preco_dialog = QInputDialog(self)
 
-                # Configurar propriedades do diálogo
                 preco_dialog.setWindowTitle("Preço de Venda")
                 preco_dialog.setLabelText("Digite o preço de venda:")
                 preco_dialog.setDoubleValue(produto.preco_venda)
                 preco_dialog.setDoubleMinimum(0.01)
                 preco_dialog.setDoubleDecimals(2)
 
-                # Configurar flags da janela (igual ao anterior)
                 preco_dialog.setWindowFlags(
                     Qt.WindowType.Dialog
                     | Qt.WindowType.CustomizeWindowHint
@@ -864,40 +875,31 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     | Qt.WindowType.MSWindowsFixedSizeDialogHint
                 )
 
-                # Aumentar tamanho para acomodar números maiores
                 preco_dialog.setFixedSize(450, 220)
 
-                # ===== SOLUÇÃO: Configurar o QDoubleSpinBox interno para aceitar números grandes =====
                 from PyQt6.QtCore import QTimer
                 from PyQt6.QtWidgets import QDoubleSpinBox
                 
                 def configurar_spinbox():
-                    # Encontrar o QDoubleSpinBox dentro do diálogo
                     spinboxes = preco_dialog.findChildren(QDoubleSpinBox)
                     for spinbox in spinboxes:
-                        spinbox.setRange(0.01, 9999999.99)  # Aumentar limite máximo
-                        spinbox.setFixedWidth(220)  # Aumentar largura para números grandes
-                        spinbox.setGroupSeparatorShown(True)  # Mostra separador de milhar
-                        # Opcional: Permitir edição mais flexível
-                        spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)  # Remove botões de incremento
+                        spinbox.setRange(0.01, 9999999.99)
+                        spinbox.setFixedWidth(220)
+                        spinbox.setGroupSeparatorShown(True)
+                        spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
                         break
                 
-                # Configurar após o diálogo ser mostrado
                 QTimer.singleShot(50, configurar_spinbox)
-                # ===== FIM DA SOLUÇÃO =====
 
-                # Executar e verificar se foi aceito
                 if preco_dialog.exec() == QDialog.DialogCode.Accepted:
                     preco_venda = preco_dialog.doubleValue()
 
-                    # CORREÇÃO: Validar se o preço é > 0
                     if preco_venda > 0:
-                        # Criar uma cópia do produto com o novo preço
                         produto_venda = Produto(
                             id=produto.id,
                             nome=produto.nome,
                             preco_custo=produto.preco_custo,
-                            preco_venda=preco_venda,  # Usar o preço confirmado
+                            preco_venda=preco_venda,
                             estoque=produto.estoque,
                             fornecedor_id=produto.fornecedor_id,
                             ativo=produto.ativo,
@@ -947,7 +949,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     produto.preco_venda, nova_quantidade
                 )
                 self._atualizar_tabela()
-                self._marcar_como_modificado()  # NOVO: Marca como modificado
+                self._marcar_como_modificado()
                 return
 
         # Adicionar novo produto
@@ -962,7 +964,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         )
 
         self._atualizar_tabela()
-        self._marcar_como_modificado()  # NOVO: Marca como modificado
+        self._marcar_como_modificado()
 
     def _remover_produto(self):
         """Delete - Remove produto selecionado"""
@@ -978,7 +980,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             if reply == QMessageBox.StandardButton.Yes:
                 self.produtos_selecionados.pop(current_row)
                 self._atualizar_tabela()
-                self._marcar_como_modificado()  # NOVO: Marca como modificado
+                self._marcar_como_modificado()
         else:
             QMessageBox.warning(self, "Seleção", "Selecione um produto para remover.")
 
@@ -1007,7 +1009,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         if ok:
             self.desconto_total = desconto
             self._calcular_total()
-            self._marcar_como_modificado()  # NOVO: Marca como modificado
+            self._marcar_como_modificado()
 
     def _calcular_total(self):
         """Calcula total da venda com desconto"""
@@ -1018,7 +1020,6 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.label_desconto_aplicado.setText(formatar_moeda(self.desconto_total))
         self.label_total_final.setText(formatar_moeda(total_venda))
 
-        # NOVO: Atualiza indicador visual de modificações
         self._atualizar_indicador_modificacoes()
 
     def _atualizar_indicador_modificacoes(self):
