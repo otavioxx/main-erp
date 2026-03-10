@@ -341,7 +341,7 @@ class BackupDialog(QDialog):
     def _init_ui(self):
         """Inicializa interface do diálogo"""
         self.setWindowTitle("Backup do Sistema - Obrigatório")
-        self.setMinimumSize(500, 450)
+        self.setMinimumSize(500, 400)
         self.setWindowIcon(QIcon("icon.ico") if os.path.exists("icon.ico") else QIcon())
         
         layout = QVBoxLayout()
@@ -354,23 +354,6 @@ class BackupDialog(QDialog):
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         titulo.setStyleSheet("font-size: 18px; font-weight: bold; color: #1A4968;")
         layout.addWidget(titulo)
-        
-        # Mensagem informativa
-        last_backup_info = self._get_last_backup_info()
-        mensagem_text = (
-            "Para fechar o sistema é necessário realizar um backup.\n"
-        )
-        
-        if last_backup_info:
-            mensagem_text += f"\n\n{last_backup_info}"
-        
-        mensagem = QLabel(mensagem_text)
-        mensagem.setWordWrap(True)
-        mensagem.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        mensagem.setStyleSheet("font-size: 12px;")
-        layout.addWidget(mensagem)
-        
-        layout.addSpacing(10)
         
         # Informações do arquivo
         info_group = QGroupBox("Informações do Backup")
@@ -450,33 +433,6 @@ class BackupDialog(QDialog):
         layout.addLayout(button_layout)
         
         self.setLayout(layout)
-    
-    def _get_last_backup_info(self):
-        """Retorna informações sobre o último backup"""
-        last_backup_date = BackupConfig.get_last_backup_date()
-        
-        if last_backup_date is None:
-            return "⚠️ Nunca foi feito backup do sistema!"
-        
-        # Validar se o último backup ainda é válido
-        is_valid, validation_msg = BackupConfig.validate_last_backup()
-        
-        days_since = self._get_days_since_last_backup()
-        
-        if not is_valid:
-            return f"⚠️ Último backup ({validation_msg}) - há {days_since} dias"
-        
-        if days_since is not None:
-            if days_since == 0:
-                return "✅ Backup válido realizado hoje"
-            elif days_since == 1:
-                return "✅ Backup válido realizado ontem"
-            elif days_since < 7:
-                return f"✅ Backup válido realizado há {days_since} dias"
-            else:
-                return f"⚠️ O último backup válido foi há {days_since} dias"
-        
-        return ""
     
     def _centralizar_janela(self):
         """Centraliza a janela na tela"""
@@ -616,25 +572,16 @@ class BackupDialog(QDialog):
         # Marcar que o backup foi verificado
         self.backup_verificado = True
         
-        # Atualizar informações sobre o último backup
-        last_backup_info = self._get_last_backup_info()
-        
         # Mostrar mensagem de confirmação
         msg_box = QMessageBox(self)
         msg_box.setIcon(QMessageBox.Icon.Information)
         msg_box.setWindowTitle("Backup Concluído")
         msg_box.setText(
-            f"Backup realizado e VERIFICADO com sucesso!\n\n"
+            f"Backup realizado com sucesso!\n\n"
             f"Arquivo: {os.path.basename(backup_path)}\n"
             f"Local: {os.path.dirname(backup_path)}\n"
             f"Tamanho: {os.path.getsize(backup_path) / (1024*1024):.2f} MB\n\n"
-            f"{last_backup_info}\n\n"
-            f"O sistema será fechado."
         )
-        
-        # Adicionar botão para abrir a pasta
-        btn_abrir_pasta = msg_box.addButton("Abrir Pasta", QMessageBox.ButtonRole.ActionRole)
-        btn_abrir_pasta.clicked.connect(lambda: self._abrir_pasta(backup_path))
         
         # Botão OK padrão
         msg_box.addButton(QMessageBox.StandardButton.Ok)
