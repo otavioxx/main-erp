@@ -478,7 +478,7 @@ class BackupDialog(QDialog):
     def closeEvent(self, event):
         """Intercepta o fechamento da janela - NÃO PERMITE FECHAR SEM BACKUP"""
         if self.backup_thread and self.backup_thread.isRunning():
-            reply = QMessageBox.question(
+            QMessageBox.question(
                 self,
                 "Backup em Andamento",
                 "O backup ainda está em andamento.\n\n"
@@ -495,4 +495,4 @@ class BackupDialog(QDialog):
                 "Para fechar o sistema é necessário realizar o backup.\n\n"
                 "Clique no botão 'REALIZAR BACKUP E FECHAR' para continuhar."
             )
-            event.ignore()  # NÃO PERMITE FECHAR SEM BACKUP
+            event.ignore()
