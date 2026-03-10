@@ -468,9 +468,9 @@ class BackupDialog(QDialog):
         
         if days_since is not None:
             if days_since == 0:
-                return f"✅ Backup válido realizado hoje"
+                return "✅ Backup válido realizado hoje"
             elif days_since == 1:
-                return f"✅ Backup válido realizado ontem"
+                return "✅ Backup válido realizado ontem"
             elif days_since < 7:
                 return f"✅ Backup válido realizado há {days_since} dias"
             else:
@@ -696,18 +696,17 @@ class BackupDialog(QDialog):
                 "Aguarde a conclusão do backup para fechar o sistema.",
                 QMessageBox.StandardButton.Ok
             )
-            event.ignore()  # Não permite fechar enquanto o backup está rodando
+            event.ignore()
+
         elif not self.backup_verificado:
-            # Se tentou fechar sem fazer backup com sucesso
-            reply = QMessageBox.warning(
+            QMessageBox.warning(
                 self,
                 "Backup Obrigatório",
                 "Para fechar o sistema é necessário realizar um backup com sucesso.\n\n"
                 "Clique no botão 'REALIZAR BACKUP E FECHAR' para continuar.",
-                QMessageBox.StandardButton.Ok,
                 QMessageBox.StandardButton.Ok
             )
             event.ignore()
+
         else:
-            # Backup foi verificado, pode fechar
             event.accept()
