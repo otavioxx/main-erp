@@ -12,7 +12,7 @@ class ConfigERP:
 
     # === CONFIGURAÇÕES BÁSICAS ===
     APP_NAME = "MainERP"
-    APP_VERSION = "0.04"
+    APP_VERSION = "0.05"
     ORGANIZATION = "Meu Negócio"
 
     # === CONFIGURAÇÕES DE ARQUIVO ===

@@ -51,7 +51,7 @@ class StatusBarWidget(QWidget):
         layout.setSpacing(15)
 
         # Versão da aplicação
-        self.label_version = QLabel("© Digital Solutions - MainERP v0.04 (05/02/2026)")
+        self.label_version = QLabel("© Digital Solutions - MainERP v0.05 (05/02/2026)")
         self.label_version.setProperty("class", "version-label")
         layout.addWidget(self.label_version)
 
