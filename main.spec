@@ -1,5 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+# Comando para criar o EXE: python -m PyInstaller main.spec
+# Diretório do programa: dist
+
 from PyInstaller.utils.hooks import collect_submodules
 
 block_cipher = None
@@ -11,7 +14,6 @@ a = Analysis(
     binaries=[],
     datas=[
         ('icon.ico', '.'),
-        ('icon.png', '.'),
     ],
     hiddenimports=collect_submodules('reportlab.graphics.barcode'),
     hookspath=[],
