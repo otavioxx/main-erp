@@ -4,7 +4,7 @@ Com suporte a redimensionamento inteligente via DialogSizeMixin
 E verificação de modificações não salvas
 """
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMessageBox,
+    QDoubleSpinBox,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -377,7 +378,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         """Cria botões de ação"""
         buttons_layout = QHBoxLayout()
 
-        self.btn_finalizar = QPushButton("F5 - Finalizar Pedido")
+        self.btn_finalizar = QPushButton("F5 - Salvar Pedido")
         self.btn_finalizar.setProperty("class", "success")
         self.btn_finalizar.setEnabled(False)
         self.btn_finalizar.clicked.connect(self._finalizar_pedido)
@@ -513,9 +514,9 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         # Montar nome do produto com cor e tamanho se disponíveis
         nome_produto = produto.nome
         if hasattr(produto, 'cor') and produto.cor:
-            nome_produto += f"{produto.cor}"
+            nome_produto += f" {produto.cor}"
         if hasattr(produto, 'tamanho') and produto.tamanho:
-            nome_produto += f"{produto.tamanho}"
+            nome_produto += f" {produto.tamanho}"
         
         quantidade_dialog.setLabelText(f"{nome_produto}")
         quantidade_dialog.setIntValue(1)
@@ -543,7 +544,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 QMessageBox.warning(self, "Aviso", "A quantidade deve ser maior que zero.")
                 return
 
-            # ========== DIÁLOGO DE PREÇO DE CUSTO (IGUAL AO MÓDULO VENDAS) ==========
+            # ========== DIÁLOGO DE PREÇO DE CUSTO (CORRIGIDO PARA ACEITAR NÚMEROS GRANDES) ==========
             preco_custo_dialog = QInputDialog(self)
 
             # Configurar propriedades do diálogo
@@ -568,8 +569,25 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 | Qt.WindowType.MSWindowsFixedSizeDialogHint
             )
 
-            # Tamanho fixo (idêntico ao módulo vendas)
-            preco_custo_dialog.setFixedSize(400, 200)
+            # Aumentar tamanho para acomodar números maiores
+            preco_custo_dialog.setFixedSize(450, 220)
+
+            # ===== SOLUÇÃO: Configurar o QDoubleSpinBox interno para aceitar números grandes =====
+            from PyQt6.QtCore import QTimer
+            from PyQt6.QtWidgets import QDoubleSpinBox
+            
+            def configurar_spinbox_custo():
+                # Encontrar o QDoubleSpinBox dentro do diálogo
+                spinboxes = preco_custo_dialog.findChildren(QDoubleSpinBox)
+                for spinbox in spinboxes:
+                    spinbox.setRange(0.01, 9999999.99)  # Aumentar limite máximo
+                    spinbox.setFixedWidth(220)  # Aumentar largura para números grandes
+                    spinbox.setGroupSeparatorShown(True)  # Mostra separador de milhar
+                    break
+            
+            # Configurar após o diálogo ser mostrado
+            QTimer.singleShot(50, configurar_spinbox_custo)
+            # ===== FIM DA SOLUÇÃO =====
 
             # Executar e verificar se foi aceito
             if preco_custo_dialog.exec() == QDialog.DialogCode.Accepted:
@@ -581,7 +599,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     )
                     return
 
-                # ========== DIÁLOGO DE PREÇO DE VENDA (IGUAL AO MÓDULO VENDAS) ==========
+                # ========== DIÁLOGO DE PREÇO DE VENDA (CORRIGIDO PARA ACEITAR NÚMEROS GRANDES) ==========
                 preco_venda_dialog = QInputDialog(self)
 
                 # Configurar propriedades do diálogo
@@ -608,8 +626,20 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     | Qt.WindowType.MSWindowsFixedSizeDialogHint
                 )
 
-                # Tamanho fixo (idêntico ao módulo vendas)
-                preco_venda_dialog.setFixedSize(400, 200)
+                # Aumentar tamanho para acomodar números maiores
+                preco_venda_dialog.setFixedSize(450, 220)
+
+                # ===== SOLUÇÃO: Configurar o QDoubleSpinBox interno para aceitar números grandes =====
+                def configurar_spinbox_venda():
+                    spinboxes = preco_venda_dialog.findChildren(QDoubleSpinBox)
+                    for spinbox in spinboxes:
+                        spinbox.setRange(0.01, 9999999.99)  # Aumentar limite máximo
+                        spinbox.setFixedWidth(220)  # Aumentar largura para números grandes
+                        spinbox.setGroupSeparatorShown(True)  # Mostra separador de milhar
+                        break
+                
+                QTimer.singleShot(50, configurar_spinbox_venda)
+                # ===== FIM DA SOLUÇÃO =====
 
                 # Executar e verificar se foi aceito
                 if preco_venda_dialog.exec() == QDialog.DialogCode.Accepted:
