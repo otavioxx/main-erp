@@ -928,7 +928,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             preco_dialog.setFixedSize(450, 220)
 
             from PyQt6.QtCore import QTimer
-            from PyQt6.QtWidgets import QDoubleSpinBox, QLineEdit
+            from PyQt6.QtWidgets import QDoubleSpinBox
             
             def configurar_spinbox():
                 spinboxes = preco_dialog.findChildren(QDoubleSpinBox)

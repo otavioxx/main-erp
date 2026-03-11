@@ -496,7 +496,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 self._marcar_como_modificado()  # NOVO: Marca como modificado
 
     def _processar_produto(self, produto):
-        """Processa produto selecionado - ATUALIZADO COM DIÁLOGOS IDÊNTICOS AO MÓDULO VENDAS"""
+        """Processa produto selecionado - ATUALIZADO COM DIÁLOGOS CORRIGIDOS E SELEÇÃO TOTAL"""
         # Validação básica
         if not hasattr(produto, 'nome'):
             QMessageBox.warning(self, "Produto inválido", "Produto selecionado é inválido.")
@@ -541,7 +541,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 QMessageBox.warning(self, "Aviso", "A quantidade deve ser maior que zero.")
                 return
 
-            # ========== DIÁLOGO DE PREÇO DE CUSTO (CORRIGIDO PARA ACEITAR NÚMEROS GRANDES) ==========
+            # ========== DIÁLOGO DE PREÇO DE CUSTO (CORRIGIDO COM SELEÇÃO TOTAL) ==========
             preco_custo_dialog = QInputDialog(self)
 
             # Configurar propriedades do diálogo
@@ -553,8 +553,12 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             if valor_sugerido <= 0:
                 valor_sugerido = 10.0  # Valor padrão sugerido
             
+            # CORREÇÃO: Configurar o valor máximo para um número alto
+            VALOR_MAXIMO = 9999999.99
+            
             preco_custo_dialog.setDoubleValue(valor_sugerido)
             preco_custo_dialog.setDoubleMinimum(0.01)
+            preco_custo_dialog.setDoubleMaximum(VALOR_MAXIMO)  # <-- CORREÇÃO PRINCIPAL
             preco_custo_dialog.setDoubleDecimals(2)
 
             # Configurar flags da janela (igual ao módulo vendas)
@@ -569,7 +573,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             # Aumentar tamanho para acomodar números maiores
             preco_custo_dialog.setFixedSize(450, 220)
 
-            # ===== SOLUÇÃO: Configurar o QDoubleSpinBox interno para aceitar números grandes =====
+            # ===== SOLUÇÃO COMPLETA: Configurar o QDoubleSpinBox interno com seleção total =====
             from PyQt6.QtCore import QTimer
             from PyQt6.QtWidgets import QDoubleSpinBox
             
@@ -577,9 +581,23 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 # Encontrar o QDoubleSpinBox dentro do diálogo
                 spinboxes = preco_custo_dialog.findChildren(QDoubleSpinBox)
                 for spinbox in spinboxes:
-                    spinbox.setRange(0.01, 9999999.99)  # Aumentar limite máximo
+                    spinbox.setRange(0.01, VALOR_MAXIMO)  # Aumentar limite máximo
                     spinbox.setFixedWidth(220)  # Aumentar largura para números grandes
                     spinbox.setGroupSeparatorShown(True)  # Mostra separador de milhar
+                    spinbox.setValue(valor_sugerido)
+                    
+                    # CORREÇÃO: Forçar seleção total do texto quando o spinbox receber foco
+                    spinbox.selectAll()
+                    
+                    # Usar um timer para garantir que a seleção ocorra após o diálogo ser totalmente exibido
+                    QTimer.singleShot(100, spinbox.selectAll)
+                    
+                    # Conectar ao sinal de foco para sempre selecionar tudo quando ganhar foco
+                    spinbox.focusInEvent = lambda event, sb=spinbox: (
+                        QDoubleSpinBox.focusInEvent(sb, event),
+                        sb.selectAll()
+                    )
+                    
                     break
             
             # Configurar após o diálogo ser mostrado
@@ -596,7 +614,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     )
                     return
 
-                # ========== DIÁLOGO DE PREÇO DE VENDA (CORRIGIDO PARA ACEITAR NÚMEROS GRANDES) ==========
+                # ========== DIÁLOGO DE PREÇO DE VENDA (CORRIGIDO COM SELEÇÃO TOTAL) ==========
                 preco_venda_dialog = QInputDialog(self)
 
                 # Configurar propriedades do diálogo
@@ -612,6 +630,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 
                 preco_venda_dialog.setDoubleValue(sugestao_venda)
                 preco_venda_dialog.setDoubleMinimum(0.01)
+                preco_venda_dialog.setDoubleMaximum(VALOR_MAXIMO)  # <-- CORREÇÃO PRINCIPAL
                 preco_venda_dialog.setDoubleDecimals(2)
 
                 # Configurar flags da janela (igual ao módulo vendas)
@@ -626,13 +645,27 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 # Aumentar tamanho para acomodar números maiores
                 preco_venda_dialog.setFixedSize(450, 220)
 
-                # ===== SOLUÇÃO: Configurar o QDoubleSpinBox interno para aceitar números grandes =====
+                # ===== SOLUÇÃO COMPLETA: Configurar o QDoubleSpinBox interno com seleção total =====
                 def configurar_spinbox_venda():
                     spinboxes = preco_venda_dialog.findChildren(QDoubleSpinBox)
                     for spinbox in spinboxes:
-                        spinbox.setRange(0.01, 9999999.99)  # Aumentar limite máximo
+                        spinbox.setRange(0.01, VALOR_MAXIMO)  # Aumentar limite máximo
                         spinbox.setFixedWidth(220)  # Aumentar largura para números grandes
                         spinbox.setGroupSeparatorShown(True)  # Mostra separador de milhar
+                        spinbox.setValue(sugestao_venda)
+                        
+                        # CORREÇÃO: Forçar seleção total do texto quando o spinbox receber foco
+                        spinbox.selectAll()
+                        
+                        # Usar um timer para garantir que a seleção ocorra após o diálogo ser totalmente exibido
+                        QTimer.singleShot(100, spinbox.selectAll)
+                        
+                        # Conectar ao sinal de foco para sempre selecionar tudo quando ganhar foco
+                        spinbox.focusInEvent = lambda event, sb=spinbox: (
+                            QDoubleSpinBox.focusInEvent(sb, event),
+                            sb.selectAll()
+                        )
+                        
                         break
                 
                 QTimer.singleShot(50, configurar_spinbox_venda)
