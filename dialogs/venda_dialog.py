@@ -858,13 +858,19 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             quantidade = quantidade_dialog.intValue()
 
             if validar_quantidade(quantidade, produto.estoque):
-                # Diálogo de preço
+                # Diálogo de preço - VERSÃO CORRIGIDA COM SELEÇÃO TOTAL
                 preco_dialog = QInputDialog(self)
 
                 preco_dialog.setWindowTitle("Preço de Venda")
                 preco_dialog.setLabelText("Digite o preço de venda:")
+                
+                # CORREÇÃO: Configurar o valor máximo para um número alto
+                VALOR_MAXIMO = 9999999.99
+                
+                # Configurar o QDoubleSpinBox diretamente
                 preco_dialog.setDoubleValue(produto.preco_venda)
                 preco_dialog.setDoubleMinimum(0.01)
+                preco_dialog.setDoubleMaximum(VALOR_MAXIMO)
                 preco_dialog.setDoubleDecimals(2)
 
                 preco_dialog.setWindowFlags(
@@ -883,10 +889,25 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 def configurar_spinbox():
                     spinboxes = preco_dialog.findChildren(QDoubleSpinBox)
                     for spinbox in spinboxes:
-                        spinbox.setRange(0.01, 9999999.99)
+                        spinbox.setRange(0.01, VALOR_MAXIMO)
                         spinbox.setFixedWidth(220)
                         spinbox.setGroupSeparatorShown(True)
                         spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
+                        # Garantir que o valor inicial seja mostrado corretamente
+                        spinbox.setValue(produto.preco_venda)
+                        
+                        # CORREÇÃO: Forçar seleção total do texto quando o spinbox receber foco
+                        spinbox.selectAll()
+                        
+                        # Usar um timer para garantir que a seleção ocorra após o diálogo ser totalmente exibido
+                        QTimer.singleShot(100, spinbox.selectAll)
+                        
+                        # Conectar ao sinal de foco para sempre selecionar tudo quando ganhar foco
+                        spinbox.focusInEvent = lambda event, sb=spinbox: (
+                            QDoubleSpinBox.focusInEvent(sb, event),
+                            sb.selectAll()
+                        )
+                        
                         break
                 
                 QTimer.singleShot(50, configurar_spinbox)
