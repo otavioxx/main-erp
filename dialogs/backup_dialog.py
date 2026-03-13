@@ -91,7 +91,7 @@ class BackupConfig:
             return False
     
     @classmethod
-    def should_show_backup_dialog(cls, days_threshold=7):
+    def should_show_backup_dialog(cls, days_threshold=1):
         """
         Verifica se deve mostrar o diálogo de backup.
         Retorna True se o último backup foi há mais de 'days_threshold' dias
@@ -327,7 +327,7 @@ class BackupDialog(QDialog):
         if force_show:
             return True
         
-        return BackupConfig.should_show_backup_dialog(days_threshold=7)
+        return BackupConfig.should_show_backup_dialog(days_threshold=1)
     
     def _get_days_since_last_backup(self):
         """Retorna quantos dias se passaram desde o último backup"""
