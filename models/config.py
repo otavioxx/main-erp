@@ -38,12 +38,6 @@ class Config:
                 'enable_stock_control': True,
                 'notify_low_stock': True
             },
-            'backup': {
-                'auto_backup': True,
-                'backup_interval_days': 7,
-                'max_backups': 10,
-                'backup_path': 'backups'
-            },
             'security': {
                 'password_required': False,
                 'auto_logout_minutes': 30,
@@ -118,11 +112,6 @@ class Config:
         """Retorna o caminho completo do banco de dados"""
         db_name = self.get('database.name', 'erp.db')
         return db_name
-
-    def get_backup_path(self) -> str:
-        """Retorna o caminho completo para backups"""
-        backup_path = self.get('backup.backup_path', 'backups')
-        return backup_path
 
     def get_report_path(self) -> str:
         """Retorna o caminho completo para relatórios"""

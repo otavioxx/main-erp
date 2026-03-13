@@ -19,6 +19,7 @@ class BackupConfig:
     """Classe para gerenciar configurações de backup"""
     
     CONFIG_FILE = "backup_settings.json"
+    BACKUP_INTERVAL_DAYS = 1  # Fonte única da verdade para o intervalo de backup
     
     @classmethod
     def get_last_path(cls):
@@ -91,12 +92,16 @@ class BackupConfig:
             return False
     
     @classmethod
-    def should_show_backup_dialog(cls, days_threshold=1):
+    def should_show_backup_dialog(cls, days_threshold=None):
         """
         Verifica se deve mostrar o diálogo de backup.
         Retorna True se o último backup foi há mais de 'days_threshold' dias
         ou se nunca foi feito backup.
+        Usa BACKUP_INTERVAL_DAYS como padrão se days_threshold não for informado.
         """
+        if days_threshold is None:
+            days_threshold = cls.BACKUP_INTERVAL_DAYS
+
         last_backup_date = cls.get_last_backup_date()
         
         if last_backup_date is None:
@@ -327,7 +332,7 @@ class BackupDialog(QDialog):
         if force_show:
             return True
         
-        return BackupConfig.should_show_backup_dialog(days_threshold=1)
+        return BackupConfig.should_show_backup_dialog()
     
     def _get_days_since_last_backup(self):
         """Retorna quantos dias se passaram desde o último backup"""
