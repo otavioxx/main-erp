@@ -1,7 +1,7 @@
 #\erp\database.py
 import sqlite3
 from datetime import datetime
-from models.configuracao import configuracao, get_config
+from config import config, get_config
 
 class Database:
     def __init__(self, db_name=None):
@@ -224,7 +224,6 @@ class Database:
         cursor = conn.cursor()
 
         try:
-            # Verifica se a coluna já existe
             cursor.execute("PRAGMA table_info(pedidos)")
             colunas_existentes = [coluna[1] for coluna in cursor.fetchall()]
 
@@ -241,7 +240,6 @@ class Database:
         cursor = conn.cursor()
 
         try:
-            # Verifica se a coluna já existe
             cursor.execute("PRAGMA table_info(condicionais)")
             colunas_existentes = [coluna[1] for coluna in cursor.fetchall()]
 
@@ -258,7 +256,6 @@ class Database:
         cursor = conn.cursor()
 
         try:
-            # Verifica se a coluna já existe
             cursor.execute("PRAGMA table_info(vendas)")
             colunas_existentes = [coluna[1] for coluna in cursor.fetchall()]
 
@@ -275,7 +272,6 @@ class Database:
         cursor = conn.cursor()
 
         try:
-            # Verifica se a coluna já existe
             cursor.execute("PRAGMA table_info(itens_pedido)")
             colunas_existentes = [coluna[1] for coluna in cursor.fetchall()]
 
@@ -284,8 +280,6 @@ class Database:
                 conn.commit()
                 print("Campo 'preco_venda' adicionado à tabela itens_pedido")
 
-                # Atualizar registros existentes com valor padrão baseado no preço de custo
-                # Definindo uma margem de 30% como padrão
                 cursor.execute("""
                     UPDATE itens_pedido
                     SET preco_venda = preco_custo * 1.3
@@ -303,7 +297,6 @@ class Database:
         cursor = conn.cursor()
 
         try:
-            # Verifica se as colunas já existem
             cursor.execute("PRAGMA table_info(vendas)")
             colunas_existentes = [coluna[1] for coluna in cursor.fetchall()]
 
@@ -317,7 +310,6 @@ class Database:
                 conn.commit()
                 print("Campo 'valor_financiado' adicionado à tabela vendas")
 
-                # Atualizar registros existentes onde valor_financiado = 0
                 cursor.execute("""
                     UPDATE vendas
                     SET valor_financiado = total
@@ -334,11 +326,9 @@ class Database:
         conn = self.get_connection()
         cursor = conn.cursor()
 
-        # Verifica se as colunas já existem
         cursor.execute("PRAGMA table_info(produtos)")
         colunas_existentes = [coluna[1] for coluna in cursor.fetchall()]
 
-        # Adiciona cada campo se não existir
         novos_campos = [
             ('tamanho', 'TEXT'),
             ('cor', 'TEXT'),
