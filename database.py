@@ -1,19 +1,41 @@
 #\erp\database.py
 import sqlite3
 from datetime import datetime
+from pathlib import Path
+
 from config import config, get_config
 
+
+class MigracaoError(RuntimeError):
+    """Falha ao atualizar o esquema do banco de dados."""
+
+
 class Database:
+    """Acesso ao SQLite com migrações numeradas.
+
+    O esquema é controlado por ``PRAGMA user_version``. Cada migração roda uma
+    única vez, dentro de uma transação, e antes de qualquer migração pendente
+    é feito um backup automático do banco em ``<dados>/backups``.
+
+    COMO ADICIONAR UMA ALTERAÇÃO DE ESQUEMA
+    1. escreva um método ``_migracao_NNN_descricao(self)``;
+    2. registre-o em ``MIGRACOES`` com o próximo número;
+    3. mantenha migrações ADITIVAS (novas tabelas/colunas), assim uma versão
+       anterior do sistema continua funcionando com o banco já migrado.
+    """
+
+    # (versão, nome do método). Nunca renumere nem apague entradas antigas.
+    MIGRACOES = [
+        (1, "_migracao_001_esquema_base"),
+        # (2, "_migracao_002_exemplo"),
+    ]
+
+    MANTER_BACKUPS_MIGRACAO = 10
+
     def __init__(self, db_name=None):
-        self.db_name = db_name or get_config('database.name', 'erp.db')
+        self.db_name = db_name or config.obter_caminho_banco()
         self.connection = None
-        self.init_database()
-        self._adicionar_campo_desconto_condicionais()
-        self.adicionar_novos_campos_produtos()
-        self._adicionar_campo_preco_venda_itens_pedido()
-        self._adicionar_campo_observacao_vendas()
-        self._adicionar_campos_entrada_vendas()
-        self._adicionar_campo_desconto_pedidos()  # NOVO
+        self.migrar()
 
     def get_connection(self):
         if self.connection is None:
@@ -27,6 +49,112 @@ class Database:
         if self.connection:
             self.connection.close()
             self.connection = None
+
+    # ------------------------------------------------------------------
+    # Motor de migrações
+    # ------------------------------------------------------------------
+
+    def versao_esquema(self) -> int:
+        return self.get_connection().execute("PRAGMA user_version").fetchone()[0]
+
+    def migrar(self):
+        """Aplica, em ordem, as migrações que ainda não rodaram neste banco."""
+        conn = self.get_connection()
+        atual = self.versao_esquema()
+        pendentes = [(v, nome) for v, nome in self.MIGRACOES if v > atual]
+        if not pendentes:
+            return
+
+        destino = pendentes[-1][0]
+        backup = self._backup_pre_migracao(atual, destino)
+
+        for versao, nome in pendentes:
+            try:
+                conn.execute("BEGIN")
+                getattr(self, nome)()
+                conn.execute(f"PRAGMA user_version = {versao}")
+                conn.commit()
+            except Exception as e:
+                conn.rollback()
+                dica = f"\nBackup anterior à migração: {backup}" if backup else ""
+                raise MigracaoError(
+                    f"Falha ao atualizar o banco de dados para a versão {versao} "
+                    f"({nome}): {e}{dica}"
+                ) from e
+
+    def _backup_pre_migracao(self, de: int, para: int):
+        """Copia o banco atual antes de migrar. Retorna o caminho ou None."""
+        conn = self.get_connection()
+        tabelas = conn.execute(
+            "SELECT count(*) FROM sqlite_master WHERE type = 'table'"
+        ).fetchone()[0]
+        if tabelas == 0:
+            return None  # banco novo e vazio: nada a proteger
+
+        pasta = Path(self.db_name).resolve().parent / "backups"
+        pasta.mkdir(parents=True, exist_ok=True)
+        carimbo = datetime.now().strftime("%Y%m%d_%H%M%S")
+        destino = pasta / f"pre_migracao_v{de}_para_v{para}_{carimbo}.db"
+
+        copia = sqlite3.connect(str(destino))
+        try:
+            conn.backup(copia)
+        finally:
+            copia.close()
+
+        antigos = sorted(pasta.glob("pre_migracao_*.db"))
+        for velho in antigos[: -self.MANTER_BACKUPS_MIGRACAO]:
+            try:
+                velho.unlink()
+            except OSError:
+                pass
+        return str(destino)
+
+    @staticmethod
+    def _colunas(cursor, tabela):
+        cursor.execute(f"PRAGMA table_info({tabela})")
+        return [coluna[1] for coluna in cursor.fetchall()]
+
+    def _garantir_coluna(self, cursor, tabela, coluna, definicao):
+        """ADD COLUMN se ainda não existir. Retorna True quando adicionou."""
+        if coluna in self._colunas(cursor, tabela):
+            return False
+        cursor.execute(f"ALTER TABLE {tabela} ADD COLUMN {coluna} {definicao}")
+        return True
+
+    # ------------------------------------------------------------------
+    # Migração 1: esquema base
+    # Reúne tudo o que antes rodava a cada abertura do sistema. É idempotente,
+    # então serve para bancos novos, antigos e backups restaurados.
+    # ------------------------------------------------------------------
+
+    def _migracao_001_esquema_base(self):
+        self.init_database()
+        cursor = self.get_connection().cursor()
+
+        self._garantir_coluna(cursor, 'condicionais', 'desconto', 'REAL DEFAULT 0')
+
+        for campo, tipo in (('tamanho', 'TEXT'), ('cor', 'TEXT'),
+                            ('ea', 'TEXT'), ('referencia', 'TEXT')):
+            self._garantir_coluna(cursor, 'produtos', campo, tipo)
+
+        if self._garantir_coluna(cursor, 'itens_pedido', 'preco_venda', 'REAL DEFAULT 0'):
+            cursor.execute("""
+                UPDATE itens_pedido
+                SET preco_venda = preco_custo * 1.3
+                WHERE preco_venda = 0 OR preco_venda IS NULL
+            """)
+
+        self._garantir_coluna(cursor, 'vendas', 'observacao', "TEXT DEFAULT ''")
+        self._garantir_coluna(cursor, 'vendas', 'valor_entrada', 'REAL DEFAULT 0')
+        if self._garantir_coluna(cursor, 'vendas', 'valor_financiado', 'REAL DEFAULT 0'):
+            cursor.execute("""
+                UPDATE vendas
+                SET valor_financiado = total
+                WHERE valor_financiado = 0 OR valor_financiado IS NULL
+            """)
+
+        self._garantir_coluna(cursor, 'pedidos', 'desconto', 'REAL DEFAULT 0')
 
     def init_database(self):
         conn = self.get_connection()
@@ -215,132 +343,3 @@ class Database:
                 FOREIGN KEY (produto_id) REFERENCES produtos (id)
             )
         ''')
-
-        conn.commit()
-
-    def _adicionar_campo_desconto_pedidos(self):
-        """Adiciona o campo desconto à tabela pedidos se ainda não existir"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-
-        try:
-            cursor.execute("PRAGMA table_info(pedidos)")
-            colunas_existentes = [coluna[1] for coluna in cursor.fetchall()]
-
-            if 'desconto' not in colunas_existentes:
-                cursor.execute("ALTER TABLE pedidos ADD COLUMN desconto REAL DEFAULT 0")
-                conn.commit()
-                print("Campo 'desconto' adicionado à tabela pedidos")
-        except Exception as e:
-            print(f"Erro ao adicionar campo desconto aos pedidos: {e}")
-
-    def _adicionar_campo_desconto_condicionais(self):
-        """Adiciona o campo desconto à tabela condicionais se ainda não existir"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-
-        try:
-            cursor.execute("PRAGMA table_info(condicionais)")
-            colunas_existentes = [coluna[1] for coluna in cursor.fetchall()]
-
-            if 'desconto' not in colunas_existentes:
-                cursor.execute("ALTER TABLE condicionais ADD COLUMN desconto REAL DEFAULT 0")
-                conn.commit()
-                print("Campo 'desconto' adicionado à tabela condicionais")
-        except Exception as e:
-            print(f"Erro ao adicionar campo desconto: {e}")
-
-    def _adicionar_campo_observacao_vendas(self):
-        """Adiciona o campo observacao à tabela vendas se ainda não existir"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-
-        try:
-            cursor.execute("PRAGMA table_info(vendas)")
-            colunas_existentes = [coluna[1] for coluna in cursor.fetchall()]
-
-            if 'observacao' not in colunas_existentes:
-                cursor.execute("ALTER TABLE vendas ADD COLUMN observacao TEXT DEFAULT ''")
-                conn.commit()
-                print("Campo 'observacao' adicionado à tabela vendas")
-        except Exception as e:
-            print(f"Erro ao adicionar campo observacao: {e}")
-
-    def _adicionar_campo_preco_venda_itens_pedido(self):
-        """Adiciona o campo preco_venda à tabela itens_pedido se ainda não existir"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-
-        try:
-            cursor.execute("PRAGMA table_info(itens_pedido)")
-            colunas_existentes = [coluna[1] for coluna in cursor.fetchall()]
-
-            if 'preco_venda' not in colunas_existentes:
-                cursor.execute("ALTER TABLE itens_pedido ADD COLUMN preco_venda REAL DEFAULT 0")
-                conn.commit()
-                print("Campo 'preco_venda' adicionado à tabela itens_pedido")
-
-                cursor.execute("""
-                    UPDATE itens_pedido
-                    SET preco_venda = preco_custo * 1.3
-                    WHERE preco_venda = 0 OR preco_venda IS NULL
-                """)
-                conn.commit()
-                print("Registros existentes atualizados com preço de venda padrão (custo * 1.3)")
-
-        except Exception as e:
-            print(f"Erro ao adicionar campo preco_venda: {e}")
-
-    def _adicionar_campos_entrada_vendas(self):
-        """Adiciona os campos valor_entrada e valor_financiado à tabela vendas se ainda não existirem"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-
-        try:
-            cursor.execute("PRAGMA table_info(vendas)")
-            colunas_existentes = [coluna[1] for coluna in cursor.fetchall()]
-
-            if 'valor_entrada' not in colunas_existentes:
-                cursor.execute("ALTER TABLE vendas ADD COLUMN valor_entrada REAL DEFAULT 0")
-                conn.commit()
-                print("Campo 'valor_entrada' adicionado à tabela vendas")
-
-            if 'valor_financiado' not in colunas_existentes:
-                cursor.execute("ALTER TABLE vendas ADD COLUMN valor_financiado REAL DEFAULT 0")
-                conn.commit()
-                print("Campo 'valor_financiado' adicionado à tabela vendas")
-
-                cursor.execute("""
-                    UPDATE vendas
-                    SET valor_financiado = total
-                    WHERE valor_financiado = 0 OR valor_financiado IS NULL
-                """)
-                conn.commit()
-                print("Registros existentes atualizados com valor_financiado = total")
-
-        except Exception as e:
-            print(f"Erro ao adicionar campos de entrada: {e}")
-
-    def adicionar_novos_campos_produtos(self):
-        """Adiciona os novos campos à tabela produtos se ainda não existirem"""
-        conn = self.get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("PRAGMA table_info(produtos)")
-        colunas_existentes = [coluna[1] for coluna in cursor.fetchall()]
-
-        novos_campos = [
-            ('tamanho', 'TEXT'),
-            ('cor', 'TEXT'),
-            ('ea', 'TEXT'),
-            ('referencia', 'TEXT')
-        ]
-
-        for campo, tipo in novos_campos:
-            if campo not in colunas_existentes:
-                try:
-                    cursor.execute(f"ALTER TABLE produtos ADD COLUMN {campo} {tipo}")
-                    conn.commit()
-                    print(f"Campo {campo} adicionado com sucesso")
-                except Exception as e:
-                    print(f"Erro ao adicionar campo {campo}: {e}")

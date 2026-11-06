@@ -14,11 +14,14 @@ import zipfile
 import json
 import hashlib
 
+from config import obter_config
+from paths import caminho_dados
+
 
 class BackupConfig:
     """Classe para gerenciar configurações de backup"""
     
-    CONFIG_FILE = "backup_settings.json"
+    CONFIG_FILE = caminho_dados("backup_settings.json")
     BACKUP_INTERVAL_DAYS = 1  # Fonte única da verdade para o intervalo de backup
     
     @classmethod
@@ -294,7 +297,7 @@ class BackupDialog(QDialog):
             force_show: Se True, mostra o diálogo independentemente da data do último backup
         """
         super().__init__(parent)
-        self.db_path = "erp.db"  # Caminho padrão do banco de dados
+        self.db_path = obter_config().obter_caminho_banco()  # Banco na pasta de dados
         self.backup_thread = None
         self.force_show = force_show  # Flag para forçar exibição
         self.backup_verificado = False  # Flag para controlar se o backup foi verificado

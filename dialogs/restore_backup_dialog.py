@@ -12,6 +12,7 @@ import os
 import shutil
 from datetime import datetime
 
+from config import obter_config
 from utils.dialog_base import DialogBase
 from utils.db_utils import DatabaseManager
 
@@ -158,7 +159,7 @@ class RestoreBackupDialog(DialogBase):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.current_db = "erp.db"  # Banco atual
+        self.current_db = obter_config().obter_caminho_banco()  # Banco atual
         self.backup_info = None
         self.verify_thread = None
         self.restore_thread = None

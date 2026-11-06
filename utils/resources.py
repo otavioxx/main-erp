@@ -1,15 +1,13 @@
 import os
-import sys
+
 from PyQt6.QtGui import QIcon
+
+from paths import CODE_DIR
 
 
 def resource_path(relative_path: str) -> str:
-    """
-    Retorna o caminho correto tanto em dev quanto no PyInstaller
-    """
-    if hasattr(sys, "_MEIPASS"):
-        return os.path.join(sys._MEIPASS, relative_path)
-    return os.path.join(os.path.abspath("."), relative_path)
+    """Caminho de um recurso (ex.: icon.ico) dentro da pasta do código."""
+    return os.path.join(str(CODE_DIR), relative_path)
 
 
 def app_icon() -> QIcon:

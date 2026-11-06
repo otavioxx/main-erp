@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+# dados do usuário nunca entram no código/release
+*.db
+config.json
+backup_settings.json
+relatorios/
+backups/
+data/
+dist/
+.venv/

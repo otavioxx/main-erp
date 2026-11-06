@@ -6,6 +6,8 @@ import json
 import os
 from pathlib import Path
 
+from paths import caminho_dados
+
 
 class BackupConfig:
     """Gerencia configurações de backup"""
@@ -56,20 +58,8 @@ class BackupConfig:
     
     @classmethod
     def _get_config_path(cls):
-        """Retorna o caminho completo do arquivo de configuração"""
-        # Tenta salvar na pasta do executável
-        try:
-            if getattr(sys, 'frozen', False):
-                # Executável compilado
-                base_path = sys._MEIPASS
-            else:
-                # Script Python
-                base_path = os.path.dirname(os.path.abspath(__file__))
-            
-            return os.path.join(base_path, cls.CONFIG_FILE)
-        except:
-            # Fallback: pasta atual
-            return cls.CONFIG_FILE
+        """Retorna o caminho completo do arquivo de configuração (pasta de dados)"""
+        return caminho_dados(cls.CONFIG_FILE)
     
     @staticmethod
     def _get_default_path():

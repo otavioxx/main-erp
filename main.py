@@ -4,6 +4,10 @@ import os
 import sys
 from datetime import datetime
 
+import paths
+
+paths.preparar_ambiente()  # cria a pasta de dados e usa-a como diretório de trabalho
+
 import pytz
 from PyQt6.QtCore import QLibraryInfo, Qt, QTimer, QTranslator
 from PyQt6.QtGui import QColor, QFont, QIcon, QPainter, QPainterPath, QPixmap
@@ -17,15 +21,44 @@ from styles import aplicar_tema_dark  # Alterado para aplicar_tema_dark
 from views.main_window import MainWindow
 
 
+# Códigos de saída entendidos pelo launcher (distribuicao/launcher.pyw)
+EXIT_REINICIAR = 100  # o sistema pediu reinício (ex.: após restaurar backup)
+EXIT_JA_EM_EXECUCAO = 3  # outra instância já está aberta (não é uma falha)
+
+
 def obter_caminho_base():
-    """Obtém o caminho base correto para o executável ou script"""
-    if getattr(sys, "frozen", False):
-        # Executando como executável compilado
-        base_path = sys._MEIPASS
-    else:
-        # Executando como script normal
-        base_path = os.path.dirname(os.path.abspath(__file__))
-    return base_path
+    """Pasta do código desta versão (onde ficam o ícone e os módulos)."""
+    return str(paths.CODE_DIR)
+
+
+def definir_identidade_windows():
+    """Dá ao processo uma identidade própria na barra de tarefas do Windows.
+
+    Sem isso, rodando via pythonw.exe, o Windows agrupa a janela sob o ícone
+    do Python em vez do ícone do MainERP.
+    """
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            "DigitalSolutions.MainERP"
+        )
+    except Exception:
+        pass
+
+
+def confirmar_abertura():
+    """Avisa o launcher que a janela principal abriu (esta versão é saudável)."""
+    arquivo = os.environ.get("MAINERP_OK_FILE")
+    if not arquivo:
+        return
+    try:
+        with open(arquivo, "w", encoding="utf-8") as f:
+            f.write(datetime.now().isoformat())
+    except OSError:
+        pass
 
 
 def data_hora_brasilia():
@@ -36,8 +69,7 @@ def data_hora_brasilia():
 
 def limpar_pasta_relatorios():
     """Limpa a pasta de relatórios de forma segura"""
-    base_path = obter_caminho_base()
-    caminho_relatorios = os.path.join(base_path, "relatorios")
+    caminho_relatorios = obter_config().obter_caminho_relatorios()
 
     try:
         if os.path.exists(caminho_relatorios):
@@ -77,8 +109,7 @@ def verificar_banco_dados():
 
 def carregar_icone_aplicacao() -> QIcon:
     """
-    Retorna o ícone oficial da aplicação (icon.ico),
-    compatível com PyInstaller e ambiente de desenvolvimento.
+    Retorna o ícone oficial da aplicação (icon.ico), que fica na pasta do código.
     """
     base_path = obter_caminho_base()
     caminho = os.path.join(base_path, "icon.ico")
@@ -178,26 +209,6 @@ def show_splash(
     return splash
 
 
-def configurar_caminhos():
-    """Configura os caminhos para o ambiente compilado"""
-    base_path = obter_caminho_base()
-
-    # Adiciona caminhos ao sys.path para imports
-    if getattr(sys, "frozen", False):
-        caminhos_import = [
-            os.path.join(base_path, "views"),
-            os.path.join(base_path, "utils"),
-            os.path.join(base_path, "models"),
-            os.path.join(base_path, "imprecoes"),
-            os.path.join(base_path, "relatorios"),
-            os.path.join(base_path, "database"),
-        ]
-
-        for caminho in caminhos_import:
-            if os.path.exists(caminho) and caminho not in sys.path:
-                sys.path.insert(0, caminho)
-
-
 def verificar_instancia_unica(nome_aplicacao):
     """
     Verifica se já existe uma instância do aplicativo em execução no Windows
@@ -284,26 +295,25 @@ def verificar_instancia_unica_simples(nome_aplicacao):
 
 
 def reiniciar_aplicacao():
-    """Reinicia a aplicação após restauração de backup"""
+    """Reabre o sistema após restaurar um backup.
+
+    Com o launcher (uso normal) basta sair com EXIT_REINICIAR: ele espera este
+    processo terminar e abre de novo, já aplicando qualquer atualização.
+    Rodando main.py direto (desenvolvimento), o próprio sistema se reabre.
+    """
+    if os.environ.get("MAINERP_LAUNCHER") == "1":
+        return
+
     import subprocess
     import time
 
     print("🔄 Reiniciando aplicação...")
+    time.sleep(1)  # garante que tudo foi fechado (mutex, banco)
 
-    # Obter o caminho do executável Python e do script
-    python = sys.executable
-    script_path = os.path.abspath(__file__)
-
-    # Pequeno delay para garantir que tudo foi fechado
-    time.sleep(1)
-
-    # Reabrir a aplicação
     try:
-        print(f"🔄 Executando: {python} {script_path}")
-        subprocess.Popen([python, script_path])
+        subprocess.Popen([sys.executable, os.path.abspath(__file__)], cwd=os.getcwd())
     except Exception as e:
         print(f"❌ Erro ao reiniciar aplicação: {e}")
-        # Fallback: mostrar mensagem para usuário
         QMessageBox.information(
             None,
             "Reinício Necessário",
@@ -312,19 +322,23 @@ def reiniciar_aplicacao():
         sys.exit(0)
 
 
+def erro_fatal(titulo, detalhe):
+    """Registra o erro no log (stderr) e avisa o usuário sem exigir console."""
+    import traceback
+
+    traceback.print_exc()
+    try:
+        if QApplication.instance() is None:
+            QApplication(sys.argv)
+        QMessageBox.critical(None, titulo, detalhe)
+    except Exception:
+        pass
+
+
 def main():
     import time
 
-    # Configura caminhos primeiro
-    configurar_caminhos()
-
-    # Agora importa após configurar os caminhos
-    global Database, MainWindow, aplicar_tema_dark, obter_config
-    from config import obter_config
-    from database import Database
-    from styles import aplicar_tema_dark  # Alterado
-    from views.main_window import MainWindow
-
+    definir_identidade_windows()
     config = obter_config()
 
     # Verificar se já existe uma instância em execução
@@ -339,10 +353,11 @@ def main():
             f"{config.APP_NAME} já está sendo executado.\n"
             "Não é possível abrir múltiplas instâncias.",
         )
-        sys.exit(1)
+        sys.exit(EXIT_JA_EM_EXECUCAO)
 
     print(f"App: {config.APP_NAME} v{config.APP_VERSION}")
-    print(f"Base path: {obter_caminho_base()}")
+    print(f"Código: {obter_caminho_base()}")
+    print(f"Dados: {paths.DATA_DIR}")
     print(f"Banco: {config.obter_caminho_banco()}")
     print(f"Relatórios: {config.obter_caminho_relatorios()}")
     print(f"Debug: {config.DEBUG_MODE}")
@@ -438,6 +453,7 @@ def main():
         time.sleep(0.3)  # Pequeno delay antes de abrir
         splash.finish(window)
         window.show()
+        confirmar_abertura()
 
     if remaining > 0:
         print(
@@ -454,16 +470,14 @@ def main():
         result = app.exec()
 
         # Verificar se é um código de reinício (100)
-        if result == 100:
+        if result == EXIT_REINICIAR:
             # Fechar tudo e reiniciar
             reiniciar_aplicacao()
 
         sys.exit(result)
     except Exception as e:
-        import traceback
-
-        traceback.print_exc()
-        input("Pressione Enter para sair...")
+        erro_fatal("Erro inesperado", f"O sistema encontrou um erro e será fechado:\n{e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
@@ -471,7 +485,5 @@ if __name__ == "__main__":
         main()
     except Exception as e:
         print(f"Erro fatal: {e}")
-        import traceback
-
-        traceback.print_exc()
-        input("Pressione Enter para sair...")
+        erro_fatal("Erro fatal", f"O sistema não conseguiu iniciar:\n{e}")
+        sys.exit(1)

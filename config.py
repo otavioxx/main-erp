@@ -3,6 +3,8 @@ import json
 import os
 from typing import Any, Dict
 
+from paths import caminho_dados
+
 
 class Config:
     """Classe para gerenciar configurações do sistema"""
@@ -12,8 +14,9 @@ class Config:
     APP_VERSION = "0.06"
     DEBUG_MODE = False
 
-    def __init__(self, config_file: str = 'config.json'):
-        self.config_file = config_file
+    def __init__(self, config_file: str = None):
+        # config.json fica na pasta de dados, fora do código das releases
+        self.config_file = config_file or caminho_dados('config.json')
         self.default_config = {
             'database': {
                 'name': 'erp.db',
@@ -63,11 +66,11 @@ class Config:
 
     def obter_caminho_banco(self) -> str:
         """Retorna o caminho completo do banco de dados"""
-        return self.get('database.name', 'erp.db')
+        return caminho_dados(self.get('database.name', 'erp.db'))
 
     def obter_caminho_relatorios(self) -> str:
         """Retorna o caminho da pasta de relatórios"""
-        return self.get('reports.default_report_path', 'relatorios')
+        return caminho_dados(self.get('reports.default_report_path', 'relatorios'))
 
     def criar_pastas_necessarias(self):
         """Cria as pastas necessárias para o funcionamento do sistema"""
