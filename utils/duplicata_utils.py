@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 from utils.database_utils import DatabaseUtils
 from datetime import datetime
 

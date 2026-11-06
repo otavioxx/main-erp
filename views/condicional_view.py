@@ -30,7 +30,6 @@ from models.condicional import Condicional
 from utils.export_utils import ExportUtils
 from utils.helpers import (
     criar_pasta_se_nao_existir,
-    formatar_data,
     formatar_moeda,
     validar_data,
 )

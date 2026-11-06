@@ -2,7 +2,6 @@
 View de Recebimentos - Otimizada para performance
 """
 
-import os
 from datetime import datetime
 
 from PyQt6.QtCore import Qt
@@ -312,7 +311,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             except RuntimeError:
                 # Objeto deletado durante execução
                 return
-            except Exception as e:
+            except Exception:
                 # Qualquer outro erro, ignorar silenciosamente
                 # print(f"Erro ao aplicar altura: {e}")  # Para debug
                 return

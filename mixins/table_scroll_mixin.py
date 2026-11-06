@@ -3,7 +3,7 @@
 Mixin para controle de scroll em tabelas - converte scroll em navegação linha por linha
 """
 
-from PyQt6.QtCore import Qt, QEvent, QTimer
+from PyQt6.QtCore import QEvent, QTimer
 from PyQt6.QtWidgets import QTableWidget
 
 

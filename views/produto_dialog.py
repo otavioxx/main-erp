@@ -4,10 +4,8 @@ Dialog de Produto - Otimizado para novo sistema de estilos com Cadastro em Lote
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
                              QLineEdit, QLabel, QDialogButtonBox, QDoubleSpinBox,
-                             QSpinBox, QCheckBox, QGroupBox, QFrame, QMessageBox,
-                             QWidget)
+                             QSpinBox, QCheckBox, QGroupBox, QFrame, QMessageBox)
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QKeyEvent
 from models.produto import Produto
 from models.fornecedor import Fornecedor
 from dialogs.fornecedor_selection_dialog import FornecedorSelectionDialog

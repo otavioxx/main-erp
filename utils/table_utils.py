@@ -133,7 +133,6 @@ class ProdutoViewFixed:
         # Desabilitar ordenação durante preenchimento
         self.tabela_produtos.setSortingEnabled(False)
 
-        cor_fundo_inativo = QColor("#4a2a2a")
         cor_texto_inativo = QColor("#ff6b6b")
         cor_lucro_positivo = QColor("#51cf66")
         cor_lucro_negativo = QColor("#ff6b6b")

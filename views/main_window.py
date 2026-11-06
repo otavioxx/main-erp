@@ -1,11 +1,6 @@
-import os
-import platform
-from datetime import datetime
 
 from dialogs.backup_dialog import BackupConfig
-import psutil
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
-from PyQt6.QtGui import QAction
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -22,9 +17,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from database import Database
 from dialogs.backup_dialog import BackupDialog
-from dialogs.venda_dialog import ProdutoVendaDialog
 from utils.helpers import aplicar_maiuscula_formulario
 from views.cliente_view import ClienteView
 from views.condicional_view import CondicionalView

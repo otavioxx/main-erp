@@ -3,7 +3,7 @@ Modelo de Venda - Versão Refatorada
 Simplificado e integrado com VendaUtils refatorado
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from models.base_model import BaseModel
 from utils.database_utils import DatabaseUtils
 from typing import List, Tuple, Optional, Dict, Any

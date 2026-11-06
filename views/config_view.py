@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
                              QLineEdit, QLabel, QMessageBox, QFileDialog,
                              QTextEdit, QGroupBox, QFormLayout, QFrame,
                              QTabWidget, QScrollArea)
-from PyQt6.QtGui import QPixmap, QFont, QIcon
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtCore import Qt
 from models.empresa import Empresa
 from dialogs.config_selection_dialog import ConfigSelectionDialog

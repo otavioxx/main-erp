@@ -111,7 +111,7 @@ class Produto(BaseModel):
         """Inativa o produto após verificar se é possível"""
         verificacao = self.pode_ser_inativado()
         if not verificacao['pode']:
-            raise ValueError(f"Produto não pode ser inativado:\n" + "\n".join(verificacao['motivos']))
+            raise ValueError("Produto não pode ser inativado:\n" + "\n".join(verificacao['motivos']))
 
         self.ativo = False
         self.salvar()

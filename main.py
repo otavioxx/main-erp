@@ -88,14 +88,12 @@ def verificar_banco_dados():
 
     try:
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        tabelas = cursor.fetchall()
 
         cursor.execute(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='duplicatas'"
         )
         if cursor.fetchone():
             cursor.execute("PRAGMA table_info(duplicatas)")
-            colunas = cursor.fetchall()
         else:
             pass
 
@@ -408,7 +406,7 @@ def main():
         # Etapa 3: Banco de dados
         update_splash_message("Conectando ao banco de dados...")
         time.sleep(0.6)
-        db = verificar_banco_dados()
+        verificar_banco_dados()
         time.sleep(0.4)
 
         # Etapa 4: Limpeza

@@ -4,8 +4,7 @@ Centraliza toda a lógica de negócio relacionada a vendas
 """
 
 from utils.database_utils import DatabaseUtils
-from typing import List, Dict, Any, Tuple, Optional
-from datetime import datetime
+from typing import List, Dict, Any, Tuple
 from utils.helpers import converter_data_string
 
 

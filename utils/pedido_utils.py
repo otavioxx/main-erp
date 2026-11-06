@@ -2,7 +2,6 @@
 from utils.database_utils import DatabaseUtils
 from typing import List, Dict, Any, Tuple
 from utils.helpers import converter_data_string
-from datetime import datetime
 
 class PedidoUtils:
     @staticmethod

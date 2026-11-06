@@ -4,7 +4,6 @@ Utilitário para gerenciar configurações de backup
 
 import json
 import os
-from pathlib import Path
 
 from paths import caminho_dados
 

@@ -134,7 +134,6 @@ class DatabaseManager:
         
         # Tentar fechar conexões do sqlite3
         try:
-            import sqlite3
             # SQLite3 não tem uma maneira global de fechar todas as conexões
             # Dependemos do garbage collector
             pass
