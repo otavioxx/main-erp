@@ -5,9 +5,9 @@ sistema funcionando; não faça duas fases ao mesmo tempo.
 
 ## Fase 0 — Higiene segura (1 a 2 dias)
 
-- [ ] Commitar o modelo de distribuição atual e criar a tag da primeira versão.
-- [ ] `ruff check . --select F401,F841,F541 --fix`: remove imports e variáveis não usados.
-- [ ] Remover módulos que nenhum arquivo importa (um commit só, fácil de reverter):
+- [x] Commitar o modelo de distribuição atual e criar a tag da primeira versão.
+- [x] `ruff check . --select F401,F841,F541 --fix`: remove imports e variáveis não usados.
+- [x] Remover módulos que nenhum arquivo importa (um commit só, fácil de reverter):
       `views/base_view.py`, `utils/table_utils.py`, `utils/produto_validation.py`,
       `utils/config_backup.py`, `utils/duplicata_utils.py`, `utils/resources.py`,
       `models/item_pedido.py`, `dialogs/frete_desconto_dialog.py` (≈ 1,5 mil linhas).
