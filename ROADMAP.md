@@ -74,8 +74,19 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
       preservando a ordenação de números, moedas e valores vazios nas telas e diálogos.
 - [x] Quebrar os arquivos grandes de diálogos e telas em componentes separados de
       layout, entrada, operações, filtros, ações e persistência.
-- [ ] Avaliar um componente compartilhado para as telas de listagem, após comparar os
-      comportamentos existentes; não há atualmente uma classe `BaseTableView` no projeto.
+- [x] Avaliar um componente compartilhado para as telas de listagem: preferir funções
+      pequenas e composição, em vez de uma `BaseTableView` que concentre navegação,
+      filtros e regras de negócio. Clientes, fornecedores, pedidos e condicionais
+      compartilham seleção de linha única, edição bloqueada, cores alternadas e altura
+      fixa; vendas inicia com ordenação desligada, produtos preserva a ordenação e tem
+      menu contextual, e recebimentos tem lógica própria de altura. Já existem
+      `TableScrollNavigationMixin`, `fixar_altura_linhas` e `NumericTableWidgetItem`.
+- [x] Extrair a configuração comum de `QTableWidget` em clientes e fornecedores,
+      preservando colunas, cabeçalhos, seleção, sinais e ordem de configuração, com
+      testes Qt de ordenação, navegação, seleção, altura e estilos.
+- [ ] Avaliar a extensão às demais telas incrementalmente, após testes Qt específicos
+      para cada uma, preservando as diferenças de vendas, produtos, condicionais,
+      pedidos e recebimentos.
 - [x] Splash: substituir os atrasos artificiais por progresso das etapas reais de
       inicialização e informar o carregamento individual das oito telas.
 

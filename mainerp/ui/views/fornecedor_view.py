@@ -19,7 +19,7 @@ from mainerp.core.app_logging import registrar_excecao
 from mainerp.data.models.fornecedor import Fornecedor
 from mainerp.ui.dialogs.fornecedor_dialog import FornecedorDialog
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
-from mainerp.ui.tabela import fixar_altura_linhas
+from mainerp.ui.tabela import configurar_listagem_padrao
 from mainerp.ui.table_items import NumericTableWidgetItem
 
 
@@ -188,23 +188,7 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
             if largura > 0:  # Aplica apenas larguras positivas
                 self.tabela_fornecedores.setColumnWidth(i, largura)
 
-        # ========== CONFIGURAÇÃO DE ALTURA ==========
-        # Configurar VERTICAL HEADER para altura fixa
-        fixar_altura_linhas(self.tabela_fornecedores, 22)
-        # ========== FIM DA CONFIGURAÇÃO ==========
-
-        # Configurações gerais da tabela
-        self.tabela_fornecedores.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-        self.tabela_fornecedores.setSelectionMode(
-            QTableWidget.SelectionMode.SingleSelection
-        )
-        self.tabela_fornecedores.setEditTriggers(
-            QTableWidget.EditTrigger.NoEditTriggers
-        )
-        self.tabela_fornecedores.setAlternatingRowColors(True)
-        self.tabela_fornecedores.setSortingEnabled(True)
+        configurar_listagem_padrao(self.tabela_fornecedores)
 
         self.setup_scroll_navigation(
             tabela=self.tabela_fornecedores,

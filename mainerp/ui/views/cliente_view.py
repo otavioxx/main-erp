@@ -23,7 +23,7 @@ from mainerp.core.app_logging import registrar_excecao
 from mainerp.data.models.cliente import Cliente
 from mainerp.domain.utils.helpers import aplicar_maiuscula_formulario
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
-from mainerp.ui.tabela import fixar_altura_linhas
+from mainerp.ui.tabela import configurar_listagem_padrao
 from mainerp.ui.table_items import NumericTableWidgetItem
 
 
@@ -296,21 +296,7 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
             if largura > 0:  # Aplica apenas larguras positivas
                 self.tabela_clientes.setColumnWidth(i, largura)
 
-        # ========== CONFIGURAÇÃO DE ALTURA ==========
-        # Configurar VERTICAL HEADER para altura fixa
-        fixar_altura_linhas(self.tabela_clientes, 22)
-        # ========== FIM DA CONFIGURAÇÃO ==========
-
-        # Configurações gerais da tabela
-        self.tabela_clientes.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-        self.tabela_clientes.setSelectionMode(
-            QTableWidget.SelectionMode.SingleSelection
-        )
-        self.tabela_clientes.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.tabela_clientes.setAlternatingRowColors(True)
-        self.tabela_clientes.setSortingEnabled(True)
+        configurar_listagem_padrao(self.tabela_clientes)
 
         self.setup_scroll_navigation(
             tabela=self.tabela_clientes,
