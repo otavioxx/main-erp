@@ -9,6 +9,7 @@ from typing import Any, Optional
 from mainerp.core.exceptions import ErroERP
 from mainerp.data.database_utils import DatabaseUtils
 from mainerp.data.models.base_model import BaseModel
+from mainerp.data.money import de_centavos, para_centavos
 
 
 class VendaStatus:
@@ -76,8 +77,10 @@ class Venda(BaseModel):
         """Insere nova venda"""
         query = """
             INSERT INTO vendas
-            (cliente_id, data_venda, total, forma_pagamento, status, parcelas, desconto, observacao, valor_entrada, valor_financiado)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (cliente_id, data_venda, total, forma_pagamento, status, parcelas,
+             desconto, observacao, valor_entrada, valor_financiado, total_centavos,
+             desconto_centavos, valor_entrada_centavos, valor_financiado_centavos)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = (
             self.cliente_id,
@@ -90,6 +93,10 @@ class Venda(BaseModel):
             self.observacao,
             self.valor_entrada,
             self.valor_financiado,
+            para_centavos(self.total),
+            para_centavos(self.desconto),
+            para_centavos(self.valor_entrada),
+            para_centavos(self.valor_financiado),
         )
 
         venda_id = DatabaseUtils.executar_query(query, params)
@@ -104,7 +111,9 @@ class Venda(BaseModel):
         query = """
             UPDATE vendas
             SET cliente_id=?, data_venda=?, total=?, forma_pagamento=?,
-                status=?, parcelas=?, desconto=?, observacao=?, valor_entrada=?, valor_financiado=?
+                status=?, parcelas=?, desconto=?, observacao=?, valor_entrada=?,
+                valor_financiado=?, total_centavos=?, desconto_centavos=?,
+                valor_entrada_centavos=?, valor_financiado_centavos=?
             WHERE id=?
         """
         params = (
@@ -118,6 +127,10 @@ class Venda(BaseModel):
             self.observacao,
             self.valor_entrada,
             self.valor_financiado,
+            para_centavos(self.total),
+            para_centavos(self.desconto),
+            para_centavos(self.valor_entrada),
+            para_centavos(self.valor_financiado),
             venda_id,
         )
 
@@ -240,24 +253,11 @@ class Venda(BaseModel):
         if not venda_id:
             return None
 
-        query = "SELECT * FROM vendas WHERE id = ?"
+        query = f"{cls._SELECT_CAMPOS} WHERE id = ?"
         resultado = DatabaseUtils.executar_query(query, (venda_id,))
 
         if resultado:
-            dados = resultado[0]
-            return cls(
-                id=dados[0],
-                cliente_id=dados[1],
-                data_venda=dados[2],
-                total=dados[3],
-                forma_pagamento=dados[4],
-                status=dados[5],
-                parcelas=dados[6],
-                desconto=dados[7] if len(dados) > 7 else 0.0,
-                observacao=dados[8] if len(dados) > 8 else "",
-                valor_entrada=dados[9] if len(dados) > 9 else 0.0,  # ADICIONADO
-                valor_financiado=dados[10] if len(dados) > 10 else None,  # ADICIONADO
-            )
+            return cls._from_row(resultado[0])
 
         return None
 
@@ -266,7 +266,7 @@ class Venda(BaseModel):
         cls, limite: int | None = None, apenas_ativas: bool = True
     ) -> list["Venda"]:
         """Busca todas as vendas"""
-        query = "SELECT * FROM vendas"
+        query = cls._SELECT_CAMPOS
         params = []
 
         if apenas_ativas:
@@ -283,20 +283,7 @@ class Venda(BaseModel):
 
         vendas = []
         for dados in resultados:
-            venda = cls(
-                id=dados[0],
-                cliente_id=dados[1],
-                data_venda=dados[2],
-                total=dados[3],
-                forma_pagamento=dados[4],
-                status=dados[5],
-                parcelas=dados[6],
-                desconto=dados[7] if len(dados) > 7 else 0.0,
-                observacao=dados[8] if len(dados) > 8 else "",
-                valor_entrada=dados[9] if len(dados) > 9 else 0.0,  # ADICIONADO
-                valor_financiado=dados[10] if len(dados) > 10 else None,  # ADICIONADO
-            )
-            vendas.append(venda)
+            vendas.append(cls._from_row(dados))
 
         return vendas
 
@@ -304,32 +291,42 @@ class Venda(BaseModel):
     def buscar_por_cliente(cls, cliente_id: int) -> list["Venda"]:
         """Busca vendas por cliente"""
         query = """
-            SELECT * FROM vendas
+            {campos}
             WHERE cliente_id = ? AND status != ?
             ORDER BY data_venda DESC
-        """
+        """.format(campos=cls._SELECT_CAMPOS)
         resultados = DatabaseUtils.executar_query(
             query, (cliente_id, VendaStatus.CANCELADA)
         )
 
         vendas = []
         for dados in resultados:
-            venda = cls(
-                id=dados[0],
-                cliente_id=dados[1],
-                data_venda=dados[2],
-                total=dados[3],
-                forma_pagamento=dados[4],
-                status=dados[5],
-                parcelas=dados[6],
-                desconto=dados[7] if len(dados) > 7 else 0.0,
-                observacao=dados[8] if len(dados) > 8 else "",
-                valor_entrada=dados[9] if len(dados) > 9 else 0.0,  # ADICIONADO
-                valor_financiado=dados[10] if len(dados) > 10 else None,  # ADICIONADO
-            )
-            vendas.append(venda)
+            vendas.append(cls._from_row(dados))
 
         return vendas
+
+    _SELECT_CAMPOS = """
+        SELECT id, cliente_id, data_venda, total_centavos, forma_pagamento,
+               status, parcelas, desconto_centavos, observacao,
+               valor_entrada_centavos, valor_financiado_centavos
+        FROM vendas
+    """
+
+    @classmethod
+    def _from_row(cls, dados) -> "Venda":
+        return cls(
+            id=dados[0],
+            cliente_id=dados[1],
+            data_venda=dados[2],
+            total=float(de_centavos(dados[3])),
+            forma_pagamento=dados[4],
+            status=dados[5],
+            parcelas=dados[6],
+            desconto=float(de_centavos(dados[7])),
+            observacao=dados[8],
+            valor_entrada=float(de_centavos(dados[9])),
+            valor_financiado=float(de_centavos(dados[10])),
+        )
 
     @classmethod
     def buscar_por_periodo(

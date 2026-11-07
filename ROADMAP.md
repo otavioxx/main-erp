@@ -42,6 +42,8 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
             precisam passar a usar os campos inteiros.
       - [x] Cálculos centrais de venda agora operam em centavos; os métodos legados
             continuam retornando valores em reais para preservar os contratos da UI.
+      - [x] O model de venda grava e recarrega os valores monetários pelos campos
+            `*_centavos`, mantendo as colunas antigas preenchidas para compatibilidade.
 - [x] Índices nas colunas mais filtradas (cliente, data, status); `PRAGMA foreign_keys`
       permanece ativo.
 
