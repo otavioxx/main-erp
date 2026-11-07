@@ -35,7 +35,7 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
 
         # ✅ CONFIGURAR TAMANHO INTELIGENTE
         # Para diálogos com tabela, use "large"
-        self.setup_dialog_size_large()
+        self.setup_dialog_size_large()  # type: ignore[reportAttributeAccessIssue]
 
     def init_ui(self):
         self.setWindowTitle("Selecionar Cliente")

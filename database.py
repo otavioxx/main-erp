@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import ClassVar
 
-from config import config, get_config
+from config import config
 
 
 class MigracaoError(RuntimeError):
@@ -42,8 +42,6 @@ class Database:
         if self.connection is None:
             self.connection = sqlite3.connect(self.db_name)
             self.connection.execute("PRAGMA foreign_keys = ON")
-            timezone = get_config("database.timezone", "-03:00")
-            self.connection.execute(f"PRAGMA timezone = '{timezone}'")
         return self.connection
 
     def close_connection(self):

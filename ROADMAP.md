@@ -11,8 +11,8 @@ sistema funcionando; não faça duas fases ao mesmo tempo.
       `views/base_view.py`, `utils/table_utils.py`, `utils/produto_validation.py`,
       `utils/config_backup.py`, `utils/duplicata_utils.py`, `utils/resources.py`,
       `models/item_pedido.py`, `dialogs/frete_desconto_dialog.py` (≈ 1,5 mil linhas).
-- [ ] Remover `PRAGMA timezone` em `database.py` (não existe no SQLite, não faz nada).
-- [ ] Adicionar `ruff` e um `pyproject.toml` com a configuração.
+- [x] Remover `PRAGMA timezone` em `database.py` (não existe no SQLite, não faz nada).
+- [x] Adicionar `ruff` e um `pyproject.toml` com a configuração.
 
 ## Fase 1 — Rede de segurança (1 a 2 semanas)
 

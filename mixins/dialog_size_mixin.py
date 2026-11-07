@@ -3,9 +3,9 @@ Mixin para dimensionamento inteligente de diálogos
 Adaptado automaticamente ao tamanho da tela e conteúdo
 """
 
-from typing import Protocol
+from typing import Protocol, overload
 
-from PyQt6.QtCore import QRect
+from PyQt6.QtCore import QPoint, QRect, QSize
 from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtWidgets import QSizePolicy, QWidget
 
@@ -13,20 +13,40 @@ from PyQt6.QtWidgets import QSizePolicy, QWidget
 class _DialogWidget(Protocol):
     def parentWidget(self) -> QWidget | None: ...
 
-    def setMinimumSize(self, width: int, height: int) -> None: ...
+    @overload
+    def setMinimumSize(self, size: QSize, /) -> None: ...
 
-    def resize(self, width: int, height: int) -> None: ...
+    @overload
+    def setMinimumSize(self, width: int, height: int, /) -> None: ...
 
-    def setFixedSize(self, width: int, height: int) -> None: ...
+    @overload
+    def resize(self, size: QSize, /) -> None: ...
+
+    @overload
+    def resize(self, width: int, height: int, /) -> None: ...
+
+    @overload
+    def setFixedSize(self, size: QSize, /) -> None: ...
+
+    @overload
+    def setFixedSize(self, width: int, height: int, /) -> None: ...
 
     def width(self) -> int: ...
 
     def height(self) -> int: ...
 
-    def move(self, x: int, y: int) -> None: ...
+    @overload
+    def move(self, point: QPoint, /) -> None: ...
 
+    @overload
+    def move(self, x: int, y: int, /) -> None: ...
+
+    @overload
+    def setSizePolicy(self, policy: QSizePolicy, /) -> None: ...
+
+    @overload
     def setSizePolicy(
-        self, horizontal: QSizePolicy.Policy, vertical: QSizePolicy.Policy
+        self, horizontal: QSizePolicy.Policy, vertical: QSizePolicy.Policy, /
     ) -> None: ...
 
     def sizePolicy(self) -> QSizePolicy: ...
@@ -36,6 +56,16 @@ class _DialogWidget(Protocol):
     def _get_screen_geometry(self) -> QRect: ...
 
     def _center_on_screen(self) -> None: ...
+
+    def setup_dialog_size(
+        self,
+        min_width: int = 300,
+        min_height: int = 200,
+        default_width_percent: float = 0.6,
+        default_height_percent: float = 0.7,
+        max_width_percent: float = 0.95,
+        max_height_percent: float = 0.95,
+    ) -> None: ...
 
 
 class DialogSizeMixin:

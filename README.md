@@ -9,7 +9,8 @@ recebimentos, estoque e relatórios/etiquetas em PDF. Feito em Python com PyQt6 
 
 - Windows 10/11
 - Python 3.10 ou superior (recomendado 3.12), com o "py launcher" instalado
-- Dependências em `requirements.txt` (PyQt6, reportlab, pytz, psutil, pywin32)
+- Dependências de execução em `requirements.txt` (PyQt6, reportlab, pytz, psutil, pywin32)
+- Desenvolvimento: `requirements-dev.txt` (dependências de execução + Ruff)
 
 ## Instalação (uso diário)
 
@@ -35,7 +36,7 @@ variável de ambiente `MAINERP_DATA`.
 ```bat
 python -m venv .venv
 .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 :: IMPORTANTE: use uma pasta de dados separada, senão o desenvolvimento
 :: mexe no mesmo banco que você usa no dia a dia.

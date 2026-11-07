@@ -18,7 +18,7 @@ class Config:
         # config.json fica na pasta de dados, fora do código das releases
         self.config_file = config_file or caminho_dados("config.json")
         self.default_config = {
-            "database": {"name": "erp.db", "timezone": "-03:00"},
+            "database": {"name": "erp.db"},
             "appearance": {
                 "theme": "dark",
                 "font_family": "Segoe UI",
