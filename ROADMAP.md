@@ -65,8 +65,9 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
 
 ## Fase 3 — Reestruturação (2 a 4 semanas)
 
-- [x] Corrigir os campos de inserção de valores da venda e da condicional; aceitar
-      valores com vírgula ou ponto decimal, separador de milhar e prefixo `R$`.
+- [x] Corrigir os campos de inserção de valores da venda e da condicional, incluindo
+      a exibição do valor no diálogo "Preço de Venda"; aceitar vírgula ou ponto decimal,
+      separador de milhar e prefixo `R$`.
 - [x] Criar o pacote `mainerp/` com núcleo, dados, domínio, UI e relatórios; manter `main.py`
       na raiz para o launcher.
 - [ ] Unificar as 9 cópias de `NumericTableWidgetItem` e as 2 de `BackupConfig`.
@@ -99,10 +100,15 @@ MainERP/
 
 ## Fase 4 — Operação e atualização online
 
-- [ ] Versionamento semântico + `CHANGELOG.md`.
+- [x] Manter o `CHANGELOG.md` com o histórico das versões 0.07 e 0.08.
+- [ ] Adotar versionamento semântico estrito (MAJOR.MINOR.PATCH).
 - [ ] Assinar os pacotes de release (ed25519) e validar a assinatura no launcher.
+- [x] Implementar no launcher a consulta opcional do manifesto, o download e a validação
+      SHA256 dos pacotes de atualização.
 - [ ] Hospedar `version.json` e o zip em HTTPS e preencher `update_url` no `launcher.json`.
-- [ ] Pipeline automático de release (GitHub Actions): ruff, testes, zip, SHA256.
+- [x] Gerar manualmente o ZIP e o manifesto `version.json` com SHA256 por
+      `distribuicao/criar_release.py`, e executar Ruff/pytest por `verificar.bat`.
+- [ ] Automatizar o pipeline de release no GitHub Actions (Ruff, testes, ZIP e SHA256).
 - [ ] Tela "Sobre / Atualizações" mostrando versão, data e histórico.
 
 ## Fase 5 — Produto (conforme a necessidade)
