@@ -29,6 +29,7 @@ def test_salvar_e_buscar_produto_preserva_precos_em_centavos(database):
     carregado = Produto.buscar_por_id(produto.id)
     produtos = Produto.buscar_todos()
 
+    assert carregado is not None
     assert carregado.preco_custo == 10.02
     assert carregado.preco_venda == 20.03
     assert carregado.fornecedor_nome == "Fornecedor"

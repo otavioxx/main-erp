@@ -1,7 +1,10 @@
 """Componentes de CondicionalView."""
 
+from typing import cast
+
 from PyQt6.QtWidgets import (
     QMessageBox,
+    QWidget,
 )
 
 from mainerp.core.app_logging import registrar_excecao
@@ -104,7 +107,7 @@ class _CondicionalViewActions(ComponentMixin):
             return
 
         resposta = QMessageBox.question(
-            self,
+            cast(QWidget, self),
             "Confirmar Conversão",
             f"Converter condicional #{condicional.id} em venda?\n"
             f"Cliente: {self._get_nome_cliente(condicional.cliente_id)}\n"
@@ -161,7 +164,7 @@ class _CondicionalViewActions(ComponentMixin):
             return
 
         resposta = QMessageBox.question(
-            self,
+            cast(QWidget, self),
             "Confirmar Devolução",
             f"Marcar condicional #{condicional.id} como devolvida?\n"
             f"Cliente: {self._get_nome_cliente(condicional.cliente_id)}\n"
@@ -196,7 +199,7 @@ class _CondicionalViewActions(ComponentMixin):
             return
 
         resposta = QMessageBox.question(
-            self,
+            cast(QWidget, self),
             "Confirmar Exclusão",
             f"Excluir condicional #{condicional.id}?\n"
             f"Cliente: {self._get_nome_cliente(condicional.cliente_id)}\n"

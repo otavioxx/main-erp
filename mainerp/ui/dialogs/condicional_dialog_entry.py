@@ -1,7 +1,5 @@
 """Componentes de CondicionalDialog."""
 
-
-
 from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QMessageBox,
@@ -9,6 +7,7 @@ from PyQt6.QtWidgets import (
 )
 
 from mainerp.core.app_logging import registrar_excecao
+from mainerp.data.money import de_centavos, para_centavos_localizado
 from mainerp.ui.mixins.component_mixin import ComponentMixin
 
 __all__ = ["_CondicionalDialogQuickEntry"]
@@ -208,7 +207,7 @@ class _CondicionalDialogQuickEntry(ComponentMixin):
         try:
             produto_id = int(codigo_texto)
             quantidade = int(quantidade_texto)
-            valor_venda = float(valor_texto.replace(",", "."))
+            valor_venda = float(de_centavos(para_centavos_localizado(valor_texto)))
 
             if quantidade <= 0:
                 QMessageBox.warning(

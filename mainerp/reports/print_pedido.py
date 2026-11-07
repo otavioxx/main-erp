@@ -275,12 +275,12 @@ class PrintPedido:
                 # Acessar os itens com estrutura corrigida
                 # 0=id, 1=produto_id, 2=nome, 3=cor, 4=tamanho, 5=referencia,
                 # 6=quantidade, 7=preco_custo, 8=preco_venda, 9=subtotal
-                produto_id = item[1] if len(item) > 1 else "N/A"
-                produto_nome = item[2] if len(item) > 2 else "Produto desconhecido"
-                cor = item[3] if len(item) > 3 and item[3] else ""
-                tamanho = item[4] if len(item) > 4 and item[4] else ""
-                referencia = item[5] if len(item) > 5 and item[5] else ""
-                quantidade = item[6] if len(item) > 6 else 0
+                produto_id = str(item[1]) if len(item) > 1 else "N/A"
+                produto_nome = str(item[2]) if len(item) > 2 else "Produto desconhecido"
+                cor = str(item[3]) if len(item) > 3 and item[3] else ""
+                tamanho = str(item[4]) if len(item) > 4 and item[4] else ""
+                referencia = str(item[5]) if len(item) > 5 and item[5] else ""
+                quantidade = int(item[6]) if len(item) > 6 and item[6] else 0
                 preco_custo = float(item[7]) if len(item) > 7 and item[7] else 0.0
                 preco_venda = float(item[8]) if len(item) > 8 and item[8] else 0.0
                 subtotal_item = float(item[9]) if len(item) > 9 and item[9] else 0.0

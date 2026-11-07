@@ -43,7 +43,7 @@ class _RecebimentoViewFilters(ComponentMixin):
 
         except Exception as e:
             self.label_info.setText("(Erro ao carregar)")
-            QMessageBox.critical(self, "Erro", f"Erro ao carregar duplicatas: {e!s}")
+            QMessageBox.critical(None, "Erro", f"Erro ao carregar duplicatas: {e!s}")
 
     def _inicializar_cache_parcelas(self):
         """Inicializa cache de total de parcelas por venda"""

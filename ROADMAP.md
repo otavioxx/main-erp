@@ -65,6 +65,8 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
 
 ## Fase 3 — Reestruturação (2 a 4 semanas)
 
+- [x] Corrigir os campos de inserção de valores da venda e da condicional; aceitar
+      valores com vírgula ou ponto decimal, separador de milhar e prefixo `R$`.
 - [x] Criar o pacote `mainerp/` com núcleo, dados, domínio, UI e relatórios; manter `main.py`
       na raiz para o launcher.
 - [ ] Unificar as 9 cópias de `NumericTableWidgetItem` e as 2 de `BackupConfig`.

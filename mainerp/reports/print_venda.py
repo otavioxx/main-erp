@@ -1,7 +1,7 @@
 import io
 import logging
 import os
-from datetime import datetime
+from datetime import date, datetime
 
 from PIL import Image as PILImage
 from reportlab.lib import colors
@@ -366,9 +366,12 @@ class PrintVenda:
                                     data_obj = datetime.strptime(
                                         data_vencimento, "%Y-%m-%d"
                                     )
-                                else:
+                                    data_formatada = data_obj.strftime("%d/%m/%Y")
+                                elif isinstance(data_vencimento, (date, datetime)):
                                     data_obj = data_vencimento
-                                data_formatada = data_obj.strftime("%d/%m/%Y")
+                                    data_formatada = data_obj.strftime("%d/%m/%Y")
+                                else:
+                                    data_formatada = str(data_vencimento)
                             except (AttributeError, TypeError, ValueError):
                                 registrar_excecao(
                                     __name__,
@@ -457,7 +460,7 @@ class PrintVenda:
                 produto_nome = item[2] if len(item) > 2 else "Produto desconhecido"
                 cor = item[3] if len(item) > 3 and item[3] else ""
                 tamanho = item[4] if len(item) > 4 and item[4] else ""
-                quantidade = item[5] if len(item) > 5 else 0
+                quantidade = int(item[5]) if len(item) > 5 and item[5] else 0
                 preco_unitario = float(item[6]) if len(item) > 6 and item[6] else 0.0
 
                 # Calcular subtotal do item

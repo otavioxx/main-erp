@@ -1,6 +1,5 @@
 """Componentes de ProdutoVendaDialog."""
 
-
 from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QMessageBox,
@@ -9,6 +8,7 @@ from PyQt6.QtWidgets import (
 
 from mainerp.core.app_logging import registrar_excecao
 from mainerp.data.models.produto import Produto
+from mainerp.data.money import de_centavos, para_centavos_localizado
 from mainerp.ui.mixins.component_mixin import ComponentMixin
 
 __all__ = ["_VendaDialogQuickEntry"]
@@ -209,7 +209,7 @@ class _VendaDialogQuickEntry(ComponentMixin):
             quantidade = int(quantidade_texto)
 
             # Converter valor (aceita vírgula ou ponto)
-            valor_venda = float(valor_texto.replace(",", "."))
+            valor_venda = float(de_centavos(para_centavos_localizado(valor_texto)))
 
             if quantidade <= 0:
                 QMessageBox.warning(

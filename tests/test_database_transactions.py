@@ -101,6 +101,7 @@ def test_base_model_usa_o_gerenciador_de_transacoes(monkeypatch, tmp_path):
         )
         registro = Registro.buscar_por_id(row_id)
 
+        assert registro is not None
         assert registro.valor == "teste"
     finally:
         database.close_connection()
@@ -113,9 +114,9 @@ def test_cliente_e_empresa_usam_o_gerenciador_compartilhado(monkeypatch, tmp_pat
     try:
         cliente = cliente_model.Cliente(nome="Cliente de teste")
         cliente.salvar()
-        assert (
-            cliente_model.Cliente.buscar_por_id(cliente.id).nome == "Cliente de teste"
-        )
+        cliente_encontrado = cliente_model.Cliente.buscar_por_id(cliente.id)
+        assert cliente_encontrado is not None
+        assert cliente_encontrado.nome == "Cliente de teste"
         assert len(cliente_model.Cliente.buscar_todos()) == 1
 
         empresa = empresa_model.Empresa(nome="Empresa de teste")
@@ -143,12 +144,15 @@ def test_pedido_e_condicional_usam_transacoes_compartilhadas(monkeypatch, tmp_pa
 
         pedido = pedido_model.Pedido(fornecedor_id=1, valor_total=10)
         assert pedido.salvar() == pedido.id
-        assert pedido_model.Pedido.buscar_por_id(pedido.id).fornecedor_id == 1
+        pedido_encontrado = pedido_model.Pedido.buscar_por_id(pedido.id)
+        assert pedido_encontrado is not None
+        assert pedido_encontrado.fornecedor_id == 1
 
         condicional = condicional_model.Condicional(cliente_id=1)
         condicional.itens = [{"produto_id": 1, "quantidade": 2, "preco_unitario": 20}]
         assert condicional.salvar() == condicional.id
         carregada = condicional_model.Condicional.buscar_por_id(condicional.id)
+        assert carregada is not None
         assert carregada.cliente_id == 1
         assert carregada.itens[0]["produto_id"] == 1
         assert len(condicional_model.Condicional.buscar_todas()) == 1

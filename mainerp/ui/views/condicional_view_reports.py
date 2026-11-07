@@ -103,12 +103,12 @@ class _CondicionalViewReports(ComponentMixin):
 
     def _mostrar_erro(self, titulo, mensagem):
         """Mostra mensagem de erro"""
-        QMessageBox.critical(self, titulo, mensagem)
+        QMessageBox.critical(None, titulo, mensagem)
 
     def _mostrar_aviso(self, mensagem):
         """Mostra mensagem de aviso"""
-        QMessageBox.warning(self, "Aviso", mensagem)
+        QMessageBox.warning(None, "Aviso", mensagem)
 
     def _mostrar_sucesso(self, mensagem):
         """Mostra mensagem de sucesso"""
-        QMessageBox.information(self, "Sucesso", mensagem)
+        QMessageBox.information(None, "Sucesso", mensagem)

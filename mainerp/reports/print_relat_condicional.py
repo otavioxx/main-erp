@@ -1,7 +1,7 @@
 import io
 import logging
 import os
-from datetime import datetime
+from datetime import date, datetime
 
 from PIL import Image as PILImage
 from reportlab.lib import colors
@@ -496,10 +496,17 @@ class PrintRelatCondicional:
                                 f"Data inválida para condicional {condicional[0]}: {condicional_data}"
                             )
                             continue
-                    elif hasattr(condicional_data, "date"):
+                    elif isinstance(condicional_data, datetime):
                         condicional_data_dt = condicional_data.date()
-                    else:
+                    elif isinstance(condicional_data, date):
                         condicional_data_dt = condicional_data
+                    else:
+                        logger.warning(
+                            "Data inválida para condicional %s: %r",
+                            condicional[0],
+                            condicional_data,
+                        )
+                        continue
 
                     # FILTRO POR DATA
                     if (

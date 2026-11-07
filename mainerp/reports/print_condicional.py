@@ -309,11 +309,13 @@ class PrintCondicional:
 
                 for item in itens:
                     # Estrutura da tupla: id, produto_id, nome, cor, tamanho, quantidade, preco_unitario
-                    produto_id = item[1] if len(item) > 1 else "N/A"
-                    produto_nome = item[2] if len(item) > 2 else "Produto desconhecido"
-                    cor = item[3] if len(item) > 3 and item[3] else ""
-                    tamanho = item[4] if len(item) > 4 and item[4] else ""
-                    quantidade = item[5] if len(item) > 5 else 0
+                    produto_id = str(item[1]) if len(item) > 1 else "N/A"
+                    produto_nome = (
+                        str(item[2]) if len(item) > 2 else "Produto desconhecido"
+                    )
+                    cor = str(item[3]) if len(item) > 3 and item[3] else ""
+                    tamanho = str(item[4]) if len(item) > 4 and item[4] else ""
+                    quantidade = int(item[5]) if len(item) > 5 and item[5] else 0
                     preco_unit = float(item[6]) if len(item) > 6 and item[6] else 0.0
 
                     total_centavos += para_centavos(preco_unit) * quantidade

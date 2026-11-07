@@ -1,9 +1,11 @@
 """Componentes de RecebimentoView."""
 
 import logging
+from typing import cast
 
 from PyQt6.QtWidgets import (
     QMessageBox,
+    QWidget,
 )
 
 from mainerp.core.exceptions import ErroERP
@@ -28,12 +30,16 @@ class _RecebimentoViewActions(ComponentMixin):
         """Processa recebimento de duplicata"""
         duplicata = self._get_duplicata_selecionada()
         if not duplicata:
-            QMessageBox.warning(self, "Aviso", "Selecione uma duplicata para receber")
+            QMessageBox.warning(
+                cast(QWidget, self), "Aviso", "Selecione uma duplicata para receber"
+            )
             return
 
         # Verificar se já está paga
         if duplicata[7] == "pago":  # status na posição 7
-            QMessageBox.warning(self, "Aviso", "Esta duplicata já está paga")
+            QMessageBox.warning(
+                cast(QWidget, self), "Aviso", "Esta duplicata já está paga"
+            )
             return
 
         dialog = RecebimentoDialog(duplicata, self)
@@ -46,7 +52,9 @@ class _RecebimentoViewActions(ComponentMixin):
                 )
 
                 QMessageBox.information(
-                    self, "Sucesso", "Recebimento processado com sucesso!"
+                    cast(QWidget, self),
+                    "Sucesso",
+                    "Recebimento processado com sucesso!",
                 )
 
                 # Perguntar sobre impressão
@@ -58,7 +66,7 @@ class _RecebimentoViewActions(ComponentMixin):
 
             except Exception as e:
                 QMessageBox.critical(
-                    self, "Erro", f"Erro ao processar recebimento: {e!s}"
+                    cast(QWidget, self), "Erro", f"Erro ao processar recebimento: {e!s}"
                 )
 
     def _processar_recebimento_com_retorno(
@@ -132,22 +140,24 @@ class _RecebimentoViewActions(ComponentMixin):
                     logger.info("Comprovante de recebimento gerado")
                 else:
                     QMessageBox.information(
-                        self,
+                        cast(QWidget, self),
                         "Sucesso",
                         f"Comprovante salvo em:\n{filename}\n\nNão foi possível abrir automaticamente.",
                     )
             else:
                 QMessageBox.warning(
-                    self, "Erro", "Não foi possível gerar o comprovante."
+                    cast(QWidget, self), "Erro", "Não foi possível gerar o comprovante."
                 )
 
         except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao gerar comprovante: {e!s}")
+            QMessageBox.critical(
+                cast(QWidget, self), "Erro", f"Erro ao gerar comprovante: {e!s}"
+            )
 
     def _confirmar_impressao(self):
         """Confirma se usuário quer imprimir comprovante"""
         resposta = QMessageBox.question(
-            self,
+            cast(QWidget, self),
             "Imprimir Comprovante",
             "Deseja imprimir o comprovante de pagamento?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
@@ -164,10 +174,12 @@ class _RecebimentoViewActions(ComponentMixin):
             cliente_id = None
 
             if data_inicio_str and not validar_data(data_inicio_str):
-                QMessageBox.warning(self, "Aviso", "Data inicial inválida")
+                QMessageBox.warning(
+                    cast(QWidget, self), "Aviso", "Data inicial inválida"
+                )
                 return
             if data_fim_str and not validar_data(data_fim_str):
-                QMessageBox.warning(self, "Aviso", "Data final inválida")
+                QMessageBox.warning(cast(QWidget, self), "Aviso", "Data final inválida")
                 return
 
             filename = PrintRelatRecebimento.gerar_relatorio(
@@ -176,17 +188,19 @@ class _RecebimentoViewActions(ComponentMixin):
 
             if filename and ExportUtils.abrir_arquivo(filename):
                 QMessageBox.information(
-                    self, "Sucesso", f"Relatório exportado:\n{filename}"
+                    cast(QWidget, self), "Sucesso", f"Relatório exportado:\n{filename}"
                 )
             else:
                 QMessageBox.warning(
-                    self,
+                    cast(QWidget, self),
                     "Arquivo salvo",
                     f"Arquivo salvo em: {filename}\nNão foi possível abrir automaticamente.",
                 )
         except Exception as e:
             QMessageBox.critical(
-                self, "Erro na Exportação", f"Erro ao exportar relatório:\n{e!s}"
+                cast(QWidget, self),
+                "Erro na Exportação",
+                f"Erro ao exportar relatório:\n{e!s}",
             )
 
     def _marcar_campo_erro(self, campo):

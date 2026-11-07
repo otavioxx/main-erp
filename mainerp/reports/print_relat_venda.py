@@ -1,7 +1,7 @@
 import io
 import logging
 import os
-from datetime import datetime
+from datetime import date, datetime
 
 from PIL import Image as PILImage
 from reportlab.lib import colors
@@ -384,6 +384,10 @@ class PrintRelatVenda:
                         venda_data = datetime.strptime(venda_data, "%Y-%m-%d").date()
                     except (ValueError, TypeError):
                         continue
+                elif isinstance(venda_data, datetime):
+                    venda_data = venda_data.date()
+                elif not isinstance(venda_data, date):
+                    continue
 
                 # Filtro por data
                 if venda_data < data_inicio_dt or venda_data > data_fim_dt:

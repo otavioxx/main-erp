@@ -65,6 +65,7 @@ def test_salvar_e_carregar_pedido_usa_valores_em_centavos(database):
     pedido.salvar()
     carregado = pedido_model.Pedido.buscar_por_id(pedido.id)
 
+    assert carregado is not None
     assert carregado.valor_total == 10.02
     assert carregado.valor_frete == 1.03
     assert carregado.desconto == 0.34

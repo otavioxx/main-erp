@@ -2,7 +2,11 @@ from decimal import Decimal
 
 import pytest
 
-from mainerp.data.money import de_centavos, para_centavos
+from mainerp.data.money import (
+    de_centavos,
+    para_centavos,
+    para_centavos_localizado,
+)
 from mainerp.domain.utils.helpers import aplicar_desconto_total, calcular_subtotal
 
 
@@ -30,6 +34,28 @@ def test_de_centavos_retorna_decimal_exato():
 def test_para_centavos_rejeita_valor_invalido():
     with pytest.raises(ValueError, match="Valor monetário inválido"):
         para_centavos("não é dinheiro")
+
+
+@pytest.mark.parametrize(
+    ("texto", "esperado"),
+    [
+        ("12,34", 1234),
+        ("12.34", 1234),
+        ("1.234,56", 123456),
+        ("1,234.56", 123456),
+        ("R$ 1.234,56", 123456),
+        ("-1.234,56", -123456),
+        ("1234", 123400),
+    ],
+)
+def test_para_centavos_localizado_aceita_mascaras_comuns(texto, esperado):
+    assert para_centavos_localizado(texto) == esperado
+
+
+@pytest.mark.parametrize("texto", ["", "R$", "1.23,45", "1,23.45.67", "abc"])
+def test_para_centavos_localizado_rejeita_texto_invalido(texto):
+    with pytest.raises(ValueError, match="Valor monetário inválido"):
+        para_centavos_localizado(texto)
 
 
 def test_helpers_de_itens_calculam_subtotal_e_desconto_em_centavos():
