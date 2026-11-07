@@ -1,11 +1,23 @@
-#\erp\views\config_selection_dialog.py
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTableWidget,
-                             QTableWidgetItem, QHeaderView, QLineEdit,
-                             QLabel, QDialogButtonBox, QFrame, QComboBox)
+# \erp\views\config_selection_dialog.py
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QFrame,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+)
+
 from models.empresa import Empresa
 from utils.helpers import aplicar_maiuscula_formulario
+
 
 class ConfigSelectionDialog(QDialog):
     def __init__(self, parent=None):
@@ -62,9 +74,15 @@ class ConfigSelectionDialog(QDialog):
         self.tabela.setColumnCount(3)
         self.tabela.setHorizontalHeaderLabels(["Chave", "Valor", "Categoria"])
 
-        self.tabela.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        self.tabela.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.tabela.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.tabela.horizontalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Interactive
+        )
+        self.tabela.horizontalHeader().setSectionResizeMode(
+            0, QHeaderView.ResizeMode.Stretch
+        )
+        self.tabela.horizontalHeader().setSectionResizeMode(
+            1, QHeaderView.ResizeMode.Stretch
+        )
 
         self.tabela.setColumnWidth(2, 100)
 
@@ -83,8 +101,9 @@ class ConfigSelectionDialog(QDialog):
         buttons_layout = QHBoxLayout()
         buttons_layout.setContentsMargins(0, 0, 0, 0)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok |
-                                  QDialogButtonBox.StandardButton.Cancel)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
         buttons.accepted.connect(self.accept_selection)
         buttons.rejected.connect(self.reject)
 
@@ -98,17 +117,37 @@ class ConfigSelectionDialog(QDialog):
 
     def carregar_configuracoes(self):
         self.configuracoes = [
-            {"chave": "empresa.nome", "valor": "Nome da Empresa", "categoria": "Empresa"},
-            {"chave": "empresa.cnpj", "valor": "CNPJ da Empresa", "categoria": "Empresa"},
-            {"chave": "empresa.endereco", "valor": "Endereço Completo", "categoria": "Empresa"},
-            {"chave": "empresa.telefone", "valor": "(00) 00000-0000", "categoria": "Empresa"},
-            {"chave": "empresa.email", "valor": "contato@empresa.com", "categoria": "Empresa"},
+            {
+                "chave": "empresa.nome",
+                "valor": "Nome da Empresa",
+                "categoria": "Empresa",
+            },
+            {
+                "chave": "empresa.cnpj",
+                "valor": "CNPJ da Empresa",
+                "categoria": "Empresa",
+            },
+            {
+                "chave": "empresa.endereco",
+                "valor": "Endereço Completo",
+                "categoria": "Empresa",
+            },
+            {
+                "chave": "empresa.telefone",
+                "valor": "(00) 00000-0000",
+                "categoria": "Empresa",
+            },
+            {
+                "chave": "empresa.email",
+                "valor": "contato@empresa.com",
+                "categoria": "Empresa",
+            },
             {"chave": "sistema.tema", "valor": "Escuro", "categoria": "Sistema"},
             {"chave": "sistema.idioma", "valor": "Português", "categoria": "Sistema"},
             {"chave": "sistema.moeda", "valor": "R$", "categoria": "Sistema"},
             {"chave": "backup.automatico", "valor": "Ativado", "categoria": "Backup"},
             {"chave": "backup.frequencia", "valor": "Diário", "categoria": "Backup"},
-            {"chave": "backup.ultimo", "valor": "2024-01-01", "categoria": "Backup"}
+            {"chave": "backup.ultimo", "valor": "2024-01-01", "categoria": "Backup"},
         ]
 
         empresa = Empresa.buscar()
@@ -128,14 +167,17 @@ class ConfigSelectionDialog(QDialog):
         if categoria_filtro == "Todas":
             configs_filtradas = self.configuracoes
         else:
-            configs_filtradas = [c for c in self.configuracoes if c["categoria"] == categoria_filtro]
+            configs_filtradas = [
+                c for c in self.configuracoes if c["categoria"] == categoria_filtro
+            ]
 
         if texto_busca:
             configs_filtradas = [
-                c for c in configs_filtradas
-                if texto_busca in c["chave"].lower() or
-                   texto_busca in str(c["valor"]).lower() or
-                   texto_busca in c["categoria"].lower()
+                c
+                for c in configs_filtradas
+                if texto_busca in c["chave"].lower()
+                or texto_busca in str(c["valor"]).lower()
+                or texto_busca in c["categoria"].lower()
             ]
 
         self.tabela.setRowCount(len(configs_filtradas))
@@ -157,14 +199,18 @@ class ConfigSelectionDialog(QDialog):
         row = index.row()
         if row >= 0 and row < self.tabela.rowCount():
             chave = self.tabela.item(row, 0).text()
-            self.configuracao_selecionada = next((c for c in self.configuracoes if c["chave"] == chave), None)
+            self.configuracao_selecionada = next(
+                (c for c in self.configuracoes if c["chave"] == chave), None
+            )
             self.accept()
 
     def accept_selection(self):
         row = self.tabela.currentRow()
         if row != -1 and row < self.tabela.rowCount():
             chave = self.tabela.item(row, 0).text()
-            self.configuracao_selecionada = next((c for c in self.configuracoes if c["chave"] == chave), None)
+            self.configuracao_selecionada = next(
+                (c for c in self.configuracoes if c["chave"] == chave), None
+            )
         self.accept()
 
     def get_configuracao_selecionada(self):

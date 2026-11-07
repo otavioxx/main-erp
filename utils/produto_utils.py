@@ -1,6 +1,8 @@
-#\erp\utils\produto_utils.py
-from utils.helpers import formatar_moeda
+# \erp\utils\produto_utils.py
 from PyQt6.QtGui import QBrush, QColor
+
+from utils.helpers import formatar_moeda
+
 
 class ProdutoUtils:
     @staticmethod
@@ -28,18 +30,24 @@ class ProdutoUtils:
     @staticmethod
     def formatar_item_produto(produto, incluir_fornecedor=True):
         """Formata os dados do produto para exibição"""
-        lucro = ProdutoUtils.calcular_lucro_percentual(produto.preco_custo, produto.preco_venda)
-        markup = ProdutoUtils.calcular_markup_percentual(produto.preco_custo, produto.preco_venda)
+        lucro = ProdutoUtils.calcular_lucro_percentual(
+            produto.preco_custo, produto.preco_venda
+        )
+        markup = ProdutoUtils.calcular_markup_percentual(
+            produto.preco_custo, produto.preco_venda
+        )
 
         dados = {
-            'id': str(produto.id),
-            'nome': produto.nome or "",
-            'preco_custo': formatar_moeda(produto.preco_custo),
-            'preco_venda': formatar_moeda(produto.preco_venda),
-            'estoque': str(produto.estoque),
-            'lucro': f"{lucro:.1f}%",
-            'markup': f"{markup:.1f}%",
-            'fornecedor': getattr(produto, 'fornecedor_nome', 'Nenhum') if incluir_fornecedor else ""
+            "id": str(produto.id),
+            "nome": produto.nome or "",
+            "preco_custo": formatar_moeda(produto.preco_custo),
+            "preco_venda": formatar_moeda(produto.preco_venda),
+            "estoque": str(produto.estoque),
+            "lucro": f"{lucro:.1f}%",
+            "markup": f"{markup:.1f}%",
+            "fornecedor": getattr(produto, "fornecedor_nome", "Nenhum")
+            if incluir_fornecedor
+            else "",
         }
 
         return dados, lucro, markup

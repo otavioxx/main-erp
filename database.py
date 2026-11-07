@@ -1,4 +1,4 @@
-#\erp\database.py
+# \erp\database.py
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -41,7 +41,7 @@ class Database:
         if self.connection is None:
             self.connection = sqlite3.connect(self.db_name)
             self.connection.execute("PRAGMA foreign_keys = ON")
-            timezone = get_config('database.timezone', '-03:00')
+            timezone = get_config("database.timezone", "-03:00")
             self.connection.execute(f"PRAGMA timezone = '{timezone}'")
         return self.connection
 
@@ -132,35 +132,43 @@ class Database:
         self.init_database()
         cursor = self.get_connection().cursor()
 
-        self._garantir_coluna(cursor, 'condicionais', 'desconto', 'REAL DEFAULT 0')
+        self._garantir_coluna(cursor, "condicionais", "desconto", "REAL DEFAULT 0")
 
-        for campo, tipo in (('tamanho', 'TEXT'), ('cor', 'TEXT'),
-                            ('ea', 'TEXT'), ('referencia', 'TEXT')):
-            self._garantir_coluna(cursor, 'produtos', campo, tipo)
+        for campo, tipo in (
+            ("tamanho", "TEXT"),
+            ("cor", "TEXT"),
+            ("ea", "TEXT"),
+            ("referencia", "TEXT"),
+        ):
+            self._garantir_coluna(cursor, "produtos", campo, tipo)
 
-        if self._garantir_coluna(cursor, 'itens_pedido', 'preco_venda', 'REAL DEFAULT 0'):
+        if self._garantir_coluna(
+            cursor, "itens_pedido", "preco_venda", "REAL DEFAULT 0"
+        ):
             cursor.execute("""
                 UPDATE itens_pedido
                 SET preco_venda = preco_custo * 1.3
                 WHERE preco_venda = 0 OR preco_venda IS NULL
             """)
 
-        self._garantir_coluna(cursor, 'vendas', 'observacao', "TEXT DEFAULT ''")
-        self._garantir_coluna(cursor, 'vendas', 'valor_entrada', 'REAL DEFAULT 0')
-        if self._garantir_coluna(cursor, 'vendas', 'valor_financiado', 'REAL DEFAULT 0'):
+        self._garantir_coluna(cursor, "vendas", "observacao", "TEXT DEFAULT ''")
+        self._garantir_coluna(cursor, "vendas", "valor_entrada", "REAL DEFAULT 0")
+        if self._garantir_coluna(
+            cursor, "vendas", "valor_financiado", "REAL DEFAULT 0"
+        ):
             cursor.execute("""
                 UPDATE vendas
                 SET valor_financiado = total
                 WHERE valor_financiado = 0 OR valor_financiado IS NULL
             """)
 
-        self._garantir_coluna(cursor, 'pedidos', 'desconto', 'REAL DEFAULT 0')
+        self._garantir_coluna(cursor, "pedidos", "desconto", "REAL DEFAULT 0")
 
     def init_database(self):
         conn = self.get_connection()
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS empresa (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nome TEXT NOT NULL,
@@ -170,9 +178,9 @@ class Database:
                 email TEXT,
                 logo BLOB
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS clientes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nome TEXT NOT NULL,
@@ -184,15 +192,15 @@ class Database:
                 data_cadastro DATE,
                 ativo BOOLEAN DEFAULT 1
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_clientes_cpf_cnpj_unique
             ON clientes(cpf_cnpj)
             WHERE cpf_cnpj IS NOT NULL AND cpf_cnpj != ''
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS fornecedores (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nome TEXT NOT NULL,
@@ -203,16 +211,16 @@ class Database:
                 observacao TEXT,
                 ativo BOOLEAN DEFAULT 1
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE UNIQUE INDEX IF NOT EXISTS idx_fornecedores_cnpj_unique
             ON fornecedores(cnpj)
             WHERE cnpj IS NOT NULL AND cnpj != ''
-        ''')
+        """)
 
         # Tabela produtos com todos os campos (novos e antigos)
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS produtos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 nome TEXT NOT NULL,
@@ -227,9 +235,9 @@ class Database:
                 referencia TEXT,
                 FOREIGN KEY (fornecedor_id) REFERENCES fornecedores (id)
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS vendas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 cliente_id INTEGER,
@@ -244,9 +252,9 @@ class Database:
                 observacao TEXT DEFAULT '',
                 FOREIGN KEY (cliente_id) REFERENCES clientes (id)
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS itens_venda (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 venda_id INTEGER,
@@ -257,9 +265,9 @@ class Database:
                 FOREIGN KEY (venda_id) REFERENCES vendas (id) ON DELETE CASCADE,
                 FOREIGN KEY (produto_id) REFERENCES produtos (id)
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS duplicatas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 venda_id INTEGER,
@@ -272,9 +280,9 @@ class Database:
                 FOREIGN KEY (venda_id) REFERENCES vendas (id),
                 FOREIGN KEY (cliente_id) REFERENCES clientes (id)
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS duplicatas_pagas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 venda_id INTEGER,
@@ -289,9 +297,9 @@ class Database:
                 FOREIGN KEY (venda_id) REFERENCES vendas (id),
                 FOREIGN KEY (cliente_id) REFERENCES clientes (id)
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS condicionais (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 cliente_id INTEGER NOT NULL,
@@ -302,9 +310,9 @@ class Database:
                 desconto REAL DEFAULT 0,
                 FOREIGN KEY (cliente_id) REFERENCES clientes (id)
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS itens_condicional (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 condicional_id INTEGER NOT NULL,
@@ -314,9 +322,9 @@ class Database:
                 FOREIGN KEY (condicional_id) REFERENCES condicionais (id) ON DELETE CASCADE,
                 FOREIGN KEY (produto_id) REFERENCES produtos (id)
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS pedidos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 fornecedor_id INTEGER NOT NULL,
@@ -329,9 +337,9 @@ class Database:
                 status TEXT DEFAULT 'pendente', -- pendente, recebido, cancelado
                 FOREIGN KEY (fornecedor_id) REFERENCES fornecedores (id)
             )
-        ''')
+        """)
 
-        cursor.execute('''
+        cursor.execute("""
             CREATE TABLE IF NOT EXISTS itens_pedido (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 pedido_id INTEGER NOT NULL,
@@ -342,4 +350,4 @@ class Database:
                 FOREIGN KEY (pedido_id) REFERENCES pedidos (id) ON DELETE CASCADE,
                 FOREIGN KEY (produto_id) REFERENCES produtos (id)
             )
-        ''')
+        """)

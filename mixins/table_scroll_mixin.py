@@ -20,9 +20,12 @@ class TableScrollNavigationMixin:
                 self.setup_scroll_navigation(self.minha_tabela)
     """
 
-    def setup_scroll_navigation(self, tabela: QTableWidget,
-                                scroll_sensibilidade: int = 1,
-                                auto_select_first: bool = True):
+    def setup_scroll_navigation(
+        self,
+        tabela: QTableWidget,
+        scroll_sensibilidade: int = 1,
+        auto_select_first: bool = True,
+    ):
         """
         Configura a navegação por scroll na tabela.
 
@@ -53,13 +56,19 @@ class TableScrollNavigationMixin:
         Filtra eventos para capturar wheel events na tabela.
         """
         # Verificar se é evento de wheel na viewport da nossa tabela
-        if (hasattr(self, '_scroll_table') and
-            obj == self._scroll_table.viewport() and
-            event.type() == QEvent.Type.Wheel):
+        if (
+            hasattr(self, "_scroll_table")
+            and obj == self._scroll_table.viewport()
+            and event.type() == QEvent.Type.Wheel
+        ):
             return self._handle_wheel_event(event)
 
         # Passar para o handler padrão
-        return super().eventFilter(obj, event) if hasattr(super(), 'eventFilter') else False
+        return (
+            super().eventFilter(obj, event)
+            if hasattr(super(), "eventFilter")
+            else False
+        )
 
     def _handle_wheel_event(self, event):
         """
@@ -96,7 +105,9 @@ class TableScrollNavigationMixin:
         # Verificar se atingiu o threshold para mudar de linha
         if abs(self._scroll_acumulado) >= self._scroll_threshold:
             # Calcular quantas linhas mover
-            linhas_para_mover = (abs(self._scroll_acumulado) // self._scroll_threshold) * self._scroll_sensibilidade
+            linhas_para_mover = (
+                abs(self._scroll_acumulado) // self._scroll_threshold
+            ) * self._scroll_sensibilidade
 
             if self._scroll_acumulado > 0:
                 # Scroll para cima (linha anterior)
@@ -136,7 +147,9 @@ class TableScrollNavigationMixin:
 
             # obter limites visíveis
             primeira_visivel = self._scroll_table.rowAt(0)
-            ultima_visivel = self._scroll_table.rowAt(self._scroll_table.viewport().height() - 1)
+            ultima_visivel = self._scroll_table.rowAt(
+                self._scroll_table.viewport().height() - 1
+            )
 
             if primeira_visivel == -1:
                 primeira_visivel = 0
@@ -147,12 +160,16 @@ class TableScrollNavigationMixin:
             if step > 0 and atual >= ultima_visivel:
                 item = self._scroll_table.item(proxima, 0)
                 if item:
-                    self._scroll_table.scrollToItem(item, QTableWidget.ScrollHint.PositionAtBottom)
+                    self._scroll_table.scrollToItem(
+                        item, QTableWidget.ScrollHint.PositionAtBottom
+                    )
             # se estamos indo para cima e a linha atual é a primeira visível -> rolar para cima
             elif step < 0 and atual <= primeira_visivel:
                 item = self._scroll_table.item(proxima, 0)
                 if item:
-                    self._scroll_table.scrollToItem(item, QTableWidget.ScrollHint.PositionAtTop)
+                    self._scroll_table.scrollToItem(
+                        item, QTableWidget.ScrollHint.PositionAtTop
+                    )
 
             # selecionar a próxima linha sem forçar nova lógica de "garantir visibilidade"
             self._selecionar_linha(proxima, garantir_visivel=False)
@@ -181,7 +198,9 @@ class TableScrollNavigationMixin:
             return
 
         primeira_visivel = self._scroll_table.rowAt(0)
-        ultima_visivel = self._scroll_table.rowAt(self._scroll_table.viewport().height() - 1)
+        ultima_visivel = self._scroll_table.rowAt(
+            self._scroll_table.viewport().height() - 1
+        )
 
         if primeira_visivel == -1:
             primeira_visivel = 0
@@ -191,7 +210,9 @@ class TableScrollNavigationMixin:
         if linha < primeira_visivel:
             self._scroll_table.scrollToItem(item, QTableWidget.ScrollHint.PositionAtTop)
         elif linha > ultima_visivel:
-            self._scroll_table.scrollToItem(item, QTableWidget.ScrollHint.PositionAtBottom)
+            self._scroll_table.scrollToItem(
+                item, QTableWidget.ScrollHint.PositionAtBottom
+            )
         # senao: já está visível -> não faz nada
 
     def set_scroll_sensibilidade(self, sensibilidade: int):
@@ -216,12 +237,12 @@ class TableScrollNavigationMixin:
         """
         Desativa a navegação por scroll (útil temporariamente).
         """
-        if hasattr(self, '_scroll_table'):
+        if hasattr(self, "_scroll_table"):
             self._scroll_table.viewport().removeEventFilter(self)
 
     def enable_scroll_navigation(self):
         """
         Reativa a navegação por scroll.
         """
-        if hasattr(self, '_scroll_table'):
+        if hasattr(self, "_scroll_table"):
             self._scroll_table.viewport().installEventFilter(self)

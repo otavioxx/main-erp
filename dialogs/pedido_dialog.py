@@ -113,7 +113,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     event.accept()  # Fecha após salvar
                 except Exception as e:
                     QMessageBox.warning(
-                        self, "Erro ao salvar", f"Não foi possível salvar: {str(e)}"
+                        self, "Erro ao salvar", f"Não foi possível salvar: {e!s}"
                     )
                     event.ignore()  # Não fecha se houver erro
                     return
@@ -130,7 +130,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
     def _tem_dados_para_salvar(self):
         """Verifica se há dados que podem ser salvos"""
         return (
-            self.fornecedor_selecionado is not None 
+            self.fornecedor_selecionado is not None
             and len(self.produtos_selecionados) > 0
         )
 
@@ -395,7 +395,9 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         btn_cancelar = QPushButton("Cancelar")
         btn_cancelar.setProperty("class", "danger")
         btn_cancelar.setAutoDefault(False)
-        btn_cancelar.clicked.connect(self._cancelar_pedido)  # Alterado para método próprio
+        btn_cancelar.clicked.connect(
+            self._cancelar_pedido
+        )  # Alterado para método próprio
         buttons_layout.addWidget(btn_cancelar)
 
         layout.addLayout(buttons_layout)
@@ -452,7 +454,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 except Exception as e:
                     # Se houver erro ao salvar, não fecha
                     QMessageBox.warning(
-                        self, "Erro ao salvar", f"Não foi possível salvar: {str(e)}"
+                        self, "Erro ao salvar", f"Não foi possível salvar: {e!s}"
                     )
                     return
 
@@ -498,8 +500,10 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
     def _processar_produto(self, produto):
         """Processa produto selecionado - ATUALIZADO COM DIÁLOGOS CORRIGIDOS E SELEÇÃO TOTAL"""
         # Validação básica
-        if not hasattr(produto, 'nome'):
-            QMessageBox.warning(self, "Produto inválido", "Produto selecionado é inválido.")
+        if not hasattr(produto, "nome"):
+            QMessageBox.warning(
+                self, "Produto inválido", "Produto selecionado é inválido."
+            )
             return
 
         # ========== DIÁLOGO DE QUANTIDADE (IGUAL AO MÓDULO VENDAS) ==========
@@ -507,14 +511,14 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         # Configurar propriedades do diálogo
         quantidade_dialog.setWindowTitle("Quantidade")
-        
+
         # Montar nome do produto com cor e tamanho se disponíveis
         nome_produto = produto.nome
-        if hasattr(produto, 'cor') and produto.cor:
+        if hasattr(produto, "cor") and produto.cor:
             nome_produto += f" {produto.cor}"
-        if hasattr(produto, 'tamanho') and produto.tamanho:
+        if hasattr(produto, "tamanho") and produto.tamanho:
             nome_produto += f" {produto.tamanho}"
-        
+
         quantidade_dialog.setLabelText(f"{nome_produto}")
         quantidade_dialog.setIntValue(1)
         quantidade_dialog.setIntMinimum(1)
@@ -538,7 +542,9 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             quantidade = quantidade_dialog.intValue()
 
             if quantidade <= 0:
-                QMessageBox.warning(self, "Aviso", "A quantidade deve ser maior que zero.")
+                QMessageBox.warning(
+                    self, "Aviso", "A quantidade deve ser maior que zero."
+                )
                 return
 
             # ========== DIÁLOGO DE PREÇO DE CUSTO (CORRIGIDO COM SELEÇÃO TOTAL) ==========
@@ -547,15 +553,15 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             # Configurar propriedades do diálogo
             preco_custo_dialog.setWindowTitle("Preço de Custo")
             preco_custo_dialog.setLabelText("Digite o preço de custo:")
-            
+
             # Usar preço de custo existente ou sugerir um valor
-            valor_sugerido = getattr(produto, 'preco_custo', 0) or 0
+            valor_sugerido = getattr(produto, "preco_custo", 0) or 0
             if valor_sugerido <= 0:
                 valor_sugerido = 10.0  # Valor padrão sugerido
-            
+
             # CORREÇÃO: Configurar o valor máximo para um número alto
             VALOR_MAXIMO = 9999999.99
-            
+
             preco_custo_dialog.setDoubleValue(valor_sugerido)
             preco_custo_dialog.setDoubleMinimum(0.01)
             preco_custo_dialog.setDoubleMaximum(VALOR_MAXIMO)  # <-- CORREÇÃO PRINCIPAL
@@ -576,7 +582,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             # ===== SOLUÇÃO COMPLETA: Configurar o QDoubleSpinBox interno com seleção total =====
             from PyQt6.QtCore import QTimer
             from PyQt6.QtWidgets import QDoubleSpinBox
-            
+
             def configurar_spinbox_custo():
                 # Encontrar o QDoubleSpinBox dentro do diálogo
                 spinboxes = preco_custo_dialog.findChildren(QDoubleSpinBox)
@@ -585,21 +591,21 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     spinbox.setFixedWidth(220)  # Aumentar largura para números grandes
                     spinbox.setGroupSeparatorShown(True)  # Mostra separador de milhar
                     spinbox.setValue(valor_sugerido)
-                    
+
                     # CORREÇÃO: Forçar seleção total do texto quando o spinbox receber foco
                     spinbox.selectAll()
-                    
+
                     # Usar um timer para garantir que a seleção ocorra após o diálogo ser totalmente exibido
                     QTimer.singleShot(100, spinbox.selectAll)
-                    
+
                     # Conectar ao sinal de foco para sempre selecionar tudo quando ganhar foco
                     spinbox.focusInEvent = lambda event, sb=spinbox: (
                         QDoubleSpinBox.focusInEvent(sb, event),
-                        sb.selectAll()
+                        sb.selectAll(),
                     )
-                    
+
                     break
-            
+
             # Configurar após o diálogo ser mostrado
             QTimer.singleShot(50, configurar_spinbox_custo)
             # ===== FIM DA SOLUÇÃO =====
@@ -620,17 +626,19 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 # Configurar propriedades do diálogo
                 preco_venda_dialog.setWindowTitle("Preço de Venda")
                 preco_venda_dialog.setLabelText("Digite o preço de venda:")
-                
+
                 # Calcular sugestão de preço de venda (30% sobre custo)
                 sugestao_venda = preco_custo * 1.3
-                
+
                 # Se o produto já tem preço de venda, usar como referência
-                if hasattr(produto, 'preco_venda') and produto.preco_venda > 0:
+                if hasattr(produto, "preco_venda") and produto.preco_venda > 0:
                     sugestao_venda = produto.preco_venda
-                
+
                 preco_venda_dialog.setDoubleValue(sugestao_venda)
                 preco_venda_dialog.setDoubleMinimum(0.01)
-                preco_venda_dialog.setDoubleMaximum(VALOR_MAXIMO)  # <-- CORREÇÃO PRINCIPAL
+                preco_venda_dialog.setDoubleMaximum(
+                    VALOR_MAXIMO
+                )  # <-- CORREÇÃO PRINCIPAL
                 preco_venda_dialog.setDoubleDecimals(2)
 
                 # Configurar flags da janela (igual ao módulo vendas)
@@ -650,24 +658,28 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     spinboxes = preco_venda_dialog.findChildren(QDoubleSpinBox)
                     for spinbox in spinboxes:
                         spinbox.setRange(0.01, VALOR_MAXIMO)  # Aumentar limite máximo
-                        spinbox.setFixedWidth(220)  # Aumentar largura para números grandes
-                        spinbox.setGroupSeparatorShown(True)  # Mostra separador de milhar
+                        spinbox.setFixedWidth(
+                            220
+                        )  # Aumentar largura para números grandes
+                        spinbox.setGroupSeparatorShown(
+                            True
+                        )  # Mostra separador de milhar
                         spinbox.setValue(sugestao_venda)
-                        
+
                         # CORREÇÃO: Forçar seleção total do texto quando o spinbox receber foco
                         spinbox.selectAll()
-                        
+
                         # Usar um timer para garantir que a seleção ocorra após o diálogo ser totalmente exibido
                         QTimer.singleShot(100, spinbox.selectAll)
-                        
+
                         # Conectar ao sinal de foco para sempre selecionar tudo quando ganhar foco
                         spinbox.focusInEvent = lambda event, sb=spinbox: (
                             QDoubleSpinBox.focusInEvent(sb, event),
-                            sb.selectAll()
+                            sb.selectAll(),
                         )
-                        
+
                         break
-                
+
                 QTimer.singleShot(50, configurar_spinbox_venda)
                 # ===== FIM DA SOLUÇÃO =====
 
@@ -681,7 +693,9 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                         )
                         return
 
-                    self._adicionar_produto(produto, preco_custo, preco_venda, quantidade)
+                    self._adicionar_produto(
+                        produto, preco_custo, preco_venda, quantidade
+                    )
 
     def _adicionar_produto(self, produto, preco_custo, preco_venda, quantidade):
         """Adiciona produto ao pedido - MODIFICADO para incluir valor de venda"""
@@ -692,12 +706,12 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             if prod["id"] == produto.id:
                 nova_quantidade = prod["quantidade"] + quantidade
                 self.produtos_selecionados[i]["quantidade"] = nova_quantidade
-                self.produtos_selecionados[i][
-                    "preco_custo"
-                ] = preco_custo  # Atualizar preço
-                self.produtos_selecionados[i][
-                    "preco_venda"
-                ] = preco_venda  # Atualizar preço de venda
+                self.produtos_selecionados[i]["preco_custo"] = (
+                    preco_custo  # Atualizar preço
+                )
+                self.produtos_selecionados[i]["preco_venda"] = (
+                    preco_venda  # Atualizar preço de venda
+                )
                 self.produtos_selecionados[i]["subtotal"] = calcular_subtotal(
                     preco_custo, nova_quantidade
                 )
@@ -747,53 +761,65 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             return
 
         subtotal_produtos = sum(prod["subtotal"] for prod in self.produtos_selecionados)
-        
+
         # Criar um diálogo personalizado mais consistente
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFormLayout
-        
+        from PyQt6.QtWidgets import (
+            QDialog,
+            QFormLayout,
+            QHBoxLayout,
+            QLabel,
+            QLineEdit,
+            QPushButton,
+            QVBoxLayout,
+        )
+
         dialog = QDialog(self)
         dialog.setWindowTitle("Frete e Desconto")
         dialog.setMinimumWidth(400)
-        
+
         layout = QVBoxLayout(dialog)
-        
+
         # Informações do subtotal
-        subtotal_label = QLabel(f"Subtotal dos produtos: {formatar_moeda(subtotal_produtos)}")
+        subtotal_label = QLabel(
+            f"Subtotal dos produtos: {formatar_moeda(subtotal_produtos)}"
+        )
         subtotal_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(subtotal_label)
-        
+
         # Formulário
         form_layout = QFormLayout()
-        
+
         # Campo Frete
         frete_input = QLineEdit()
         frete_input.setText(str(self.valor_frete) if self.valor_frete > 0 else "0.00")
         frete_input.setPlaceholderText("0.00")
         form_layout.addRow("Frete (R$):", frete_input)
-        
+
         # Campo Desconto
         desconto_input = QLineEdit()
-        desconto_input.setText(str(self.valor_desconto) if self.valor_desconto > 0 else "0.00")
+        desconto_input.setText(
+            str(self.valor_desconto) if self.valor_desconto > 0 else "0.00"
+        )
         desconto_input.setPlaceholderText("0.00")
         form_layout.addRow("Desconto (R$):", desconto_input)
-        
+
         layout.addLayout(form_layout)
-        
+
         # Botões
         button_layout = QHBoxLayout()
-        
+
         btn_ok = QPushButton("OK")
         btn_ok.clicked.connect(dialog.accept)
         btn_ok.setProperty("class", "success")
-        
+
         btn_cancel = QPushButton("Cancelar")
         btn_cancel.clicked.connect(dialog.reject)
         btn_cancel.setProperty("class", "danger")
-        
+
         button_layout.addWidget(btn_ok)
         button_layout.addWidget(btn_cancel)
         layout.addLayout(button_layout)
-        
+
         # Configurar como diálogo modal
         dialog.setWindowFlags(
             Qt.WindowType.Dialog
@@ -801,37 +827,43 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             | Qt.WindowType.WindowTitleHint
             | Qt.WindowType.WindowCloseButtonHint
         )
-        
+
         if dialog.exec() == QDialog.DialogCode.Accepted:
             try:
                 # Converter valores
                 novo_frete = float(frete_input.text().replace(",", ".") or 0)
                 novo_desconto = float(desconto_input.text().replace(",", ".") or 0)
-                
+
                 # Validar valores
                 if novo_frete < 0:
                     QMessageBox.warning(self, "Aviso", "O frete não pode ser negativo.")
                     return
-                    
+
                 if novo_desconto < 0:
-                    QMessageBox.warning(self, "Aviso", "O desconto não pode ser negativo.")
-                    return
-                    
-                if novo_desconto > subtotal_produtos:
                     QMessageBox.warning(
-                        self, 
-                        "Aviso", 
-                        f"Desconto (R$ {novo_desconto:.2f}) não pode ser maior que o subtotal (R$ {subtotal_produtos:.2f})."
+                        self, "Aviso", "O desconto não pode ser negativo."
                     )
                     return
-                
+
+                if novo_desconto > subtotal_produtos:
+                    QMessageBox.warning(
+                        self,
+                        "Aviso",
+                        f"Desconto (R$ {novo_desconto:.2f}) não pode ser maior que o subtotal (R$ {subtotal_produtos:.2f}).",
+                    )
+                    return
+
                 self.valor_frete = novo_frete
                 self.valor_desconto = novo_desconto
                 self._calcular_total()
                 self._marcar_como_modificado()
-                
+
             except ValueError:
-                QMessageBox.warning(self, "Erro", "Digite valores numéricos válidos para frete e desconto.")
+                QMessageBox.warning(
+                    self,
+                    "Erro",
+                    "Digite valores numéricos válidos para frete e desconto.",
+                )
 
     def _calcular_total(self):
         """Calcula total do pedido - ATUALIZADO com desconto"""
@@ -960,18 +992,16 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 self._salvar_itens_pedido(pedido_id)
 
                 QMessageBox.information(self, "Sucesso", mensagem)
-                
+
                 # Limpar flag de modificações após salvar com sucesso
                 self._modificacoes_nao_salvas = False
                 self._atualizar_indicador_modificacoes()
-                
+
                 self.pedido_realizado.emit()
                 self.accept()
 
             except Exception as e:
-                QMessageBox.critical(
-                    self, "Erro", f"Erro ao processar pedido: {str(e)}"
-                )
+                QMessageBox.critical(self, "Erro", f"Erro ao processar pedido: {e!s}")
 
     def _confirmar_pedido(self, subtotal, total):
         """Confirma finalização do pedido - ATUALIZADO com desconto"""
@@ -1078,7 +1108,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         self._atualizar_tabela()
         self._verificar_habilitar_finalizacao()
-        
+
         # Após carregar dados, não há modificações não salvas inicialmente
         self._modificacoes_nao_salvas = False
         self._atualizar_indicador_modificacoes()

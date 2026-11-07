@@ -1,7 +1,18 @@
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QLabel, QGroupBox, QRadioButton, QButtonGroup,
-                             QLineEdit, QFrame, QApplication)
-from PyQt6.QtCore import Qt, QDate
+from PyQt6.QtCore import QDate, Qt
+from PyQt6.QtWidgets import (
+    QApplication,
+    QButtonGroup,
+    QDialog,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QRadioButton,
+    QVBoxLayout,
+)
+
 from dialogs.cliente_selection_dialog import ClienteSelectionDialog
 
 
@@ -107,7 +118,12 @@ class RelatorioCondicionalDialog(QDialog):
 
         self.rb_todos.setChecked(True)
 
-        for rb in [self.rb_todos, self.rb_ativas, self.rb_convertidas, self.rb_devolvidas]:
+        for rb in [
+            self.rb_todos,
+            self.rb_ativas,
+            self.rb_convertidas,
+            self.rb_devolvidas,
+        ]:
             layout_status.addWidget(rb)
 
         layout_status.addStretch()
@@ -176,9 +192,13 @@ class RelatorioCondicionalDialog(QDialog):
 
     def get_filtros(self):
         return {
-            'data_inicio': self.data_inicio.text().strip(),
-            'data_fim': self.data_fim.text().strip(),
-            'cliente_id': self.cliente_selecionado.id if self.cliente_selecionado else None,
-            'cliente_nome': self.cliente_selecionado.nome if self.cliente_selecionado else None,
-            'status': self._obter_status_selecionado()
+            "data_inicio": self.data_inicio.text().strip(),
+            "data_fim": self.data_fim.text().strip(),
+            "cliente_id": self.cliente_selecionado.id
+            if self.cliente_selecionado
+            else None,
+            "cliente_nome": self.cliente_selecionado.nome
+            if self.cliente_selecionado
+            else None,
+            "status": self._obter_status_selecionado(),
         }

@@ -1,20 +1,23 @@
-#\erp\utils\helpers.py
-from datetime import datetime
+# \erp\utils\helpers.py
 import os
 import re
-from PyQt6.QtWidgets import QDoubleSpinBox, QLineEdit, QSpinBox, QTextEdit, QComboBox
+from datetime import datetime
+
 from PyQt6.QtGui import QValidator
+from PyQt6.QtWidgets import QComboBox, QDoubleSpinBox, QLineEdit, QSpinBox, QTextEdit
+
 
 def formatar_moeda(valor):
     """Formata valor para formato monetário brasileiro"""
-    return f"R$ {float(valor):.2f}".replace('.', ',')
+    return f"R$ {float(valor):.2f}".replace(".", ",")
 
-def formatar_data(data, formato_origem='%Y-%m-%d', formato_destino='%d/%m/%Y'):
+
+def formatar_data(data, formato_origem="%Y-%m-%d", formato_destino="%d/%m/%Y"):
     """Formata data entre diferentes formatos"""
     if data is None:
         return ""
 
-    if hasattr(data, 'strftime'):
+    if hasattr(data, "strftime"):
         return data.strftime(formato_destino)
 
     if isinstance(data, str):
@@ -26,7 +29,8 @@ def formatar_data(data, formato_origem='%Y-%m-%d', formato_destino='%d/%m/%Y'):
 
     return str(data)
 
-def validar_data(data_str, formato='%d/%m/%Y'):
+
+def validar_data(data_str, formato="%d/%m/%Y"):
     """Valida se a string está no formato especificado"""
     if not data_str:
         return False
@@ -36,6 +40,7 @@ def validar_data(data_str, formato='%d/%m/%Y'):
     except ValueError:
         return False
 
+
 def validar_quantidade(quantidade, estoque_disponivel):
     """Valida se a quantidade é válida para o estoque"""
     try:
@@ -44,13 +49,16 @@ def validar_quantidade(quantidade, estoque_disponivel):
     except (ValueError, TypeError):
         return False
 
+
 def calcular_subtotal(preco, quantidade):
     """Calcula subtotal de um item"""
     return float(preco) * int(quantidade)
 
+
 def aplicar_desconto_total(subtotal, desconto):
     """Aplica desconto ao subtotal"""
     return max(0, subtotal - desconto)
+
 
 def criar_pasta_se_nao_existir(caminho):
     """Cria pasta se não existir"""
@@ -58,22 +66,25 @@ def criar_pasta_se_nao_existir(caminho):
         os.makedirs(caminho)
     return caminho
 
+
 def limpar_mascara(texto):
     """Remove máscaras de CNPJ, CPF, telefone"""
-    return re.sub(r'[^0-9]', '', texto)
+    return re.sub(r"[^0-9]", "", texto)
+
 
 def aplicar_mascara_cnpj(cnpj):
     """Aplica máscara de CNPJ"""
     cnpj_limpo = limpar_mascara(cnpj)
     return f"{cnpj_limpo[:2]}.{cnpj_limpo[2:5]}.{cnpj_limpo[5:8]}/{cnpj_limpo[8:12]}-{cnpj_limpo[12:]}"
 
-def converter_data_string(data_str, formato_origem='%Y-%m-%d'):
+
+def converter_data_string(data_str, formato_origem="%Y-%m-%d"):
     """Converte string para objeto date"""
     if not data_str:
         return None
 
     try:
-        if hasattr(data_str, 'strftime'):
+        if hasattr(data_str, "strftime"):
             return data_str
 
         if isinstance(data_str, str):
@@ -83,39 +94,51 @@ def converter_data_string(data_str, formato_origem='%Y-%m-%d'):
     except ValueError:
         return None
 
+
 class UpperCaseValidator(QValidator):
     """Validador que converte texto para maiúscula"""
+
     def validate(self, input_str, pos):
         return (QValidator.State.Acceptable, input_str.upper(), pos)
+
 
 # ============================================================================
 # WIDGETS BÁSICOS (sem conversão para maiúscula)
 # ============================================================================
 
+
 class SelectAllDoubleSpinBox(QDoubleSpinBox):
     """QDoubleSpinBox que seleciona todo o conteúdo ao receber foco"""
+
     def focusInEvent(self, event):
         super().focusInEvent(event)
         self.lineEdit().selectAll()
 
+
 class SelectAllLineEdit(QLineEdit):
     """QLineEdit que seleciona todo o conteúdo ao receber foco"""
+
     def focusInEvent(self, event):
         super().focusInEvent(event)
         self.selectAll()
 
+
 class SelectAllSpinBox(QSpinBox):
     """QSpinBox que seleciona todo o conteúdo ao receber foco"""
+
     def focusInEvent(self, event):
         super().focusInEvent(event)
         self.selectAll()
+
 
 # ============================================================================
 # WIDGETS COM CONVERSÃO AUTOMÁTICA PARA MAIÚSCULA
 # ============================================================================
 
+
 class UpperCaseLineEdit(QLineEdit):
     """QLineEdit que converte automaticamente para maiúscula e remove quebras de linha"""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.textChanged.connect(self._converter_maiuscula)
@@ -124,16 +147,18 @@ class UpperCaseLineEdit(QLineEdit):
         cursor_pos = self.cursorPosition()
         texto_atual = self.text()
         # Remove quebras de linha e converte para maiúscula
-        texto_processado = texto_atual.replace('\n', ' ').replace('\r', ' ').upper()
+        texto_processado = texto_atual.replace("\n", " ").replace("\r", " ").upper()
 
         if texto_atual != texto_processado:
             self.blockSignals(True)
             self.setText(texto_processado)
             self.setCursorPosition(cursor_pos)
             self.blockSignals(False)
+
 
 class UpperCaseSelectAllLineEdit(SelectAllLineEdit):
     """QLineEdit que seleciona tudo no foco E converte para maiúscula e remove quebras de linha"""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.textChanged.connect(self._converter_maiuscula)
@@ -142,7 +167,7 @@ class UpperCaseSelectAllLineEdit(SelectAllLineEdit):
         cursor_pos = self.cursorPosition()
         texto_atual = self.text()
         # Remove quebras de linha e converte para maiúscula
-        texto_processado = texto_atual.replace('\n', ' ').replace('\r', ' ').upper()
+        texto_processado = texto_atual.replace("\n", " ").replace("\r", " ").upper()
 
         if texto_atual != texto_processado:
             self.blockSignals(True)
@@ -150,8 +175,10 @@ class UpperCaseSelectAllLineEdit(SelectAllLineEdit):
             self.setCursorPosition(cursor_pos)
             self.blockSignals(False)
 
+
 class UpperCaseTextEdit(QTextEdit):
     """QTextEdit que converte automaticamente para maiúscula e remove quebras de linha"""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.textChanged.connect(self._converter_maiuscula)
@@ -161,7 +188,7 @@ class UpperCaseTextEdit(QTextEdit):
         posicao = cursor.position()
         texto_atual = self.toPlainText()
         # Remove quebras de linha e converte para maiúscula
-        texto_processado = texto_atual.replace('\n', ' ').replace('\r', ' ').upper()
+        texto_processado = texto_atual.replace("\n", " ").replace("\r", " ").upper()
 
         if texto_atual != texto_processado:
             self.blockSignals(True)
@@ -170,8 +197,10 @@ class UpperCaseTextEdit(QTextEdit):
             self.setTextCursor(cursor)
             self.blockSignals(False)
 
+
 class UpperCaseComboBox(QComboBox):
     """QComboBox editável que converte entrada para maiúscula e remove quebras de linha"""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setEditable(True)
@@ -182,7 +211,7 @@ class UpperCaseComboBox(QComboBox):
             cursor_pos = self.lineEdit().cursorPosition()
             texto_atual = self.lineEdit().text()
             # Remove quebras de linha e converte para maiúscula
-            texto_processado = texto_atual.replace('\n', ' ').replace('\r', ' ').upper()
+            texto_processado = texto_atual.replace("\n", " ").replace("\r", " ").upper()
 
             if texto_atual != texto_processado:
                 self.lineEdit().blockSignals(True)
@@ -190,9 +219,11 @@ class UpperCaseComboBox(QComboBox):
                 self.lineEdit().setCursorPosition(cursor_pos)
                 self.lineEdit().blockSignals(False)
 
+
 # ============================================================================
 # FUNÇÕES DE CONVENIÊNCIA PARA APLICAR MAIÚSCULA EM WIDGETS EXISTENTES
 # ============================================================================
+
 
 def aplicar_maiuscula_widget(widget):
     """
@@ -204,14 +235,17 @@ def aplicar_maiuscula_widget(widget):
     elif isinstance(widget, QTextEdit):
         widget.textChanged.connect(lambda: _converter_texto_maiuscula_textedit(widget))
     elif isinstance(widget, QComboBox) and widget.isEditable():
-        widget.lineEdit().textChanged.connect(lambda: _converter_texto_maiuscula(widget.lineEdit()))
+        widget.lineEdit().textChanged.connect(
+            lambda: _converter_texto_maiuscula(widget.lineEdit())
+        )
+
 
 def _converter_texto_maiuscula(line_edit):
     """Função auxiliar para converter texto em QLineEdit para maiúscula e remover quebras de linha"""
     cursor_pos = line_edit.cursorPosition()
     texto_atual = line_edit.text()
     # Remove quebras de linha e converte para maiúscula
-    texto_processado = texto_atual.replace('\n', ' ').replace('\r', ' ').upper()
+    texto_processado = texto_atual.replace("\n", " ").replace("\r", " ").upper()
 
     if texto_atual != texto_processado:
         line_edit.blockSignals(True)
@@ -219,13 +253,14 @@ def _converter_texto_maiuscula(line_edit):
         line_edit.setCursorPosition(cursor_pos)
         line_edit.blockSignals(False)
 
+
 def _converter_texto_maiuscula_textedit(text_edit):
     """Função auxiliar para converter texto em QTextEdit para maiúscula e remover quebras de linha"""
     cursor = text_edit.textCursor()
     posicao = cursor.position()
     texto_atual = text_edit.toPlainText()
     # Remove quebras de linha e converte para maiúscula
-    texto_processado = texto_atual.replace('\n', ' ').replace('\r', ' ').upper()
+    texto_processado = texto_atual.replace("\n", " ").replace("\r", " ").upper()
 
     if texto_atual != texto_processado:
         text_edit.blockSignals(True)
@@ -233,6 +268,7 @@ def _converter_texto_maiuscula_textedit(text_edit):
         cursor.setPosition(min(posicao, len(texto_processado)))
         text_edit.setTextCursor(cursor)
         text_edit.blockSignals(False)
+
 
 def aplicar_maiuscula_formulario(form_widget):
     """

@@ -279,12 +279,12 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
         for i, largura in enumerate(larguras):
             if largura > 0:  # Aplica apenas larguras positivas
                 self.tabela_pedidos.setColumnWidth(i, largura)
-        
+
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
         vheader = self.tabela_pedidos.verticalHeader()
         altura_desejada = 22
-        
+
         vheader.setDefaultSectionSize(altura_desejada)
         vheader.setMinimumSectionSize(altura_desejada)
         vheader.setMaximumSectionSize(altura_desejada)
@@ -292,19 +292,19 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
         vheader.setCascadingSectionResizes(False)
         vheader.setStretchLastSection(False)
         vheader.setVisible(False)
-        
+
         # Função para aplicar altura quando dados forem carregados
         def aplicar_altura_quando_necessario():
             try:
-                if hasattr(self, 'tabela_pedidos') and self.tabela_pedidos:
+                if hasattr(self, "tabela_pedidos") and self.tabela_pedidos:
                     for row in range(self.tabela_pedidos.rowCount()):
                         self.tabela_pedidos.setRowHeight(row, altura_desejada)
             except:
                 pass
-        
+
         # Conectar ao sinal de dados alterados (quando a tabela for populada)
         try:
-            if hasattr(self.tabela_pedidos, 'model'):
+            if hasattr(self.tabela_pedidos, "model"):
                 model = self.tabela_pedidos.model()
                 model.rowsInserted.connect(
                     lambda parent, first, last: aplicar_altura_quando_necessario()
@@ -444,7 +444,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             self._atualizar_label_info()
 
         except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao carregar pedidos: {str(e)}")
+            QMessageBox.critical(self, "Erro", f"Erro ao carregar pedidos: {e!s}")
 
     def _filtrar_pedidos(self):
         """CORREÇÃO: Filtra pedidos com validação - sempre usa dados originais"""
@@ -709,7 +709,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
                 self._carregar_dados()
                 QMessageBox.information(self, "Sucesso", "Pedido recebido!")
             except Exception as e:
-                QMessageBox.critical(self, "Erro", f"Erro ao receber pedido: {str(e)}")
+                QMessageBox.critical(self, "Erro", f"Erro ao receber pedido: {e!s}")
 
     def _confirmar_recebimento(self, pedido):
         """Confirma recebimento do pedido"""
@@ -766,7 +766,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
                 self._carregar_dados()
                 QMessageBox.information(self, "Sucesso", "Pedido cancelado!")
             except Exception as e:
-                QMessageBox.critical(self, "Erro", f"Erro ao cancelar pedido: {str(e)}")
+                QMessageBox.critical(self, "Erro", f"Erro ao cancelar pedido: {e!s}")
 
     def _confirmar_cancelamento(self, pedido):
         """Confirma cancelamento do pedido"""
@@ -814,7 +814,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
                 )
         except Exception as e:
             QMessageBox.critical(
-                self, "Erro na Exportação", f"Erro ao exportar pedidos:\n{str(e)}"
+                self, "Erro na Exportação", f"Erro ao exportar pedidos:\n{e!s}"
             )
 
     def _imprimir_pedido(self):
@@ -837,7 +837,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
                 )
         except Exception as e:
             QMessageBox.critical(
-                self, "Erro na Impressão", f"Erro ao gerar comprovante:\n{str(e)}"
+                self, "Erro na Impressão", f"Erro ao gerar comprovante:\n{e!s}"
             )
 
     # ========== MÉTODOS PÚBLICOS PARA COMPATIBILIDADE ==========

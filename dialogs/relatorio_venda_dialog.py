@@ -1,7 +1,18 @@
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QLabel, QGroupBox, QRadioButton, QButtonGroup,
-                             QLineEdit, QFrame, QApplication)
-from PyQt6.QtCore import Qt, QDate
+from PyQt6.QtCore import QDate, Qt
+from PyQt6.QtWidgets import (
+    QApplication,
+    QButtonGroup,
+    QDialog,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QRadioButton,
+    QVBoxLayout,
+)
+
 from dialogs.cliente_selection_dialog import ClienteSelectionDialog
 
 
@@ -133,8 +144,13 @@ class RelatorioVendaDialog(QDialog):
 
         self.rb_todos_pagamento.setChecked(True)
 
-        for rb in [self.rb_todos_pagamento, self.rb_dinheiro, self.rb_cartao,
-                  self.rb_pix, self.rb_crediario]:
+        for rb in [
+            self.rb_todos_pagamento,
+            self.rb_dinheiro,
+            self.rb_cartao,
+            self.rb_pix,
+            self.rb_crediario,
+        ]:
             layout_pagamento.addWidget(rb)
 
         layout_pagamento.addStretch()
@@ -215,10 +231,14 @@ class RelatorioVendaDialog(QDialog):
 
     def get_filtros(self):
         return {
-            'data_inicio': self.data_inicio.text().strip(),
-            'data_fim': self.data_fim.text().strip(),
-            'cliente_id': self.cliente_selecionado.id if self.cliente_selecionado else None,
-            'cliente_nome': self.cliente_selecionado.nome if self.cliente_selecionado else None,
-            'status': self._obter_status_selecionado(),
-            'forma_pagamento': self._obter_pagamento_selecionado()
+            "data_inicio": self.data_inicio.text().strip(),
+            "data_fim": self.data_fim.text().strip(),
+            "cliente_id": self.cliente_selecionado.id
+            if self.cliente_selecionado
+            else None,
+            "cliente_nome": self.cliente_selecionado.nome
+            if self.cliente_selecionado
+            else None,
+            "status": self._obter_status_selecionado(),
+            "forma_pagamento": self._obter_pagamento_selecionado(),
         }

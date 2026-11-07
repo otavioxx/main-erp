@@ -3,8 +3,9 @@ Utilitários de Venda - Versão Refatorada
 Centraliza toda a lógica de negócio relacionada a vendas
 """
 
+from typing import Any
+
 from utils.database_utils import DatabaseUtils
-from typing import List, Dict, Any, Tuple
 from utils.helpers import converter_data_string
 
 
@@ -12,7 +13,7 @@ class VendaValidator:
     """Validador para regras de negócio de vendas"""
 
     @staticmethod
-    def validar_produto_para_venda(produto) -> Tuple[bool, str]:
+    def validar_produto_para_venda(produto) -> tuple[bool, str]:
         """Valida se produto pode ser vendido"""
         if not produto:
             return False, "Produto não encontrado"
@@ -26,8 +27,9 @@ class VendaValidator:
         return True, ""
 
     @staticmethod
-    def validar_quantidade_disponivel(quantidade: int, estoque_atual: int,
-                                    quantidade_ja_selecionada: int = 0) -> Tuple[bool, str]:
+    def validar_quantidade_disponivel(
+        quantidade: int, estoque_atual: int, quantidade_ja_selecionada: int = 0
+    ) -> tuple[bool, str]:
         """Valida se quantidade solicitada está disponível"""
         quantidade_total = quantidade + quantidade_ja_selecionada
 
@@ -35,12 +37,17 @@ class VendaValidator:
             return False, "Quantidade deve ser maior que zero"
 
         if quantidade_total > estoque_atual:
-            return False, f"Quantidade total ({quantidade_total}) excede estoque disponível ({estoque_atual})"
+            return (
+                False,
+                f"Quantidade total ({quantidade_total}) excede estoque disponível ({estoque_atual})",
+            )
 
         return True, ""
 
     @staticmethod
-    def validar_venda_para_finalizacao(cliente, produtos: List[Dict]) -> Tuple[bool, str]:
+    def validar_venda_para_finalizacao(
+        cliente, produtos: list[dict]
+    ) -> tuple[bool, str]:
         """Valida se venda pode ser finalizada"""
         if not cliente:
             return False, "Cliente deve ser selecionado"
@@ -50,11 +57,17 @@ class VendaValidator:
 
         # Validar produtos individualmente
         for produto in produtos:
-            if produto.get('quantidade', 0) <= 0:
-                return False, f"Produto '{produto.get('nome', 'Desconhecido')}' com quantidade inválida"
+            if produto.get("quantidade", 0) <= 0:
+                return (
+                    False,
+                    f"Produto '{produto.get('nome', 'Desconhecido')}' com quantidade inválida",
+                )
 
-            if produto.get('preco', 0) <= 0:
-                return False, f"Produto '{produto.get('nome', 'Desconhecido')}' com preço inválido"
+            if produto.get("preco", 0) <= 0:
+                return (
+                    False,
+                    f"Produto '{produto.get('nome', 'Desconhecido')}' com preço inválido",
+                )
 
         return True, ""
 
@@ -68,9 +81,9 @@ class VendaCalculator:
         return round(float(preco) * int(quantidade), 2)
 
     @staticmethod
-    def calcular_total_produtos(produtos: List[Dict[str, Any]]) -> float:
+    def calcular_total_produtos(produtos: list[dict[str, Any]]) -> float:
         """Calcula total de todos os produtos"""
-        return round(sum(produto.get('subtotal', 0) for produto in produtos), 2)
+        return round(sum(produto.get("subtotal", 0) for produto in produtos), 2)
 
     @staticmethod
     def aplicar_desconto(subtotal: float, desconto: float) -> float:
@@ -86,8 +99,9 @@ class VendaCalculator:
         return round(total / num_parcelas, 2)
 
     @staticmethod
-    def distribuir_desconto_proporcional(produtos: List[Dict[str, Any]],
-                                      desconto_total: float) -> List[Dict[str, Any]]:
+    def distribuir_desconto_proporcional(
+        produtos: list[dict[str, Any]], desconto_total: float
+    ) -> list[dict[str, Any]]:
         """Distribui desconto proporcionalmente entre produtos"""
         if desconto_total <= 0:
             return produtos
@@ -103,13 +117,15 @@ class VendaCalculator:
             if i == len(produtos) - 1:  # Último produto recebe o resto
                 desconto_produto = desconto_total - desconto_aplicado
             else:
-                proporcao = produto['subtotal'] / total_sem_desconto
+                proporcao = produto["subtotal"] / total_sem_desconto
                 desconto_produto = round(desconto_total * proporcao, 2)
                 desconto_aplicado += desconto_produto
 
             produto_copy = produto.copy()
-            produto_copy['desconto'] = desconto_produto
-            produto_copy['subtotal_com_desconto'] = produto['subtotal'] - desconto_produto
+            produto_copy["desconto"] = desconto_produto
+            produto_copy["subtotal_com_desconto"] = (
+                produto["subtotal"] - desconto_produto
+            )
             produtos_com_desconto.append(produto_copy)
 
         return produtos_com_desconto
@@ -119,8 +135,9 @@ class VendaRepository:
     """Repositório para operações de banco de dados relacionadas a vendas"""
 
     @staticmethod
-    def buscar_vendas_com_filtros(data_inicio: str = None, data_fim: str = None,
-                                cliente_id: int = None) -> List[Tuple]:
+    def buscar_vendas_com_filtros(
+        data_inicio: str = None, data_fim: str = None, cliente_id: int = None
+    ) -> list[tuple]:
         """Busca vendas com filtros aplicados"""
         query = """
             SELECT v.*, c.nome as cliente_nome
@@ -132,13 +149,13 @@ class VendaRepository:
 
         # Converter datas se necessário
         if data_inicio:
-            data_inicio_obj = converter_data_string(data_inicio, '%d/%m/%Y')
+            data_inicio_obj = converter_data_string(data_inicio, "%d/%m/%Y")
             if data_inicio_obj:
                 query += " AND v.data_venda >= ?"
                 params.append(data_inicio_obj.strftime("%Y-%m-%d"))
 
         if data_fim:
-            data_fim_obj = converter_data_string(data_fim, '%d/%m/%Y')
+            data_fim_obj = converter_data_string(data_fim, "%d/%m/%Y")
             if data_fim_obj:
                 query += " AND v.data_venda <= ?"
                 params.append(data_fim_obj.strftime("%Y-%m-%d"))
@@ -152,28 +169,33 @@ class VendaRepository:
         return DatabaseUtils.executar_query(query, params)
 
     @staticmethod
-    def salvar_itens_venda(venda_id: int, produtos: List[Dict[str, Any]]) -> bool:
+    def salvar_itens_venda(venda_id: int, produtos: list[dict[str, Any]]) -> bool:
         """Salva itens da venda no banco"""
         try:
             for produto in produtos:
-                query = '''
+                query = """
                     INSERT INTO itens_venda
                     (venda_id, produto_id, quantidade, preco_unitario, desconto)
                     VALUES (?, ?, ?, ?, ?)
-                '''
-                desconto_produto = produto.get('desconto', 0)
-                params = (venda_id, produto['id'], produto['quantidade'],
-                         produto['preco'], desconto_produto)
+                """
+                desconto_produto = produto.get("desconto", 0)
+                params = (
+                    venda_id,
+                    produto["id"],
+                    produto["quantidade"],
+                    produto["preco"],
+                    desconto_produto,
+                )
                 DatabaseUtils.executar_query(query, params)
 
             return True
         except Exception as e:
-            raise Exception(f"Erro ao salvar itens da venda: {str(e)}")
+            raise Exception(f"Erro ao salvar itens da venda: {e!s}")
 
     @staticmethod
-    def buscar_itens_venda_detalhados(venda_id: int) -> List[Tuple]:
+    def buscar_itens_venda_detalhados(venda_id: int) -> list[tuple]:
         """Busca itens da venda com informações detalhadas"""
-        query = '''
+        query = """
             SELECT iv.id, iv.venda_id, iv.produto_id, iv.quantidade,
                    iv.preco_unitario, iv.desconto, p.nome as produto_nome,
                    p.codigo_barras, p.referencia, p.cor, p.tamanho
@@ -181,7 +203,7 @@ class VendaRepository:
             JOIN produtos p ON iv.produto_id = p.id
             WHERE iv.venda_id = ?
             ORDER BY p.nome
-        '''
+        """
         return DatabaseUtils.executar_query(query, (venda_id,))
 
     @staticmethod
@@ -192,12 +214,12 @@ class VendaRepository:
         return resultado[0][0] > 0 if resultado else False
 
     @staticmethod
-    def obter_resumo_periodo(data_inicio: str, data_fim: str) -> Dict[str, Any]:
+    def obter_resumo_periodo(data_inicio: str, data_fim: str) -> dict[str, Any]:
         """Obtém resumo de vendas por período"""
         try:
             # Converter datas
-            data_inicio_obj = converter_data_string(data_inicio, '%d/%m/%Y')
-            data_fim_obj = converter_data_string(data_fim, '%d/%m/%Y')
+            data_inicio_obj = converter_data_string(data_inicio, "%d/%m/%Y")
+            data_fim_obj = converter_data_string(data_fim, "%d/%m/%Y")
 
             if not data_inicio_obj or not data_fim_obj:
                 return {}
@@ -217,76 +239,87 @@ class VendaRepository:
                 FROM vendas
                 WHERE data_venda BETWEEN ? AND ? AND status IN ('concluida', 'parcelada')
             """
-            resultado = DatabaseUtils.executar_query(query, (data_inicio_db, data_fim_db))
+            resultado = DatabaseUtils.executar_query(
+                query, (data_inicio_db, data_fim_db)
+            )
 
             if resultado:
                 dados = resultado[0]
                 return {
-                    'total_vendas': dados[0],
-                    'valor_total': float(dados[1]),
-                    'total_desconto': float(dados[2]),
-                    'total_dinheiro': float(dados[3]),
-                    'total_cartao': float(dados[4]),
-                    'total_pix': float(dados[5]),
-                    'total_crediario': float(dados[6])
+                    "total_vendas": dados[0],
+                    "valor_total": float(dados[1]),
+                    "total_desconto": float(dados[2]),
+                    "total_dinheiro": float(dados[3]),
+                    "total_cartao": float(dados[4]),
+                    "total_pix": float(dados[5]),
+                    "total_crediario": float(dados[6]),
                 }
 
             return {}
 
         except Exception as e:
-            raise Exception(f"Erro ao obter resumo do período: {str(e)}")
+            raise Exception(f"Erro ao obter resumo do período: {e!s}")
 
 
 class VendaEstoqueManager:
     """Gerenciador de estoque para operações de venda"""
 
     @staticmethod
-    def atualizar_estoque_venda(produtos: List[Dict[str, Any]]) -> bool:
+    def atualizar_estoque_venda(produtos: list[dict[str, Any]]) -> bool:
         """Atualiza estoque após venda (diminui)"""
         try:
             for produto in produtos:
-                query = 'UPDATE produtos SET estoque = estoque - ? WHERE id = ?'
-                DatabaseUtils.executar_query(query, (produto['quantidade'], produto['id']))
+                query = "UPDATE produtos SET estoque = estoque - ? WHERE id = ?"
+                DatabaseUtils.executar_query(
+                    query, (produto["quantidade"], produto["id"])
+                )
             return True
         except Exception as e:
-            raise Exception(f"Erro ao atualizar estoque: {str(e)}")
+            raise Exception(f"Erro ao atualizar estoque: {e!s}")
 
     @staticmethod
     def devolver_estoque_venda(venda_id: int) -> bool:
         """Devolve estoque de venda cancelada (aumenta)"""
         try:
             # Buscar itens da venda
-            query_itens = 'SELECT produto_id, quantidade FROM itens_venda WHERE venda_id = ?'
+            query_itens = (
+                "SELECT produto_id, quantidade FROM itens_venda WHERE venda_id = ?"
+            )
             itens = DatabaseUtils.executar_query(query_itens, (venda_id,))
 
             # Devolver cada item
             for item in itens:
                 produto_id, quantidade = item
-                query_estoque = 'UPDATE produtos SET estoque = estoque + ? WHERE id = ?'
+                query_estoque = "UPDATE produtos SET estoque = estoque + ? WHERE id = ?"
                 DatabaseUtils.executar_query(query_estoque, (quantidade, produto_id))
 
             return True
         except Exception as e:
-            raise Exception(f"Erro ao devolver estoque: {str(e)}")
+            raise Exception(f"Erro ao devolver estoque: {e!s}")
 
     @staticmethod
-    def verificar_disponibilidade_produtos(produtos: List[Dict[str, Any]]) -> Tuple[bool, str]:
+    def verificar_disponibilidade_produtos(
+        produtos: list[dict[str, Any]],
+    ) -> tuple[bool, str]:
         """Verifica se todos os produtos têm estoque suficiente"""
         try:
             for produto in produtos:
-                query = 'SELECT estoque FROM produtos WHERE id = ?'
-                resultado = DatabaseUtils.executar_query(query, (produto['id'],))
+                query = "SELECT estoque FROM produtos WHERE id = ?"
+                resultado = DatabaseUtils.executar_query(query, (produto["id"],))
 
                 if not resultado:
                     return False, f"Produto ID {produto['id']} não encontrado"
 
                 estoque_atual = resultado[0][0]
-                if produto['quantidade'] > estoque_atual:
-                    return False, f"Estoque insuficiente para produto ID {produto['id']}"
+                if produto["quantidade"] > estoque_atual:
+                    return (
+                        False,
+                        f"Estoque insuficiente para produto ID {produto['id']}",
+                    )
 
             return True, ""
         except Exception as e:
-            return False, f"Erro ao verificar estoque: {str(e)}"
+            return False, f"Erro ao verificar estoque: {e!s}"
 
 
 class VendaUtils:
@@ -299,13 +332,19 @@ class VendaUtils:
     estoque_manager = VendaEstoqueManager()
 
     @classmethod
-    def filtrar_vendas(cls, data_inicio_str: str = None, data_fim_str: str = None,
-                      cliente_id: int = None) -> List[Tuple]:
+    def filtrar_vendas(
+        cls,
+        data_inicio_str: str = None,
+        data_fim_str: str = None,
+        cliente_id: int = None,
+    ) -> list[tuple]:
         """Filtra vendas - método principal para compatibilidade"""
-        return cls.repository.buscar_vendas_com_filtros(data_inicio_str, data_fim_str, cliente_id)
+        return cls.repository.buscar_vendas_com_filtros(
+            data_inicio_str, data_fim_str, cliente_id
+        )
 
     @classmethod
-    def salvar_itens_venda(cls, venda_id: int, produtos: List[Dict[str, Any]]) -> bool:
+    def salvar_itens_venda(cls, venda_id: int, produtos: list[dict[str, Any]]) -> bool:
         """Salva itens da venda - método principal para compatibilidade"""
         return cls.repository.salvar_itens_venda(venda_id, produtos)
 
@@ -315,24 +354,28 @@ class VendaUtils:
         return cls.estoque_manager.devolver_estoque_venda(venda_id)
 
     @classmethod
-    def calcular_totais_venda(cls, produtos: List[Dict[str, Any]], desconto: float = 0) -> Tuple[float, float]:
+    def calcular_totais_venda(
+        cls, produtos: list[dict[str, Any]], desconto: float = 0
+    ) -> tuple[float, float]:
         """Calcula totais da venda - método principal para compatibilidade"""
         subtotal = cls.calculator.calcular_total_produtos(produtos)
         total = cls.calculator.aplicar_desconto(subtotal, desconto)
         return subtotal, total
 
     @classmethod
-    def buscar_itens_venda_completo(cls, venda_id: int) -> List[Tuple]:
+    def buscar_itens_venda_completo(cls, venda_id: int) -> list[tuple]:
         """Busca itens da venda - método principal para compatibilidade"""
         return cls.repository.buscar_itens_venda_detalhados(venda_id)
 
     @classmethod
-    def obter_resumo_vendas_por_periodo(cls, data_inicio: str, data_fim: str) -> Dict[str, Any]:
+    def obter_resumo_vendas_por_periodo(
+        cls, data_inicio: str, data_fim: str
+    ) -> dict[str, Any]:
         """Obtém resumo por período - método principal para compatibilidade"""
         return cls.repository.obter_resumo_periodo(data_inicio, data_fim)
 
     @classmethod
-    def obter_produtos_mais_vendidos(cls, limite: int = 10) -> List[Tuple]:
+    def obter_produtos_mais_vendidos(cls, limite: int = 10) -> list[tuple]:
         """Obtém produtos mais vendidos"""
         query = """
             SELECT p.id, p.nome, SUM(iv.quantidade) as total_vendido
@@ -349,17 +392,21 @@ class VendaUtils:
     # ========== MÉTODOS NOVOS DE CONVENIÊNCIA ==========
 
     @classmethod
-    def validar_produto_venda(cls, produto) -> Tuple[bool, str]:
+    def validar_produto_venda(cls, produto) -> tuple[bool, str]:
         """Valida produto para venda"""
         return cls.validator.validar_produto_para_venda(produto)
 
     @classmethod
-    def validar_quantidade(cls, quantidade: int, estoque: int, quantidade_existente: int = 0) -> Tuple[bool, str]:
+    def validar_quantidade(
+        cls, quantidade: int, estoque: int, quantidade_existente: int = 0
+    ) -> tuple[bool, str]:
         """Valida quantidade disponível"""
-        return cls.validator.validar_quantidade_disponivel(quantidade, estoque, quantidade_existente)
+        return cls.validator.validar_quantidade_disponivel(
+            quantidade, estoque, quantidade_existente
+        )
 
     @classmethod
-    def validar_finalizacao(cls, cliente, produtos: List[Dict]) -> Tuple[bool, str]:
+    def validar_finalizacao(cls, cliente, produtos: list[dict]) -> tuple[bool, str]:
         """Valida se venda pode ser finalizada"""
         return cls.validator.validar_venda_para_finalizacao(cliente, produtos)
 
@@ -379,11 +426,13 @@ class VendaUtils:
         return cls.repository.verificar_parcelas_pagas(venda_id)
 
     @classmethod
-    def atualizar_estoque_produtos(cls, produtos: List[Dict[str, Any]]) -> bool:
+    def atualizar_estoque_produtos(cls, produtos: list[dict[str, Any]]) -> bool:
         """Atualiza estoque dos produtos"""
         return cls.estoque_manager.atualizar_estoque_venda(produtos)
 
     @classmethod
-    def verificar_estoque_disponivel(cls, produtos: List[Dict[str, Any]]) -> Tuple[bool, str]:
+    def verificar_estoque_disponivel(
+        cls, produtos: list[dict[str, Any]]
+    ) -> tuple[bool, str]:
         """Verifica estoque disponível"""
         return cls.estoque_manager.verificar_disponibilidade_produtos(produtos)

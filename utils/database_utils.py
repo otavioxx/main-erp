@@ -1,17 +1,19 @@
 import sqlite3
 import time
+from typing import Any
+
 from database import Database
-from typing import List, Tuple, Any, Optional, Dict
+
 
 class DatabaseUtils:
     @staticmethod
-    def executar_query(query: str, params: Optional[Tuple] = None) -> Any:
+    def executar_query(query: str, params: tuple | None = None) -> Any:
         """Executa query genérica"""
         conn = Database().get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute(query, params or ())
-            if query.strip().upper().startswith('SELECT'):
+            if query.strip().upper().startswith("SELECT"):
                 return cursor.fetchall()
             conn.commit()
             return cursor.lastrowid
@@ -22,14 +24,14 @@ class DatabaseUtils:
             pass
 
     @staticmethod
-    def buscar_por_tabela(tabela: str, id: int) -> Optional[Tuple]:
+    def buscar_por_tabela(tabela: str, id: int) -> tuple | None:
         """Busca registro por ID em qualquer tabela"""
         query = f"SELECT * FROM {tabela} WHERE id = ?"
         resultado = DatabaseUtils.executar_query(query, (id,))
         return resultado[0] if resultado else None
 
     @staticmethod
-    def buscar_todos(tabela: str, ordenar_por: Optional[str] = None) -> List[Tuple]:
+    def buscar_todos(tabela: str, ordenar_por: str | None = None) -> list[tuple]:
         """Busca todos os registros de uma tabela"""
         query = f"SELECT * FROM {tabela}"
         if ordenar_por:
@@ -37,7 +39,9 @@ class DatabaseUtils:
         return DatabaseUtils.executar_query(query)
 
     @staticmethod
-    def executar_com_retry(query: str, params: Optional[Tuple] = None, max_tentativas: int = 3) -> Any:
+    def executar_com_retry(
+        query: str, params: tuple | None = None, max_tentativas: int = 3
+    ) -> Any:
         """Executa uma query com retry em caso de database locked"""
         tentativa = 0
         while tentativa < max_tentativas:
@@ -48,7 +52,7 @@ class DatabaseUtils:
 
                 cursor.execute(query, params or ())
 
-                if query.strip().upper().startswith('SELECT'):
+                if query.strip().upper().startswith("SELECT"):
                     resultado = cursor.fetchall()
                     return resultado
                 else:
@@ -66,8 +70,11 @@ class DatabaseUtils:
                 pass
 
     @staticmethod
-    def buscar_com_filtros(tabela: str, filtros: Optional[Dict[str, Any]] = None,
-                          ordenar_por: Optional[str] = None) -> List[Tuple]:
+    def buscar_com_filtros(
+        tabela: str,
+        filtros: dict[str, Any] | None = None,
+        ordenar_por: str | None = None,
+    ) -> list[tuple]:
         """Busca registros com filtros dinâmicos"""
         query = f"SELECT * FROM {tabela}"
         params = []
@@ -85,8 +92,12 @@ class DatabaseUtils:
         return DatabaseUtils.executar_query(query, params)
 
     @staticmethod
-    def buscar_paginado(tabela: str, pagina: int = 1, itens_por_pagina: int = 50,
-                       ordenar_por: str = "id") -> List[Tuple]:
+    def buscar_paginado(
+        tabela: str,
+        pagina: int = 1,
+        itens_por_pagina: int = 50,
+        ordenar_por: str = "id",
+    ) -> list[tuple]:
         """Busca registros com paginação"""
         offset = (pagina - 1) * itens_por_pagina
         query = f"SELECT * FROM {tabela} ORDER BY {ordenar_por} LIMIT ? OFFSET ?"
@@ -119,8 +130,8 @@ class DatabaseUtils:
             """
             return db.fetch_all(query, (pedido_id,))
         except Exception as e:
-            print(f"Erro ao buscar itens do pedido: {str(e)}")
+            print(f"Erro ao buscar itens do pedido: {e!s}")
             return []
         finally:
-            if 'db' in locals():
+            if "db" in locals():
                 db.close()

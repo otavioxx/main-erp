@@ -1,7 +1,8 @@
-#\erp\utils\export_utils.py
+# \erp\utils\export_utils.py
 import os
 import subprocess
 import sys
+
 
 class ExportUtils:
     @staticmethod
@@ -11,12 +12,12 @@ class ExportUtils:
             if not os.path.exists(filename):
                 return False
 
-            if os.name == 'nt':  # Windows
+            if os.name == "nt":  # Windows
                 os.startfile(filename)
-            elif sys.platform == 'darwin':  # macOS
-                subprocess.run(['open', filename])
+            elif sys.platform == "darwin":  # macOS
+                subprocess.run(["open", filename])
             else:  # Linux e outros
-                subprocess.run(['xdg-open', filename])
+                subprocess.run(["xdg-open", filename])
             return True
         except Exception:
             return False

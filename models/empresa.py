@@ -1,8 +1,11 @@
-#\erp\model\empresa.py
+# \erp\model\empresa.py
 from database import Database
 
+
 class Empresa:
-    def __init__(self, id=None, nome="", cnpj="", endereco="", telefone="", email="", logo=None):
+    def __init__(
+        self, id=None, nome="", cnpj="", endereco="", telefone="", email="", logo=None
+    ):
         self.id = id
         self.nome = nome
         self.cnpj = cnpj
@@ -33,15 +36,36 @@ class Empresa:
         cursor = conn.cursor()
 
         if self.id:
-            cursor.execute('''
+            cursor.execute(
+                """
                 UPDATE empresa SET nome=?, cnpj=?, endereco=?, telefone=?, email=?, logo=?
                 WHERE id=?
-            ''', (self.nome, self.cnpj, self.endereco, self.telefone, self.email, self.logo, self.id))
+            """,
+                (
+                    self.nome,
+                    self.cnpj,
+                    self.endereco,
+                    self.telefone,
+                    self.email,
+                    self.logo,
+                    self.id,
+                ),
+            )
         else:
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT INTO empresa (nome, cnpj, endereco, telefone, email, logo)
                 VALUES (?, ?, ?, ?, ?, ?)
-            ''', (self.nome, self.cnpj, self.endereco, self.telefone, self.email, self.logo))
+            """,
+                (
+                    self.nome,
+                    self.cnpj,
+                    self.endereco,
+                    self.telefone,
+                    self.email,
+                    self.logo,
+                ),
+            )
             self.id = cursor.lastrowid
 
         conn.commit()

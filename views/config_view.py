@@ -1,14 +1,27 @@
-#\erp\views\config_view.py
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QLineEdit, QLabel, QMessageBox, QFileDialog,
-                             QTextEdit, QGroupBox, QFormLayout, QFrame,
-                             QTabWidget, QScrollArea)
-from PyQt6.QtGui import QPixmap
+# \erp\views\config_view.py
 from PyQt6.QtCore import Qt
-from models.empresa import Empresa
-from dialogs.config_selection_dialog import ConfigSelectionDialog
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import (
+    QFileDialog,
+    QFormLayout,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QTabWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 from dialogs.backup_dialog import BackupDialog
+from dialogs.config_selection_dialog import ConfigSelectionDialog
 from dialogs.restore_backup_dialog import RestoreBackupDialog
+from models.empresa import Empresa
 
 
 class ConfigView(QWidget):
@@ -228,30 +241,30 @@ class ConfigView(QWidget):
         backup_group.setProperty("class", "clean-group")
         backup_layout = QVBoxLayout()
         backup_layout.setContentsMargins(15, 20, 15, 15)
-        
+
         # Botões em linha
         btn_layout = QHBoxLayout()
-        
+
         # Botão Criar Backup
         btn_backup = QPushButton("💾 Criar Backup")
         btn_backup.setProperty("class", "primary")
         btn_backup.setFixedWidth(150)
         btn_backup.clicked.connect(self._criar_backup)
-        
+
         # Botão Restaurar Backup
         btn_restore = QPushButton("📁 Restaurar Backup")
         btn_restore.setProperty("class", "warning")
         btn_restore.setFixedWidth(150)
         btn_restore.clicked.connect(self._restaurar_backup)
-        
+
         btn_layout.addWidget(btn_backup)
         btn_layout.addSpacing(10)
         btn_layout.addWidget(btn_restore)
         btn_layout.addStretch()
-        
+
         backup_layout.addLayout(btn_layout)
         backup_group.setLayout(backup_layout)
-        
+
         layout.addWidget(backup_group)
 
         self.setLayout(layout)
@@ -261,7 +274,12 @@ class ConfigView(QWidget):
             pixmap = QPixmap()
             pixmap.loadFromData(self.empresa.logo)
             if not pixmap.isNull():
-                pixmap = pixmap.scaled(150, 150, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                pixmap = pixmap.scaled(
+                    150,
+                    150,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
                 self.logo_label.setPixmap(pixmap)
                 self.logo_label.setText("")
             else:
@@ -274,7 +292,12 @@ class ConfigView(QWidget):
             pixmap = QPixmap()
             pixmap.loadFromData(self.empresa.logo)
             if not pixmap.isNull():
-                pixmap = pixmap.scaled(40, 40, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                pixmap = pixmap.scaled(
+                    40,
+                    40,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
                 self.header_logo.setPixmap(pixmap)
                 self.header_logo.setText("")
             else:
@@ -286,8 +309,11 @@ class ConfigView(QWidget):
         self.edit_mode = edit_mode
 
         campos = [
-            self.nome_edit, self.cnpj_edit, self.telefone_edit,
-            self.email_edit, self.endereco_edit
+            self.nome_edit,
+            self.cnpj_edit,
+            self.telefone_edit,
+            self.email_edit,
+            self.endereco_edit,
         ]
 
         for campo in campos:
@@ -312,7 +338,9 @@ class ConfigView(QWidget):
     def cancelar_edicao(self):
         self.carregar_configuracoes()
         self.toggle_edit_mode(False)
-        QMessageBox.information(self, "Edição Cancelada", "As alterações foram descartadas.")
+        QMessageBox.information(
+            self, "Edição Cancelada", "As alterações foram descartadas."
+        )
 
     def carregar_configuracoes(self):
         """Carrega as configurações nos campos"""
@@ -332,14 +360,19 @@ class ConfigView(QWidget):
             self,
             "Selecionar Logo",
             "",
-            "Imagens (*.png *.jpg *.jpeg *.bmp *.gif);;Todos os arquivos (*)"
+            "Imagens (*.png *.jpg *.jpeg *.bmp *.gif);;Todos os arquivos (*)",
         )
 
         if file_path:
             self.logo_path = file_path
             pixmap = QPixmap(file_path)
             if not pixmap.isNull():
-                pixmap = pixmap.scaled(150, 150, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                pixmap = pixmap.scaled(
+                    150,
+                    150,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
                 self.logo_label.setPixmap(pixmap)
                 self.logo_label.setText("")
 
@@ -351,7 +384,7 @@ class ConfigView(QWidget):
             self,
             "Remover Logo",
             "Tem certeza que deseja remover o logo da empresa?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
 
         if resposta == QMessageBox.StandardButton.Yes:
@@ -373,7 +406,7 @@ class ConfigView(QWidget):
             self.empresa.endereco = self.endereco_edit.toPlainText().strip()
 
             if self.logo_path:
-                with open(self.logo_path, 'rb') as f:
+                with open(self.logo_path, "rb") as f:
                     self.empresa.logo = f.read()
 
             self.empresa.salvar()
@@ -381,10 +414,12 @@ class ConfigView(QWidget):
             self.atualizar_header_logo()
             self.toggle_edit_mode(False)
 
-            QMessageBox.information(self, "Sucesso", "Configurações salvas com sucesso!")
+            QMessageBox.information(
+                self, "Sucesso", "Configurações salvas com sucesso!"
+            )
 
         except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao salvar configurações: {str(e)}")
+            QMessageBox.critical(self, "Erro", f"Erro ao salvar configurações: {e!s}")
 
     def mostrar_configuracoes_avancadas(self):
         dialog = ConfigSelectionDialog(self)
@@ -400,7 +435,9 @@ class ConfigView(QWidget):
             dialog.backup_realizado.connect(self._backup_concluido)
             dialog.exec()
         except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao abrir diálogo de backup: {str(e)}")
+            QMessageBox.critical(
+                self, "Erro", f"Erro ao abrir diálogo de backup: {e!s}"
+            )
 
     def _restaurar_backup(self):
         """Abre diálogo para restaurar backup"""
@@ -410,15 +447,15 @@ class ConfigView(QWidget):
             dialog.restore_completed.connect(self._restauracao_concluida)
             dialog.exec()
         except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao abrir diálogo de restauração: {str(e)}")
+            QMessageBox.critical(
+                self, "Erro", f"Erro ao abrir diálogo de restauração: {e!s}"
+            )
 
     def _backup_concluido(self, backup_path):
         """Chamado quando backup é criado com sucesso"""
         if backup_path:  # Pode ser string vazia
             QMessageBox.information(
-                self,
-                "✅ Backup Criado",
-                f"Backup criado com sucesso:\n\n{backup_path}"
+                self, "✅ Backup Criado", f"Backup criado com sucesso:\n\n{backup_path}"
             )
 
     def _restauracao_concluida(self):
@@ -430,9 +467,9 @@ class ConfigView(QWidget):
             "O sistema precisa ser reiniciado para aplicar as alterações.\n"
             "Deseja reiniciar agora?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.Yes
+            QMessageBox.StandardButton.Yes,
         )
-        
+
         if reply == QMessageBox.StandardButton.Yes:
             self._reiniciar_sistema()
 
@@ -440,4 +477,5 @@ class ConfigView(QWidget):
         """Reinicia o sistema após restauração"""
         # Emite código especial para reinício (100)
         from PyQt6.QtWidgets import QApplication
+
         QApplication.instance().exit(100)

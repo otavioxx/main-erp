@@ -26,10 +26,24 @@ PROJETO = Path(__file__).resolve().parent.parent
 
 # Nada disso entra no release: são dados do usuário, caches e ferramentas.
 EXCLUIR_PASTAS = {
-    "__pycache__", ".git", ".venv", "venv", ".idea", ".vscode",
-    "dist", "distribuicao", "data", "relatorios", "backups",
+    "__pycache__",
+    ".git",
+    ".venv",
+    "venv",
+    ".idea",
+    ".vscode",
+    "dist",
+    "distribuicao",
+    "data",
+    "relatorios",
+    "backups",
 }
-EXCLUIR_NOMES = {".gitignore", "config.json", "backup_settings.json", "backup_config.json"}
+EXCLUIR_NOMES = {
+    ".gitignore",
+    "config.json",
+    "backup_settings.json",
+    "backup_config.json",
+}
 EXCLUIR_EXTENSOES = {".pyc", ".pyo", ".db", ".db-journal", ".zip", ".log"}
 
 
@@ -85,12 +99,26 @@ def sistema_padrao() -> Path:
 
 
 def main():
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--saida", type=Path, default=PROJETO / "dist", help="pasta de saída (padrão: dist)")
-    ap.add_argument("--instalar", action="store_true",
-                    help="copia o zip para a pasta atualizacoes\\ do sistema instalado")
-    ap.add_argument("--sistema", type=Path, default=None,
-                    help="pasta 'sistema' da instalação (padrão: %%LOCALAPPDATA%%\\MainERP\\sistema)")
+    ap = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    ap.add_argument(
+        "--saida",
+        type=Path,
+        default=PROJETO / "dist",
+        help="pasta de saída (padrão: dist)",
+    )
+    ap.add_argument(
+        "--instalar",
+        action="store_true",
+        help="copia o zip para a pasta atualizacoes\\ do sistema instalado",
+    )
+    ap.add_argument(
+        "--sistema",
+        type=Path,
+        default=None,
+        help="pasta 'sistema' da instalação (padrão: %%LOCALAPPDATA%%\\MainERP\\sistema)",
+    )
     args = ap.parse_args()
 
     zip_path = construir_zip(args.saida)
@@ -98,9 +126,13 @@ def main():
     versao = ler_versao()
 
     manifesto = {"version": versao, "url": zip_path.name, "sha256": sha}
-    (args.saida / "version.json").write_text(json.dumps(manifesto, indent=2), encoding="utf-8")
+    (args.saida / "version.json").write_text(
+        json.dumps(manifesto, indent=2), encoding="utf-8"
+    )
 
-    print(f"Release {versao} criado: {zip_path}  ({zip_path.stat().st_size / 1024:.0f} KB)")
+    print(
+        f"Release {versao} criado: {zip_path}  ({zip_path.stat().st_size / 1024:.0f} KB)"
+    )
     print(f"SHA256: {sha}")
     print(f"Manifesto: {args.saida / 'version.json'}")
 

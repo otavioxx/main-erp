@@ -4,7 +4,6 @@ Tema Dark Clean único com suporte a customização e status bar escura
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 from PyQt6.QtGui import QColor, QFont, QPalette
 
@@ -12,28 +11,28 @@ from PyQt6.QtGui import QColor, QFont, QPalette
 @dataclass
 class CoresPaleta:
     """Classe para organizar as cores do tema dark"""
-    
+
     # Cores primárias - mais escuras
     background_primary: str = "#1a1a1a"  # Mais escuro
     background_secondary: str = "#202020"  # Mais escuro
     background_tertiary: str = "#252525"  # Mais escuro
-    
+
     # Cores de texto
     text_primary: str = "#b9b9b9"  # Ligeiramente mais claro
     text_secondary: str = "#a09f9f"  # Mais claro
     text_muted: str = "#707070"
     text_disabled: str = "#2E2D2D"  # Mais escuro
-    
+
     # Cores de acento
     accent_primary: str = "#1A4968"
     accent_hover: str = "#4c687a"
     accent_pressed: str = "#024f83"
-    
+
     # Cores de borda - mais escuras
     border_primary: str = "#333333"  # Mais escuro
     border_secondary: str = "#404040"  # Mais escuro
     border_focus: str = "#025a94"
-    
+
     # Cores semânticas
     success: str = "#2d5a2d"
     success_border: str = "#3d6b3d"
@@ -41,7 +40,7 @@ class CoresPaleta:
     warning_border: str = "#6b5d3d"
     danger: str = "#5a2d2d"
     danger_border: str = "#6b3d3d"
-    
+
     # Cores de seleção
     selection_bg: str = "#4c687a"
     selection_text: str = "#ffffff"
@@ -50,7 +49,7 @@ class CoresPaleta:
 
 class ConfiguracaoFonte:
     """Configurações de fonte"""
-    
+
     def __init__(self, familia: str = "Segoe UI", tamanho_base: int = 12):
         self.familia = familia
         self.tamanho_base = tamanho_base
@@ -62,11 +61,11 @@ class ConfiguracaoFonte:
 
 class ConstrutorEstilos:
     """Construtor de estilos CSS baseado em template"""
-    
+
     def __init__(self, cores: CoresPaleta, fonte: ConfiguracaoFonte):
         self.cores = cores
         self.fonte = fonte
-    
+
     def _estilo_widget_base(self) -> str:
         """Estilo base para todos os widgets"""
         return f"""
@@ -78,7 +77,7 @@ class ConstrutorEstilos:
             outline: none;
         }}
         """
-    
+
     def _estilo_botoes(self) -> str:
         """Estilos para botões"""
         return f"""
@@ -141,7 +140,7 @@ class ConstrutorEstilos:
             color: {self.cores.text_primary};
         }}
         """
-    
+
     def _estilo_combobox(self) -> str:
         """Estilos para ComboBox estilo Windows 11"""
         return f"""
@@ -211,7 +210,7 @@ class ConstrutorEstilos:
             color: {self.cores.selection_text};
         }}
         """
-    
+
     def _estilo_tabelas(self) -> str:
         """Estilos para tabelas com hover melhorado"""
         return f"""
@@ -291,7 +290,7 @@ class ConstrutorEstilos:
             background-color: {self.cores.text_disabled};
         }}
         """
-    
+
     def _estilo_inputs(self) -> str:
         """Estilos para campos de entrada"""
         return f"""
@@ -318,7 +317,7 @@ class ConstrutorEstilos:
             border: none;
         }}
         """
-    
+
     def _estilo_tabs(self) -> str:
         """Estilos para abas"""
         return f"""
@@ -351,7 +350,7 @@ class ConstrutorEstilos:
             background-color: {self.cores.background_tertiary};
         }}
         """
-    
+
     def _estilo_controles(self) -> str:
         """Estilos para checkboxes, radiobuttons, etc."""
         return f"""
@@ -382,7 +381,7 @@ class ConstrutorEstilos:
             border: 1px solid {self.cores.accent_primary};
         }}
         """
-    
+
     def _estilo_scrollbars(self) -> str:
         """Estilos para barras de rolagem - versão melhorada"""
         return f"""
@@ -455,7 +454,7 @@ class ConstrutorEstilos:
             background-color: {self.cores.background_secondary};
         }}
         """
-    
+
     def _estilo_status_bar(self) -> str:
         """Estilos específicos para status bar"""
         return f"""
@@ -501,7 +500,7 @@ class ConstrutorEstilos:
             text-align: center;
         }}
         """
-    
+
     def _estilo_sidebar(self) -> str:
         """Estilos específicos para barra lateral (sidebar)"""
         return f"""
@@ -671,7 +670,7 @@ class ConstrutorEstilos:
             color: #ff6b9d;
         }}
         """
-    
+
     def construir_stylesheet(self) -> str:
         """Constrói o stylesheet completo"""
         return "".join(
@@ -708,14 +707,14 @@ def configurar_paleta_qt(app, cores: CoresPaleta):
     app.setPalette(palette)
 
 
-def aplicar_tema_dark(app, fonte_customizada: Optional[ConfiguracaoFonte] = None):
+def aplicar_tema_dark(app, fonte_customizada: ConfiguracaoFonte | None = None):
     """
     Aplica o tema dark à aplicação PyQt6
     """
     # Configuração da fonte - CORRIGIR VALIDAÇÃO
     if fonte_customizada is None:
         fonte_customizada = ConfiguracaoFonte()
-    
+
     # VALIDAR tamanho da fonte
     if fonte_customizada.tamanho_base <= 0:
         fonte_customizada.tamanho_base = 12  # Valor padrão seguro
@@ -723,28 +722,28 @@ def aplicar_tema_dark(app, fonte_customizada: Optional[ConfiguracaoFonte] = None
         fonte_customizada.tamanho_medio = 14
         fonte_customizada.tamanho_grande = 19
         fonte_customizada.tamanho_titulo = 23
-    
+
     fonte = QFont(fonte_customizada.familia, fonte_customizada.tamanho_base)
-    
+
     # VALIDAR tamanho da fonte Qt
     if fonte.pointSize() <= 0:
         fonte.setPointSize(12)  # Tamanho seguro
-    
+
     app.setFont(fonte)
-    
+
     # Usar cores padrão do tema dark
     cores = CoresPaleta()
-    
+
     # Configurar paleta nativa
     configurar_paleta_qt(app, cores)
-    
+
     # Construir e aplicar stylesheet
     construtor = ConstrutorEstilos(cores, fonte_customizada)
     stylesheet = construtor.construir_stylesheet()
     app.setStyleSheet(stylesheet)
 
 
-def aplicar_estilos(app, fonte_customizada: Optional[ConfiguracaoFonte] = None):
+def aplicar_estilos(app, fonte_customizada: ConfiguracaoFonte | None = None):
     """
     Função principal para aplicar estilos (mantida para compatibilidade)
     """

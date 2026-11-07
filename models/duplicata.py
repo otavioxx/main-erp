@@ -1,13 +1,23 @@
-#\erp\model\duplicata.py
-from database import Database
-from datetime import timedelta
-from utils.database_utils import DatabaseUtils
+# \erp\model\duplicata.py
 import sqlite3
+from datetime import timedelta
+
+from database import Database
+from utils.database_utils import DatabaseUtils
+
 
 class Duplicata:
-    def __init__(self, id=None, venda_id=None, cliente_id=None, numero_parcela=1,
-                 valor_parcela=0.0, data_vencimento=None, data_pagamento=None,
-                 status="aberto"):
+    def __init__(
+        self,
+        id=None,
+        venda_id=None,
+        cliente_id=None,
+        numero_parcela=1,
+        valor_parcela=0.0,
+        data_vencimento=None,
+        data_pagamento=None,
+        status="aberto",
+    ):
         self.id = id
         self.venda_id = venda_id
         self.cliente_id = cliente_id
@@ -24,21 +34,40 @@ class Duplicata:
 
         try:
             if self.id:
-                cursor.execute('''
+                cursor.execute(
+                    """
                     UPDATE duplicatas SET venda_id=?, cliente_id=?, numero_parcela=?,
                     valor_parcela=?, data_vencimento=?, data_pagamento=?, status=?
                     WHERE id=?
-                ''', (self.venda_id, self.cliente_id, self.numero_parcela,
-                     self.valor_parcela, self.data_vencimento, self.data_pagamento,
-                     self.status, self.id))
+                """,
+                    (
+                        self.venda_id,
+                        self.cliente_id,
+                        self.numero_parcela,
+                        self.valor_parcela,
+                        self.data_vencimento,
+                        self.data_pagamento,
+                        self.status,
+                        self.id,
+                    ),
+                )
             else:
-                cursor.execute('''
+                cursor.execute(
+                    """
                     INSERT INTO duplicatas (venda_id, cliente_id, numero_parcela,
                     valor_parcela, data_vencimento, data_pagamento, status)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                ''', (self.venda_id, self.cliente_id, self.numero_parcela,
-                     self.valor_parcela, self.data_vencimento, self.data_pagamento,
-                     self.status))
+                """,
+                    (
+                        self.venda_id,
+                        self.cliente_id,
+                        self.numero_parcela,
+                        self.valor_parcela,
+                        self.data_vencimento,
+                        self.data_pagamento,
+                        self.status,
+                    ),
+                )
                 self.id = cursor.lastrowid
 
             conn.commit()
@@ -50,7 +79,9 @@ class Duplicata:
             conn.close()
 
     @staticmethod
-    def criar_parcelas(venda_id, cliente_id, valor_financiado, parcelas, data_primeiro_vencimento):
+    def criar_parcelas(
+        venda_id, cliente_id, valor_financiado, parcelas, data_primeiro_vencimento
+    ):
         """Cria parcelas baseadas no valor financiado (não no valor total)"""
         valor_parcela = valor_financiado / parcelas
         duplicatas = []
@@ -59,12 +90,12 @@ class Duplicata:
             data_vencimento = data_primeiro_vencimento + timedelta(days=30 * i)
 
             resultado = DatabaseUtils.executar_com_retry(
-                '''
+                """
                 INSERT INTO duplicatas
                 (venda_id, cliente_id, numero_parcela, valor_parcela, data_vencimento, status)
                 VALUES (?, ?, ?, ?, ?, 'aberto')
-                ''',
-                (venda_id, cliente_id, i + 1, valor_parcela, data_vencimento)
+                """,
+                (venda_id, cliente_id, i + 1, valor_parcela, data_vencimento),
             )
 
             duplicata = Duplicata(
@@ -74,7 +105,7 @@ class Duplicata:
                 numero_parcela=i + 1,
                 valor_parcela=valor_parcela,
                 data_vencimento=data_vencimento,
-                status="aberto"
+                status="aberto",
             )
             duplicatas.append(duplicata)
 
@@ -86,7 +117,10 @@ class Duplicata:
         conn = db.get_connection()
         cursor = conn.cursor()
 
-        cursor.execute('SELECT * FROM duplicatas WHERE venda_id = ? ORDER BY numero_parcela', (venda_id,))
+        cursor.execute(
+            "SELECT * FROM duplicatas WHERE venda_id = ? ORDER BY numero_parcela",
+            (venda_id,),
+        )
         duplicatas = cursor.fetchall()
         conn.close()
         return duplicatas
@@ -99,13 +133,13 @@ class Duplicata:
         cursor = conn.cursor()
 
         try:
-            cursor.execute('''
+            cursor.execute("""
                 SELECT d.*, c.nome as cliente_nome
                 FROM duplicatas d
                 LEFT JOIN clientes c ON d.cliente_id = c.id
                 WHERE d.status = 'aberto'
                 ORDER BY d.data_vencimento
-            ''')
+            """)
             return cursor.fetchall()
         except Exception as e:
             raise e
@@ -120,21 +154,21 @@ class Duplicata:
         cursor = conn.cursor()
 
         try:
-            if status == 'aberto':
-                cursor.execute('''
+            if status == "aberto":
+                cursor.execute("""
                     SELECT d.*, c.nome as cliente_nome
                     FROM duplicatas d
                     LEFT JOIN clientes c ON d.cliente_id = c.id
                     WHERE d.status = 'aberto'
                     ORDER BY d.data_vencimento
-                ''')
+                """)
             else:
-                cursor.execute('''
+                cursor.execute("""
                     SELECT dp.*, c.nome as cliente_nome
                     FROM duplicatas_pagas dp
                     LEFT JOIN clientes c ON dp.cliente_id = c.id
                     ORDER BY dp.data_pagamento DESC
-                ''')
+                """)
             return cursor.fetchall()
         except Exception as e:
             raise e
@@ -149,23 +183,29 @@ class Duplicata:
         cursor = conn.cursor()
 
         try:
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT d.*, c.nome as cliente_nome
                 FROM duplicatas d
                 LEFT JOIN clientes c ON d.cliente_id = c.id
                 WHERE d.cliente_id = ? AND d.status = 'aberto'
                 ORDER BY d.data_vencimento
-            ''', (cliente_id,))
+            """,
+                (cliente_id,),
+            )
 
             abertas = cursor.fetchall()
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT dp.*, c.nome as cliente_nome
                 FROM duplicatas_pagas dp
                 LEFT JOIN clientes c ON dp.cliente_id = c.id
                 WHERE dp.cliente_id = ?
                 ORDER BY dp.data_pagamento DESC
-            ''', (cliente_id,))
+            """,
+                (cliente_id,),
+            )
 
             pagas = cursor.fetchall()
 
@@ -181,7 +221,10 @@ class Duplicata:
         cursor = conn.cursor()
         try:
             # Buscar duplicata
-            cursor.execute("SELECT id, venda_id, cliente_id, numero_parcela, valor_parcela, data_vencimento FROM duplicatas WHERE id = ?", (duplicata_id,))
+            cursor.execute(
+                "SELECT id, venda_id, cliente_id, numero_parcela, valor_parcela, data_vencimento FROM duplicatas WHERE id = ?",
+                (duplicata_id,),
+            )
             duplicata = cursor.fetchone()
             if not duplicata:
                 raise Exception("Duplicata não encontrada")
@@ -196,11 +239,14 @@ class Duplicata:
             diferenca = float(valor_recebido) - valor_original
 
             # Buscar parcelas restantes
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT id, numero_parcela, valor_parcela FROM duplicatas
                 WHERE venda_id = ? AND id != ? AND status = 'aberto'
                 ORDER BY numero_parcela
-            ''', (venda_id, duplicata_id))
+            """,
+                (venda_id, duplicata_id),
+            )
 
             parcelas_restantes = cursor.fetchall()
             qtd_restantes = len(parcelas_restantes)
@@ -212,57 +258,108 @@ class Duplicata:
                 # Verificar se precisa quitar parcelas automaticamente
                 if diferenca > 0:  # Pagou a mais
                     # Calcular o total das parcelas restantes
-                    total_parcelas_restantes = sum(float(p[2]) for p in parcelas_restantes)
+                    total_parcelas_restantes = sum(
+                        float(p[2]) for p in parcelas_restantes
+                    )
 
                     if diferenca >= total_parcelas_restantes:
                         # O valor pago é suficiente para quitar todas as parcelas restantes
-                        for parcela_id, num_parcela, valor_parcela in parcelas_restantes:
+                        for (
+                            parcela_id,
+                            num_parcela,
+                            valor_parcela,
+                        ) in parcelas_restantes:
                             # Inserir na tabela de pagas
-                            cursor.execute('''
+                            cursor.execute(
+                                """
                                 INSERT INTO duplicatas_pagas
                                 (venda_id, cliente_id, numero_parcela, valor_original, valor_recebido,
                                 data_vencimento, data_pagamento, forma_pagamento)
                                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                            ''', (venda_id, cliente_id, num_parcela, float(valor_parcela),
-                                float(valor_parcela), data_vencimento, data_pagamento, forma_pagamento))
+                            """,
+                                (
+                                    venda_id,
+                                    cliente_id,
+                                    num_parcela,
+                                    float(valor_parcela),
+                                    float(valor_parcela),
+                                    data_vencimento,
+                                    data_pagamento,
+                                    forma_pagamento,
+                                ),
+                            )
 
                             # Remover da tabela duplicatas
-                            cursor.execute("DELETE FROM duplicatas WHERE id = ?", (parcela_id,))
+                            cursor.execute(
+                                "DELETE FROM duplicatas WHERE id = ?", (parcela_id,)
+                            )
                     else:
                         # Redistribuir a diferença normalmente
-                        for parcela_id, num_parcela, valor_parcela in parcelas_restantes:
+                        for (
+                            parcela_id,
+                            num_parcela,
+                            valor_parcela,
+                        ) in parcelas_restantes:
                             novo_valor = float(valor_parcela) - ajuste_por_parcela
 
                             if novo_valor <= 0:
                                 # Parcela quitada automaticamente
-                                cursor.execute('''
+                                cursor.execute(
+                                    """
                                     INSERT INTO duplicatas_pagas
                                     (venda_id, cliente_id, numero_parcela, valor_original, valor_recebido,
                                     data_vencimento, data_pagamento, forma_pagamento)
                                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                                ''', (venda_id, cliente_id, num_parcela, float(valor_parcela),
-                                    float(valor_parcela), data_vencimento, data_pagamento, forma_pagamento))
+                                """,
+                                    (
+                                        venda_id,
+                                        cliente_id,
+                                        num_parcela,
+                                        float(valor_parcela),
+                                        float(valor_parcela),
+                                        data_vencimento,
+                                        data_pagamento,
+                                        forma_pagamento,
+                                    ),
+                                )
 
-                                cursor.execute("DELETE FROM duplicatas WHERE id = ?", (parcela_id,))
+                                cursor.execute(
+                                    "DELETE FROM duplicatas WHERE id = ?", (parcela_id,)
+                                )
                             else:
                                 # Atualizar valor da parcela
-                                cursor.execute('UPDATE duplicatas SET valor_parcela = ? WHERE id = ?',
-                                            (novo_valor, parcela_id))
+                                cursor.execute(
+                                    "UPDATE duplicatas SET valor_parcela = ? WHERE id = ?",
+                                    (novo_valor, parcela_id),
+                                )
                 else:
                     # Pagou a menos - aumentar o valor das parcelas restantes
                     for parcela_id, num_parcela, valor_parcela in parcelas_restantes:
                         novo_valor = float(valor_parcela) + abs(ajuste_por_parcela)
-                        cursor.execute('UPDATE duplicatas SET valor_parcela = ? WHERE id = ?',
-                                    (novo_valor, parcela_id))
+                        cursor.execute(
+                            "UPDATE duplicatas SET valor_parcela = ? WHERE id = ?",
+                            (novo_valor, parcela_id),
+                        )
 
             # Inserir a parcela atual em duplicatas_pagas
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT INTO duplicatas_pagas
                 (venda_id, cliente_id, numero_parcela, valor_original, valor_recebido,
                 data_vencimento, data_pagamento, forma_pagamento)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (venda_id, cliente_id, numero_parcela, valor_original, valor_recebido,
-                data_vencimento, data_pagamento, forma_pagamento))
+            """,
+                (
+                    venda_id,
+                    cliente_id,
+                    numero_parcela,
+                    valor_original,
+                    valor_recebido,
+                    data_vencimento,
+                    data_pagamento,
+                    forma_pagamento,
+                ),
+            )
 
             # Remover da tabela duplicatas
             cursor.execute("DELETE FROM duplicatas WHERE id = ?", (duplicata_id,))
@@ -277,14 +374,17 @@ class Duplicata:
             conn.close()
 
     @staticmethod
-    def ajustar_parcelas_restantes(venda_id, duplicata_id, valor_pago, valor_original=None):
+    def ajustar_parcelas_restantes(
+        venda_id, duplicata_id, valor_pago, valor_original=None
+    ):
         """
         Ajusta as duplicatas restantes redistribuindo a diferença igualmente.
         Se pagar a menos -> aumenta as parcelas.
         Se pagar a mais -> reduz as parcelas (quitando se valor ficar <= 0).
         """
-        from database import Database
         from datetime import datetime
+
+        from database import Database
 
         db = Database()
         conn = db.get_connection()
@@ -293,10 +393,14 @@ class Duplicata:
         try:
             # Obter valor original se não foi passado
             if valor_original is None:
-                cursor.execute('SELECT valor_parcela FROM duplicatas WHERE id = ?', (duplicata_id,))
+                cursor.execute(
+                    "SELECT valor_parcela FROM duplicatas WHERE id = ?", (duplicata_id,)
+                )
                 row = cursor.fetchone()
                 if not row:
-                    raise Exception("Não foi possível obter o valor da duplicata original para ajuste.")
+                    raise Exception(
+                        "Não foi possível obter o valor da duplicata original para ajuste."
+                    )
                 valor_original = float(row[0])
 
             diferenca = float(valor_pago) - float(valor_original)
@@ -307,12 +411,15 @@ class Duplicata:
             print(f"=== Redistribuindo diferença (diferença = {diferenca:.2f}) ===")
 
             # Buscar parcelas restantes abertas
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT id, numero_parcela, valor_parcela, cliente_id, data_vencimento
                 FROM duplicatas
                 WHERE venda_id = ? AND id != ? AND status = 'aberto'
                 ORDER BY numero_parcela
-            ''', (venda_id, duplicata_id))
+            """,
+                (venda_id, duplicata_id),
+            )
             parcelas_restantes = cursor.fetchall()
 
             if not parcelas_restantes:
@@ -324,27 +431,51 @@ class Duplicata:
             hoje = datetime.now().date()
 
             for parcela in parcelas_restantes:
-                parcela_id, numero_parcela, valor_parcela, cliente_id, data_venc = parcela
+                parcela_id, numero_parcela, valor_parcela, cliente_id, data_venc = (
+                    parcela
+                )
                 valor_parcela = float(valor_parcela)
 
-                novo_valor = round(valor_parcela - ajuste, 2) if diferenca > 0 else round(valor_parcela + abs(ajuste), 2)
+                novo_valor = (
+                    round(valor_parcela - ajuste, 2)
+                    if diferenca > 0
+                    else round(valor_parcela + abs(ajuste), 2)
+                )
 
                 if novo_valor <= 0:
                     # Parcela quitada automaticamente
-                    cursor.execute('''
+                    cursor.execute(
+                        """
                         INSERT INTO duplicatas_pagas
                         (venda_id, cliente_id, numero_parcela, valor_original, valor_recebido, data_vencimento, data_pagamento)
                         VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', (venda_id, cliente_id, numero_parcela, valor_parcela, valor_parcela, data_venc, hoje))
-                    cursor.execute('DELETE FROM duplicatas WHERE id = ?', (parcela_id,))
-                    print(f"  Parcela {numero_parcela} quitada automaticamente (id {parcela_id})")
+                    """,
+                        (
+                            venda_id,
+                            cliente_id,
+                            numero_parcela,
+                            valor_parcela,
+                            valor_parcela,
+                            data_venc,
+                            hoje,
+                        ),
+                    )
+                    cursor.execute("DELETE FROM duplicatas WHERE id = ?", (parcela_id,))
+                    print(
+                        f"  Parcela {numero_parcela} quitada automaticamente (id {parcela_id})"
+                    )
                 else:
-                    cursor.execute('''
+                    cursor.execute(
+                        """
                         UPDATE duplicatas
                         SET valor_parcela = ?
                         WHERE id = ? AND status = 'aberto'
-                    ''', (novo_valor, parcela_id))
-                    print(f"  Parcela {numero_parcela} ajustada para R$ {novo_valor:.2f}")
+                    """,
+                        (novo_valor, parcela_id),
+                    )
+                    print(
+                        f"  Parcela {numero_parcela} ajustada para R$ {novo_valor:.2f}"
+                    )
 
             conn.commit()
             print("Redistribuição concluída e commitada")
@@ -354,6 +485,7 @@ class Duplicata:
                 conn.rollback()
             print(f"Erro ao redistribuir diferença: {e}")
             import traceback
+
             traceback.print_exc()
             raise e
         finally:

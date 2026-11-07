@@ -1,21 +1,29 @@
 # \erp\utils\pedido_utils.py
+from typing import Any
+
 from utils.database_utils import DatabaseUtils
-from typing import List, Dict, Any, Tuple
 from utils.helpers import converter_data_string
+
 
 class PedidoUtils:
     @staticmethod
-    def salvar_itens_pedido(pedido_id: int, itens: List[Dict[str, Any]]) -> bool:
+    def salvar_itens_pedido(pedido_id: int, itens: list[dict[str, Any]]) -> bool:
         """Salva os itens do pedido no banco - MODIFICADO para incluir valor de venda"""
         try:
             for item in itens:
-                query = '''
+                query = """
                     INSERT INTO itens_pedido
                     (pedido_id, produto_id, quantidade, preco_custo, preco_venda, subtotal)
                     VALUES (?, ?, ?, ?, ?, ?)
-                '''
-                params = (pedido_id, item['id'], item['quantidade'],
-                         item['preco_custo'], item['preco_venda'], item['subtotal'])
+                """
+                params = (
+                    pedido_id,
+                    item["id"],
+                    item["quantidade"],
+                    item["preco_custo"],
+                    item["preco_venda"],
+                    item["subtotal"],
+                )
                 DatabaseUtils.executar_query(query, params)
 
             return True
@@ -23,8 +31,12 @@ class PedidoUtils:
             raise e
 
     @staticmethod
-    def filtrar_pedidos(data_inicio_str: str = None, data_fim_str: str = None,
-                       fornecedor_id: int = None, status: str = None) -> List[Tuple]:
+    def filtrar_pedidos(
+        data_inicio_str: str = None,
+        data_fim_str: str = None,
+        fornecedor_id: int = None,
+        status: str = None,
+    ) -> list[tuple]:
         """Filtra pedidos com os parâmetros fornecidos"""
         query = """
             SELECT p.*, f.nome as fornecedor_nome
@@ -35,8 +47,14 @@ class PedidoUtils:
         params = []
 
         # Converter datas
-        data_inicio = converter_data_string(data_inicio_str, '%d/%m/%Y') if data_inicio_str else None
-        data_fim = converter_data_string(data_fim_str, '%d/%m/%Y') if data_fim_str else None
+        data_inicio = (
+            converter_data_string(data_inicio_str, "%d/%m/%Y")
+            if data_inicio_str
+            else None
+        )
+        data_fim = (
+            converter_data_string(data_fim_str, "%d/%m/%Y") if data_fim_str else None
+        )
 
         if data_inicio:
             query += " AND p.data_pedido >= ?"
@@ -66,11 +84,11 @@ class PedidoUtils:
         """
         try:
             # Buscar itens do pedido - INCLUINDO PRECO_VENDA
-            query_itens = '''
+            query_itens = """
                 SELECT produto_id, quantidade, preco_custo, preco_venda
                 FROM itens_pedido
                 WHERE pedido_id = ?
-            '''
+            """
             itens = DatabaseUtils.executar_query(query_itens, (pedido_id,))
 
             if not itens:
@@ -83,35 +101,40 @@ class PedidoUtils:
                 # Verificar se preco_venda existe, senão usar fallback
                 if preco_venda is None or preco_venda <= 0:
                     preco_venda = preco_custo * 1.3  # Margem padrão de 30%
-                    print(f"Produto {produto_id}: usando preço venda calculado (R$ {preco_venda:.2f})")
+                    print(
+                        f"Produto {produto_id}: usando preço venda calculado (R$ {preco_venda:.2f})"
+                    )
 
                 # Atualizar produto: preço de custo, preço de venda e estoque
-                query_update = '''
+                query_update = """
                     UPDATE produtos
                     SET preco_custo = ?, preco_venda = ?, estoque = estoque + ?
                     WHERE id = ?
-                '''
+                """
                 DatabaseUtils.executar_query(
-                    query_update,
-                    (preco_custo, preco_venda, quantidade, produto_id)
+                    query_update, (preco_custo, preco_venda, quantidade, produto_id)
                 )
 
                 produtos_atualizados += 1
-                print(f"Produto {produto_id} atualizado: custo=R${preco_custo:.2f}, venda=R${preco_venda:.2f}, +{quantidade} estoque")
+                print(
+                    f"Produto {produto_id} atualizado: custo=R${preco_custo:.2f}, venda=R${preco_venda:.2f}, +{quantidade} estoque"
+                )
 
             # Marcar pedido como recebido
-            query_pedido = '''
+            query_pedido = """
                 UPDATE pedidos
                 SET status = 'recebido', data_recebimento = date('now')
                 WHERE id = ?
-            '''
+            """
             DatabaseUtils.executar_query(query_pedido, (pedido_id,))
 
-            print(f"Pedido #{pedido_id} marcado como recebido. {produtos_atualizados} produtos atualizados.")
+            print(
+                f"Pedido #{pedido_id} marcado como recebido. {produtos_atualizados} produtos atualizados."
+            )
             return True
 
         except Exception as e:
-            print(f"Erro ao receber pedido {pedido_id}: {str(e)}")
+            print(f"Erro ao receber pedido {pedido_id}: {e!s}")
             raise e
 
     @staticmethod
@@ -125,48 +148,59 @@ class PedidoUtils:
             raise e
 
     @staticmethod
-    def calcular_totais_pedido(itens: List[Dict[str, Any]], frete: float = 0) -> Tuple[float, float]:
+    def calcular_totais_pedido(
+        itens: list[dict[str, Any]], frete: float = 0
+    ) -> tuple[float, float]:
         """Calcula totais do pedido"""
-        subtotal = sum(item['subtotal'] for item in itens)
+        subtotal = sum(item["subtotal"] for item in itens)
         total = subtotal + frete
         return subtotal, total
 
     @staticmethod
-    def atualizar_pedido(pedido_id: int, fornecedor_id: int, itens: List[Dict[str, Any]],
-                        valor_frete: float, observacao: str = None) -> bool:
+    def atualizar_pedido(
+        pedido_id: int,
+        fornecedor_id: int,
+        itens: list[dict[str, Any]],
+        valor_frete: float,
+        observacao: str = None,
+    ) -> bool:
         """Atualiza um pedido existente - MODIFICADO para incluir valor de venda"""
         try:
             # Calcular total
-            subtotal = sum(item['subtotal'] for item in itens)
+            subtotal = sum(item["subtotal"] for item in itens)
             total = subtotal + valor_frete
 
             # Atualizar pedido
-            query_pedido = '''
+            query_pedido = """
                 UPDATE pedidos
                 SET fornecedor_id = ?, valor_total = ?, valor_frete = ?, observacao = ?
                 WHERE id = ?
-            '''
+            """
             DatabaseUtils.executar_query(
-                query_pedido,
-                (fornecedor_id, total, valor_frete, observacao, pedido_id)
+                query_pedido, (fornecedor_id, total, valor_frete, observacao, pedido_id)
             )
 
             # Remover itens antigos e adicionar novos
             DatabaseUtils.executar_query(
-                "DELETE FROM itens_pedido WHERE pedido_id = ?",
-                (pedido_id,)
+                "DELETE FROM itens_pedido WHERE pedido_id = ?", (pedido_id,)
             )
 
             for item in itens:
-                query_item = '''
+                query_item = """
                     INSERT INTO itens_pedido
                     (pedido_id, produto_id, quantidade, preco_custo, preco_venda, subtotal)
                     VALUES (?, ?, ?, ?, ?, ?)
-                '''
+                """
                 DatabaseUtils.executar_query(
                     query_item,
-                    (pedido_id, item['id'], item['quantidade'],
-                    item['preco_custo'], item['preco_venda'], item['subtotal'])
+                    (
+                        pedido_id,
+                        item["id"],
+                        item["quantidade"],
+                        item["preco_custo"],
+                        item["preco_venda"],
+                        item["subtotal"],
+                    ),
                 )
 
             return True
@@ -174,13 +208,13 @@ class PedidoUtils:
             raise e
 
     @staticmethod
-    def obter_resumo_recebimento(pedido_id: int) -> Dict[str, Any]:
+    def obter_resumo_recebimento(pedido_id: int) -> dict[str, Any]:
         """
         Obtém resumo do que será atualizado ao receber o pedido
         Útil para confirmação antes do recebimento
         """
         try:
-            query = '''
+            query = """
                 SELECT
                     ip.produto_id,
                     p.nome as produto_nome,
@@ -193,32 +227,32 @@ class PedidoUtils:
                 FROM itens_pedido ip
                 JOIN produtos p ON ip.produto_id = p.id
                 WHERE ip.pedido_id = ?
-            '''
+            """
             itens = DatabaseUtils.executar_query(query, (pedido_id,))
 
             resumo = {
-                'total_produtos': len(itens),
-                'produtos': [],
-                'total_investimento': 0
+                "total_produtos": len(itens),
+                "produtos": [],
+                "total_investimento": 0,
             }
 
             for item in itens:
                 produto_info = {
-                    'id': item[0],
-                    'nome': item[1],
-                    'custo_atual': item[2],
-                    'venda_atual': item[3],
-                    'estoque_atual': item[4],
-                    'novo_custo': item[5],
-                    'nova_venda': item[6] or item[5] * 1.3,  # fallback se null
-                    'quantidade': item[7],
-                    'investimento': item[5] * item[7]
+                    "id": item[0],
+                    "nome": item[1],
+                    "custo_atual": item[2],
+                    "venda_atual": item[3],
+                    "estoque_atual": item[4],
+                    "novo_custo": item[5],
+                    "nova_venda": item[6] or item[5] * 1.3,  # fallback se null
+                    "quantidade": item[7],
+                    "investimento": item[5] * item[7],
                 }
-                resumo['produtos'].append(produto_info)
-                resumo['total_investimento'] += produto_info['investimento']
+                resumo["produtos"].append(produto_info)
+                resumo["total_investimento"] += produto_info["investimento"]
 
             return resumo
 
         except Exception as e:
             print(f"Erro ao obter resumo: {e}")
-            return {'error': str(e)}
+            return {"error": str(e)}

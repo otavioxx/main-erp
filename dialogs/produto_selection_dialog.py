@@ -2,16 +2,27 @@
 Dialog de Seleção de Produtos - Otimizado com correções de ordenação e filtro
 """
 
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTableWidget,
-                             QTableWidgetItem, QHeaderView, QMessageBox, QLineEdit,
-                             QLabel, QDialogButtonBox, QFrame)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QKeyEvent
+from PyQt6.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QFrame,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+)
+
+from mixins.table_scroll_mixin import TableScrollNavigationMixin
 from models.produto import Produto
+from utils.helpers import aplicar_maiuscula_formulario
 from utils.produto_utils import ProdutoUtils
 from views.produto_dialog import ProdutoDialog
-from utils.helpers import aplicar_maiuscula_formulario
-from mixins.table_scroll_mixin import TableScrollNavigationMixin
 
 
 # ========== CORREÇÃO: Classe para ordenação numérica ==========
@@ -98,7 +109,9 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
         search_layout.setContentsMargins(0, 0, 0, 0)
 
         self.busca_edit = QLineEdit()
-        self.busca_edit.setPlaceholderText("Digite para buscar produtos (nome, cor, tamanho, referência, fornecedor)...")
+        self.busca_edit.setPlaceholderText(
+            "Digite para buscar produtos (nome, cor, tamanho, referência, fornecedor)..."
+        )
         self.busca_edit.textChanged.connect(self._filtrar_produtos)
         search_layout.addWidget(self.busca_edit)
 
@@ -109,30 +122,48 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
         """Cria tabela de produtos - VERSÃO COM ALTURA FIXA"""
         self.tabela_produtos = QTableWidget()
         self.tabela_produtos.setColumnCount(8)  # Aumentado de 5 para 8
-        self.tabela_produtos.setHorizontalHeaderLabels([
-            "ID", "Nome", "Cor", "Tamanho", "Referência", "Preço Venda", "Estoque", "Fornecedor"
-        ])
+        self.tabela_produtos.setHorizontalHeaderLabels(
+            [
+                "ID",
+                "Nome",
+                "Cor",
+                "Tamanho",
+                "Referência",
+                "Preço Venda",
+                "Estoque",
+                "Fornecedor",
+            ]
+        )
 
         # Configurar colunas
         header = self.tabela_produtos.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)     # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)   # Nome
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
 
         # Outras colunas com largura fixa
         for i in range(2, 8):
             header.setSectionResizeMode(i, QHeaderView.ResizeMode.Fixed)
 
-        larguras = [50, None, 120, 70, 100, 100, 80, 180]  # None para Nome que é Stretch
+        larguras = [
+            50,
+            None,
+            120,
+            70,
+            100,
+            100,
+            80,
+            180,
+        ]  # None para Nome que é Stretch
         for i, largura in enumerate(larguras):
             if largura:
                 self.tabela_produtos.setColumnWidth(i, largura)
-        
+
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
         vheader = self.tabela_produtos.verticalHeader()
         altura_desejada = 22
-        
+
         vheader.setDefaultSectionSize(altura_desejada)
         vheader.setMinimumSectionSize(altura_desejada)
         vheader.setMaximumSectionSize(altura_desejada)
@@ -140,19 +171,19 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
         vheader.setCascadingSectionResizes(False)
         vheader.setStretchLastSection(False)
         vheader.setVisible(False)
-        
+
         # Função para aplicar altura quando dados forem carregados
         def aplicar_altura_quando_necessario():
             try:
-                if hasattr(self, 'tabela_produtos') and self.tabela_produtos:
+                if hasattr(self, "tabela_produtos") and self.tabela_produtos:
                     for row in range(self.tabela_produtos.rowCount()):
                         self.tabela_produtos.setRowHeight(row, altura_desejada)
             except Exception:
                 pass
-        
+
         # Conectar ao sinal de dados alterados (quando a tabela for populada)
         try:
-            if hasattr(self.tabela_produtos, 'model'):
+            if hasattr(self.tabela_produtos, "model"):
                 model = self.tabela_produtos.model()
                 model.rowsInserted.connect(
                     lambda parent, first, last: aplicar_altura_quando_necessario()
@@ -162,8 +193,12 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
         # ========== FIM DA CONFIGURAÇÃO ==========
 
         # Configurações gerais
-        self.tabela_produtos.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.tabela_produtos.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.tabela_produtos.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.tabela_produtos.setSelectionMode(
+            QTableWidget.SelectionMode.SingleSelection
+        )
         self.tabela_produtos.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_produtos.setAlternatingRowColors(True)
         self.tabela_produtos.setSortingEnabled(True)
@@ -172,8 +207,8 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
 
         self.setup_scroll_navigation(
             tabela=self.tabela_produtos,
-            scroll_sensibilidade=1,      # 1 linha por scroll (padrão)
-            auto_select_first=True       # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
+            auto_select_first=True,  # Seleciona primeira linha automaticamente
         )
 
         layout.addWidget(self.tabela_produtos)
@@ -181,8 +216,7 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
     def _criar_botoes(self, layout):
         """Cria botões do dialog"""
         buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok |
-            QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
         buttons.accepted.connect(self._selecionar_produto)
         buttons.rejected.connect(self.reject)
@@ -208,7 +242,7 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
             except ValueError as e:
                 QMessageBox.warning(self, "Erro", str(e))
             except Exception as e:
-                QMessageBox.critical(self, "Erro", f"Erro ao cadastrar: {str(e)}")
+                QMessageBox.critical(self, "Erro", f"Erro ao cadastrar: {e!s}")
 
     def _selecionar_novo_produto(self, produto_id):
         """Seleciona produto recém-cadastrado"""
@@ -225,26 +259,30 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
 
     def _mostrar_produtos(self, produtos):
         """CORREÇÃO: Exibe produtos na tabela com ordenação numérica correta"""
-        
+
         # CORREÇÃO: Guarda os produtos atualmente exibidos
         self.produtos_atualmente_exibidos = produtos
-        
+
         # CORREÇÃO: Desabilitar ordenação durante preenchimento
         self.tabela_produtos.setSortingEnabled(False)
 
         self.tabela_produtos.setRowCount(len(produtos))
 
         for row, produto in enumerate(produtos):
-            dados, _, _ = ProdutoUtils.formatar_item_produto(produto, incluir_fornecedor=True)
+            dados, _, _ = ProdutoUtils.formatar_item_produto(
+                produto, incluir_fornecedor=True
+            )
 
             # CORREÇÃO: ID usando NumericTableWidgetItem para ordenação numérica
-            item_id = NumericTableWidgetItem(dados['id'])
-            item_id.setData(Qt.ItemDataRole.UserRole, produto.id)  # Armazenar valor numérico
+            item_id = NumericTableWidgetItem(dados["id"])
+            item_id.setData(
+                Qt.ItemDataRole.UserRole, produto.id
+            )  # Armazenar valor numérico
             item_id.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 0, item_id)
 
             # Nome
-            item_nome = QTableWidgetItem(dados['nome'])
+            item_nome = QTableWidgetItem(dados["nome"])
             self.tabela_produtos.setItem(row, 1, item_nome)
 
             # Cor
@@ -263,19 +301,23 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
             self.tabela_produtos.setItem(row, 4, item_ref)
 
             # CORREÇÃO: Preço Venda usando NumericTableWidgetItem para ordenação por valor
-            item_preco = NumericTableWidgetItem(dados['preco_venda'])
-            item_preco.setData(Qt.ItemDataRole.UserRole, produto.preco_venda)  # Valor numérico
+            item_preco = NumericTableWidgetItem(dados["preco_venda"])
+            item_preco.setData(
+                Qt.ItemDataRole.UserRole, produto.preco_venda
+            )  # Valor numérico
             item_preco.setTextAlignment(Qt.AlignmentFlag.AlignLeft)
             self.tabela_produtos.setItem(row, 5, item_preco)
 
             # CORREÇÃO: Estoque usando NumericTableWidgetItem para ordenação numérica
-            item_estoque = NumericTableWidgetItem(dados['estoque'])
-            item_estoque.setData(Qt.ItemDataRole.UserRole, produto.estoque)  # Valor numérico
+            item_estoque = NumericTableWidgetItem(dados["estoque"])
+            item_estoque.setData(
+                Qt.ItemDataRole.UserRole, produto.estoque
+            )  # Valor numérico
             item_estoque.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_produtos.setItem(row, 6, item_estoque)
 
             # Fornecedor
-            item_fornecedor = QTableWidgetItem(dados['fornecedor'])
+            item_fornecedor = QTableWidgetItem(dados["fornecedor"])
             self.tabela_produtos.setItem(row, 7, item_fornecedor)
 
         # CORREÇÃO: Reabilitar ordenação após preenchimento
@@ -295,7 +337,8 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
 
         # CORREÇÃO: Filtrar sempre a partir dos dados originais
         produtos_filtrados = [
-            p for p in self.produtos  # CORREÇÃO: sempre usar self.produtos original
+            p
+            for p in self.produtos  # CORREÇÃO: sempre usar self.produtos original
             if self._produto_corresponde_busca(p, texto_busca)
         ]
 
@@ -309,7 +352,7 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
             produto.fornecedor_nome.lower() if produto.fornecedor_nome else "",
             produto.cor.lower() if produto.cor else "",
             produto.tamanho.lower() if produto.tamanho else "",
-            produto.referencia.lower() if produto.referencia else ""
+            produto.referencia.lower() if produto.referencia else "",
         ]
         return any(texto_busca in campo for campo in campos)
 
@@ -319,36 +362,36 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
         if row == -1:
             QMessageBox.warning(self, "Seleção", "Selecione um produto")
             return
-        
+
         # CORREÇÃO: Verifica se a linha existe na tabela
         if row >= self.tabela_produtos.rowCount():
             QMessageBox.warning(self, "Erro", "Linha selecionada não é mais válida")
             return
-        
+
         # CORREÇÃO: Agora pega o ID da célula na linha atual
         item_id = self.tabela_produtos.item(row, 0)
         if not item_id:
             QMessageBox.warning(self, "Erro", "Não foi possível obter o ID do produto")
             return
-        
+
         try:
             produto_id = int(item_id.text())
         except ValueError:
             QMessageBox.warning(self, "Erro", "ID do produto inválido")
             return
-        
+
         # CORREÇÃO: Procura nos produtos atualmente exibidos, não na lista original
         # Isso garante que o produto correto seja encontrado mesmo após filtro/ordenação
         self.produto_selecionado = next(
             (p for p in self.produtos_atualmente_exibidos if p.id == produto_id), None
         )
-        
+
         if not self.produto_selecionado:
             # Fallback: tenta encontrar na lista original
             self.produto_selecionado = next(
                 (p for p in self.produtos if p.id == produto_id), None
             )
-        
+
         if self.produto_selecionado:
             self.accept()
         else:
@@ -357,31 +400,31 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
     def _selecionar_e_fechar(self, index):
         """CORREÇÃO: Seleciona ao duplo clique usando produtos_atualmente_exibidos"""
         row = index.row()
-        
+
         # CORREÇÃO: Verifica se a linha é válida
         if row >= self.tabela_produtos.rowCount():
             return
-        
+
         item_id = self.tabela_produtos.item(row, 0)
         if not item_id:
             return
-        
+
         try:
             produto_id = int(item_id.text())
         except ValueError:
             return
-        
+
         # CORREÇÃO: Procura nos produtos atualmente exibidos
         self.produto_selecionado = next(
             (p for p in self.produtos_atualmente_exibidos if p.id == produto_id), None
         )
-        
+
         if not self.produto_selecionado:
             # Fallback
             self.produto_selecionado = next(
                 (p for p in self.produtos if p.id == produto_id), None
             )
-        
+
         if self.produto_selecionado:
             self.accept()
 

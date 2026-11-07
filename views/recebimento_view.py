@@ -37,6 +37,7 @@ from utils.helpers import (
     validar_data,
 )
 
+
 class NumericTableWidgetItem(QTableWidgetItem):
     """Item de tabela que ordena numericamente ao invés de alfabeticamente"""
 
@@ -58,6 +59,7 @@ class NumericTableWidgetItem(QTableWidgetItem):
         except (ValueError, TypeError):
             # Se não conseguir converter para número, usa ordenação de string
             return self.text() < other.text()
+
 
 class RecebimentoView(TableScrollNavigationMixin, QWidget):
     """View de gestão de recebimentos otimizada para performance"""
@@ -236,10 +238,10 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
     def _criar_tabela_duplicatas(self):
         """Configura tabela de duplicatas - VERSÃO COM TIMER SEGURO"""
         self.tabela_duplicatas = QTableWidget()
-        
+
         # Altura desejada
         altura_desejada = 22
-        
+
         # 1. Configurar altura primeiro
         vheader = self.tabela_duplicatas.verticalHeader()
         vheader.setDefaultSectionSize(altura_desejada)
@@ -249,13 +251,22 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         vheader.setCascadingSectionResizes(False)
         vheader.setStretchLastSection(False)
         vheader.setVisible(False)
-        
+
         # 2. Configuração normal das colunas
         self.tabela_duplicatas.setColumnCount(8)
         self.tabela_duplicatas.setHorizontalHeaderLabels(
-            ["ID", "Cliente", "Status", "Venda", "Parcela", "Valor", "Vencimento", "Pagamento"]
+            [
+                "ID",
+                "Cliente",
+                "Status",
+                "Venda",
+                "Parcela",
+                "Valor",
+                "Vencimento",
+                "Pagamento",
+            ]
         )
-        
+
         header = self.tabela_duplicatas.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
@@ -266,28 +277,32 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
-        
+
         # Larguras
         larguras = [50, 0, 120, 60, 60, 80, 100, 100]
         for i, largura in enumerate(larguras):
             if largura > 0:
                 self.tabela_duplicatas.setColumnWidth(i, largura)
-        
+
         # 3. Configurações gerais (OS ESTILOS SERÃO APLICADOS GLOBALMENTE)
-        self.tabela_duplicatas.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.tabela_duplicatas.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.tabela_duplicatas.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.tabela_duplicatas.setSelectionMode(
+            QTableWidget.SelectionMode.SingleSelection
+        )
         self.tabela_duplicatas.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_duplicatas.setAlternatingRowColors(True)
         self.tabela_duplicatas.setSortingEnabled(True)
-        
+
         # 4. Função para forçar altura COM VERIFICAÇÃO DE SEGURANÇA
         def aplicar_altura_fixa_segura():
             """Versão segura que verifica se a tabela ainda existe"""
             try:
                 # Verificação robusta da existência da tabela
-                if not hasattr(self, 'tabela_duplicatas'):
+                if not hasattr(self, "tabela_duplicatas"):
                     return
-                    
+
                 # Verificar se o objeto Qt ainda está vivo
                 # Tentando acessar uma propriedade simples
                 try:
@@ -295,11 +310,11 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 except RuntimeError:
                     # Objeto foi deletado, sair silenciosamente
                     return
-                
+
                 # Verificar se a tabela ainda está acessível
                 if not self.tabela_duplicatas or not self.tabela_duplicatas.isVisible():
                     return
-                
+
                 # Aplicar altura em cada linha
                 for row in range(self.tabela_duplicatas.rowCount()):
                     try:
@@ -307,7 +322,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                     except RuntimeError:
                         # Se der erro em uma linha, continuar
                         continue
-                        
+
             except RuntimeError:
                 # Objeto deletado durante execução
                 return
@@ -315,46 +330,45 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 # Qualquer outro erro, ignorar silenciosamente
                 # print(f"Erro ao aplicar altura: {e}")  # Para debug
                 return
-        
+
         # 5. Timer SEGURO para aplicar após renderização
         from PyQt6.QtCore import QTimer
-        
+
         # Criar timer como filho da tabela (será destruído automaticamente)
         timer = QTimer(self.tabela_duplicatas)
         timer.setSingleShot(True)
         timer.timeout.connect(aplicar_altura_fixa_segura)
         timer.start(150)  # Executar após 150ms
-        
+
         # 6. Função segura para conectar aos sinais
         def conectar_sinais_seguro():
             """Conecta sinais de forma segura"""
             try:
-                if (hasattr(self, 'tabela_duplicatas') and 
-                    self.tabela_duplicatas and 
-                    hasattr(self.tabela_duplicatas, 'model')):
-                    
+                if (
+                    hasattr(self, "tabela_duplicatas")
+                    and self.tabela_duplicatas
+                    and hasattr(self.tabela_duplicatas, "model")
+                ):
                     model = self.tabela_duplicatas.model()
                     if model:
                         # Usar weakref ou captura direta
                         model.rowsInserted.connect(
                             lambda parent, first, last: aplicar_altura_fixa_segura()
                         )
-                        model.modelReset.connect(
-                            lambda: aplicar_altura_fixa_segura()
-                        )
+                        model.modelReset.connect(lambda: aplicar_altura_fixa_segura())
             except:
                 pass
-        
+
         # Conectar sinais após um pequeno delay
         QTimer.singleShot(50, conectar_sinais_seguro)
-        
+
         # 7. Navegação
         self.setup_scroll_navigation(
             tabela=self.tabela_duplicatas,
             scroll_sensibilidade=1,
             auto_select_first=True,
         )
-        
+
         return self.tabela_duplicatas
 
     # ========== MÉTODOS DE DADOS OTIMIZADOS ==========
@@ -424,7 +438,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
         except Exception as e:
             self.label_info.setText("(Erro ao carregar)")
-            QMessageBox.critical(self, "Erro", f"Erro ao carregar duplicatas: {str(e)}")
+            QMessageBox.critical(self, "Erro", f"Erro ao carregar duplicatas: {e!s}")
         finally:
             if "conn" in locals():
                 conn.close()
@@ -652,7 +666,9 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         valor_num = float(valor) if valor else 0
         valor_item = NumericTableWidgetItem(formatar_moeda(valor_num))
         valor_item.setData(Qt.ItemDataRole.UserRole, valor_num)
-        valor_item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        valor_item.setTextAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
         self.tabela_duplicatas.setItem(row, 5, valor_item)
 
         # 6. Status (coluna 2)
@@ -795,7 +811,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
             except Exception as e:
                 QMessageBox.critical(
-                    self, "Erro", f"Erro ao processar recebimento: {str(e)}"
+                    self, "Erro", f"Erro ao processar recebimento: {e!s}"
                 )
 
     def _processar_recebimento_com_retorno(
@@ -898,7 +914,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 )
 
         except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao gerar comprovante: {str(e)}")
+            QMessageBox.critical(self, "Erro", f"Erro ao gerar comprovante: {e!s}")
 
     def _confirmar_impressao(self):
         """Confirma se usuário quer imprimir comprovante"""
@@ -942,7 +958,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 )
         except Exception as e:
             QMessageBox.critical(
-                self, "Erro na Exportação", f"Erro ao exportar relatório:\n{str(e)}"
+                self, "Erro na Exportação", f"Erro ao exportar relatório:\n{e!s}"
             )
 
     # ========== MÉTODOS DE VALIDAÇÃO ==========
@@ -1043,7 +1059,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 ExportUtils.abrir_arquivo(filename)
 
         except Exception as e:
-            QMessageBox.critical(self, "Erro", f"Erro ao imprimir: {str(e)}")
+            QMessageBox.critical(self, "Erro", f"Erro ao imprimir: {e!s}")
 
     def imprimir_relatorio(self):
         """Método público para compatibilidade"""

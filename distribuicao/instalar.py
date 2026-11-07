@@ -24,7 +24,7 @@ AQUI = Path(__file__).resolve().parent
 PROJETO = AQUI.parent
 sys.path.insert(0, str(AQUI))
 
-import criar_release  # noqa: E402  (mesma pasta)
+import criar_release
 
 
 def base_padrao() -> Path:
@@ -73,8 +73,12 @@ foreach ($pasta in $destinos) {{
 
 def main():
     ap = argparse.ArgumentParser(description="Instala o MainERP sem PyInstaller.")
-    ap.add_argument("--destino", type=Path, default=base_padrao(),
-                    help="pasta base da instalação (padrão: %%LOCALAPPDATA%%\\MainERP)")
+    ap.add_argument(
+        "--destino",
+        type=Path,
+        default=base_padrao(),
+        help="pasta base da instalação (padrão: %%LOCALAPPDATA%%\\MainERP)",
+    )
     args = ap.parse_args()
 
     if sys.version_info < (3, 10):
@@ -112,7 +116,9 @@ def main():
 
     # 4) o launcher instala a release e as dependências (pip)
     print("Instalando a versão e as dependências (pode levar alguns minutos)...")
-    r = subprocess.run([str(python_do_runtime(runtime)), str(launcher), "--somente-atualizar"])
+    r = subprocess.run(
+        [str(python_do_runtime(runtime)), str(launcher), "--somente-atualizar"]
+    )
     if r.returncode != 0 or not (sistema / "current.txt").exists():
         sys.exit(f"Falha na instalação. Veja {sistema / 'logs' / 'launcher.log'}")
 
@@ -122,8 +128,10 @@ def main():
     print("\nInstalação concluída.")
     print(f"  Dados (banco, backups, relatórios): {dados}")
     print(f"  Sistema (código e atualizações):    {sistema}")
-    print("Abra o MainERP pelo atalho. Na primeira abertura o banco estará vazio: "
-          "restaure seu backup pela tela de Configurações.")
+    print(
+        "Abra o MainERP pelo atalho. Na primeira abertura o banco estará vazio: "
+        "restaure seu backup pela tela de Configurações."
+    )
 
 
 if __name__ == "__main__":

@@ -1,10 +1,20 @@
-#\erp\model\condicional.py
-from database import Database
+# \erp\model\condicional.py
 from datetime import datetime
 
+from database import Database
+
+
 class Condicional:
-    def __init__(self, id=None, cliente_id=None, data_condicional=None,
-                 data_prevista_devolucao=None, status="ativa", observacao="", desconto=0.0):
+    def __init__(
+        self,
+        id=None,
+        cliente_id=None,
+        data_condicional=None,
+        data_prevista_devolucao=None,
+        status="ativa",
+        observacao="",
+        desconto=0.0,
+    ):
         self.id = id
         self.cliente_id = cliente_id
         self.data_condicional = data_condicional or datetime.now().date()
@@ -27,20 +37,39 @@ class Condicional:
             desconto = self.desconto
 
             if self.id:
-                cursor.execute('''
+                cursor.execute(
+                    """
                     UPDATE condicionais
                     SET cliente_id=?, data_condicional=?, data_prevista_devolucao=?,
                         status=?, observacao=?, desconto=?
                     WHERE id=?
-                ''', (cliente_id, data_condicional, data_prevista_devolucao,
-                    status, observacao, desconto, self.id))
+                """,
+                    (
+                        cliente_id,
+                        data_condicional,
+                        data_prevista_devolucao,
+                        status,
+                        observacao,
+                        desconto,
+                        self.id,
+                    ),
+                )
             else:
-                cursor.execute('''
+                cursor.execute(
+                    """
                     INSERT INTO condicionais
                     (cliente_id, data_condicional, data_prevista_devolucao, status, observacao, desconto)
                     VALUES (?, ?, ?, ?, ?, ?)
-                ''', (cliente_id, data_condicional, data_prevista_devolucao,
-                    status, observacao, desconto))
+                """,
+                    (
+                        cliente_id,
+                        data_condicional,
+                        data_prevista_devolucao,
+                        status,
+                        observacao,
+                        desconto,
+                    ),
+                )
                 self.id = cursor.lastrowid
 
             self.salvar_itens(cursor)
@@ -54,14 +83,24 @@ class Condicional:
             conn.close()
 
     def salvar_itens(self, cursor):
-        cursor.execute('DELETE FROM itens_condicional WHERE condicional_id = ?', (self.id,))
+        cursor.execute(
+            "DELETE FROM itens_condicional WHERE condicional_id = ?", (self.id,)
+        )
 
         for item in self.itens:
-            cursor.execute('''
+            cursor.execute(
+                """
                 INSERT INTO itens_condicional
                 (condicional_id, produto_id, quantidade, preco_unitario)
                 VALUES (?, ?, ?, ?)
-            ''', (self.id, item['produto_id'], item['quantidade'], item['preco_unitario']))
+            """,
+                (
+                    self.id,
+                    item["produto_id"],
+                    item["quantidade"],
+                    item["preco_unitario"],
+                ),
+            )
 
     @staticmethod
     def buscar_por_id(condicional_id):
@@ -76,14 +115,17 @@ class Condicional:
         cursor = conn.cursor()
 
         try:
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT c.id, c.cliente_id, c.data_condicional,
                     c.data_prevista_devolucao, c.status, c.observacao, c.desconto,
                     cli.nome as cliente_nome
                 FROM condicionais c
                 LEFT JOIN clientes cli ON c.cliente_id = cli.id
                 WHERE c.id = ?
-            ''', (condicional_id,))
+            """,
+                (condicional_id,),
+            )
             condicional_data = cursor.fetchone()
 
             if not condicional_data:
@@ -92,31 +134,44 @@ class Condicional:
             condicional = Condicional(
                 id=condicional_data[0],
                 cliente_id=condicional_data[1],
-                data_condicional=datetime.strptime(condicional_data[2], '%Y-%m-%d').date() if condicional_data[2] else None,
-                data_prevista_devolucao=datetime.strptime(condicional_data[3], '%Y-%m-%d').date() if condicional_data[3] else None,
+                data_condicional=datetime.strptime(
+                    condicional_data[2], "%Y-%m-%d"
+                ).date()
+                if condicional_data[2]
+                else None,
+                data_prevista_devolucao=datetime.strptime(
+                    condicional_data[3], "%Y-%m-%d"
+                ).date()
+                if condicional_data[3]
+                else None,
                 status=condicional_data[4],
                 observacao=condicional_data[5],
-                desconto=float(condicional_data[6]) if condicional_data[6] else 0.0
+                desconto=float(condicional_data[6]) if condicional_data[6] else 0.0,
             )
 
-            cursor.execute('''
+            cursor.execute(
+                """
                 SELECT ic.id, ic.condicional_id, ic.produto_id, ic.quantidade,
                     ic.preco_unitario, p.nome as produto_nome, p.estoque
                 FROM itens_condicional ic
                 JOIN produtos p ON ic.produto_id = p.id
                 WHERE ic.condicional_id = ?
-            ''', (condicional_id,))
+            """,
+                (condicional_id,),
+            )
 
             itens = cursor.fetchall()
             for item in itens:
-                condicional.itens.append({
-                    'id': item[0],
-                    'produto_id': item[2],
-                    'produto_nome': item[5],
-                    'quantidade': item[3],
-                    'preco_unitario': item[4],
-                    'estoque_atual': item[6]
-                })
+                condicional.itens.append(
+                    {
+                        "id": item[0],
+                        "produto_id": item[2],
+                        "produto_nome": item[5],
+                        "quantidade": item[3],
+                        "preco_unitario": item[4],
+                        "estoque_atual": item[6],
+                    }
+                )
 
             return condicional
 
@@ -133,7 +188,7 @@ class Condicional:
         cursor = conn.cursor()
 
         try:
-            cursor.execute('''
+            cursor.execute("""
                 SELECT c.id, c.cliente_id, c.data_condicional,
                     c.data_prevista_devolucao, c.status, c.observacao, c.desconto,
                     cli.nome as cliente_nome,
@@ -141,7 +196,7 @@ class Condicional:
                 FROM condicionais c
                 LEFT JOIN clientes cli ON c.cliente_id = cli.id
                 ORDER BY c.data_condicional DESC
-            ''')
+            """)
 
             condicionais = cursor.fetchall()
             return condicionais
@@ -170,7 +225,7 @@ class Condicional:
         """Calcula o subtotal (sem desconto)"""
         subtotal = 0
         for item in self.itens:
-            subtotal += item['quantidade'] * item['preco_unitario']
+            subtotal += item["quantidade"] * item["preco_unitario"]
         return subtotal
 
     def calcular_total(self):
@@ -186,7 +241,7 @@ class Condicional:
             conn = db.get_connection()
             cursor = conn.cursor()
 
-            cursor.execute('''
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS condicionais (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     cliente_id INTEGER NOT NULL,
@@ -197,9 +252,9 @@ class Condicional:
                     desconto REAL DEFAULT 0,
                     FOREIGN KEY (cliente_id) REFERENCES clientes (id)
                 )
-            ''')
+            """)
 
-            cursor.execute('''
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS itens_condicional (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     condicional_id INTEGER NOT NULL,
@@ -210,7 +265,7 @@ class Condicional:
                     FOREIGN KEY (condicional_id) REFERENCES condicionais (id) ON DELETE CASCADE,
                     FOREIGN KEY (produto_id) REFERENCES produtos (id)
                 )
-            ''')
+            """)
 
             conn.commit()
             print("Tabelas de condicionais criadas/verificadas com sucesso!")

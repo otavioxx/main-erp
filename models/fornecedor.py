@@ -1,11 +1,23 @@
-#\erp\model\fornecedor.py
+# \erp\model\fornecedor.py
 import sqlite3
+
 from models.base_model import BaseModel
 
-class Fornecedor(BaseModel):
-    TABLE_NAME = 'fornecedores'
 
-    def __init__(self, id=None, nome="", cnpj="", endereco="", telefone="", email="", observacao="", ativo=True):
+class Fornecedor(BaseModel):
+    TABLE_NAME = "fornecedores"
+
+    def __init__(
+        self,
+        id=None,
+        nome="",
+        cnpj="",
+        endereco="",
+        telefone="",
+        email="",
+        observacao="",
+        ativo=True,
+    ):
         self.id = id
         self.nome = nome
         self.cnpj = cnpj
@@ -20,17 +32,34 @@ class Fornecedor(BaseModel):
 
         try:
             if self.id:
-                query = '''
+                query = """
                     UPDATE fornecedores SET nome=?, cnpj=?, endereco=?, telefone=?, email=?, observacao=?, ativo=?
                     WHERE id=?
-                '''
-                params = (self.nome, cnpj, self.endereco, self.telefone, self.email, self.observacao, self.ativo, self.id)
+                """
+                params = (
+                    self.nome,
+                    cnpj,
+                    self.endereco,
+                    self.telefone,
+                    self.email,
+                    self.observacao,
+                    self.ativo,
+                    self.id,
+                )
             else:
-                query = '''
+                query = """
                     INSERT INTO fornecedores (nome, cnpj, endereco, telefone, email, observacao, ativo)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                '''
-                params = (self.nome, cnpj, self.endereco, self.telefone, self.email, self.observacao, self.ativo)
+                """
+                params = (
+                    self.nome,
+                    cnpj,
+                    self.endereco,
+                    self.telefone,
+                    self.email,
+                    self.observacao,
+                    self.ativo,
+                )
 
             result = self.executar_query(query, params)
             if not self.id:
@@ -50,52 +79,60 @@ class Fornecedor(BaseModel):
     @classmethod
     def buscar_todos(cls, apenas_ativos=True):
         if apenas_ativos:
-            query = 'SELECT * FROM fornecedores WHERE ativo = 1 ORDER BY nome'
+            query = "SELECT * FROM fornecedores WHERE ativo = 1 ORDER BY nome"
         else:
-            query = 'SELECT * FROM fornecedores ORDER BY nome'
+            query = "SELECT * FROM fornecedores ORDER BY nome"
 
         resultados = cls.executar_query(query)
         fornecedores = []
         for row in resultados:
             cnpj = row[2] if row[2] is not None else ""
             ativo = bool(row[7]) if len(row) > 7 else True
-            fornecedor = Fornecedor(row[0], row[1], cnpj, row[3], row[4], row[5], row[6], ativo)
+            fornecedor = Fornecedor(
+                row[0], row[1], cnpj, row[3], row[4], row[5], row[6], ativo
+            )
             fornecedores.append(fornecedor)
 
         return fornecedores
 
     @classmethod
     def buscar_por_id(cls, fornecedor_id):
-        query = 'SELECT * FROM fornecedores WHERE id = ?'
+        query = "SELECT * FROM fornecedores WHERE id = ?"
         resultado = cls.executar_query(query, (fornecedor_id,))
 
         if resultado:
             row = resultado[0]
             cnpj = row[2] if row[2] is not None else ""
             ativo = bool(row[7]) if len(row) > 7 else True
-            return Fornecedor(row[0], row[1], cnpj, row[3], row[4], row[5], row[6], ativo)
+            return Fornecedor(
+                row[0], row[1], cnpj, row[3], row[4], row[5], row[6], ativo
+            )
         return None
 
     @classmethod
     def buscar_inativos(cls):
-        query = 'SELECT * FROM fornecedores WHERE ativo = 0 ORDER BY nome'
+        query = "SELECT * FROM fornecedores WHERE ativo = 0 ORDER BY nome"
         resultados = cls.executar_query(query)
         fornecedores = []
         for row in resultados:
             cnpj = row[2] if row[2] is not None else ""
-            fornecedor = Fornecedor(row[0], row[1], cnpj, row[3], row[4], row[5], row[6], False)
+            fornecedor = Fornecedor(
+                row[0], row[1], cnpj, row[3], row[4], row[5], row[6], False
+            )
             fornecedores.append(fornecedor)
 
         return fornecedores
 
     @classmethod
     def buscar_por_cnpj(cls, cnpj):
-        query = 'SELECT * FROM fornecedores WHERE cnpj = ?'
+        query = "SELECT * FROM fornecedores WHERE cnpj = ?"
         resultado = cls.executar_query(query, (cnpj,))
 
         if resultado:
             row = resultado[0]
             cnpj_val = row[2] if row[2] is not None else ""
             ativo = bool(row[7]) if len(row) > 7 else True
-            return Fornecedor(row[0], row[1], cnpj_val, row[3], row[4], row[5], row[6], ativo)
+            return Fornecedor(
+                row[0], row[1], cnpj_val, row[3], row[4], row[5], row[6], ativo
+            )
         return None

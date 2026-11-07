@@ -2,17 +2,31 @@
 Dialog de Recebimento - Otimizado para novo sistema de estilos
 """
 
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
-                             QLabel, QMessageBox, QGroupBox,
-                             QDialogButtonBox,
-                             QRadioButton, QButtonGroup)
-from PyQt6.QtCore import Qt
 from datetime import datetime
 
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QButtonGroup,
+    QDialog,
+    QDialogButtonBox,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QRadioButton,
+    QVBoxLayout,
+)
+
 from models.cliente import Cliente
-from utils.helpers import SelectAllDoubleSpinBox, SelectAllLineEdit
-from utils.helpers import formatar_moeda, formatar_data, validar_data
-from utils.helpers import aplicar_maiuscula_formulario
+from utils.helpers import (
+    SelectAllDoubleSpinBox,
+    SelectAllLineEdit,
+    aplicar_maiuscula_formulario,
+    formatar_data,
+    formatar_moeda,
+    validar_data,
+)
+
 
 class RecebimentoDialog(QDialog):
     """Dialog para recebimento de duplicatas"""
@@ -58,7 +72,7 @@ class RecebimentoDialog(QDialog):
             f"Cliente: {self._get_nome_cliente()}",
             f"Parcela: {self.duplicata[3]}",
             f"Vencimento: {formatar_data(self.duplicata[5])}",
-            f"Valor Original: {formatar_moeda(self.valor_original)}"
+            f"Valor Original: {formatar_moeda(self.valor_original)}",
         ]
 
         for item in info_items:
@@ -110,23 +124,23 @@ class RecebimentoDialog(QDialog):
         """Verifica e exibe diferença entre valor recebido e original"""
         valor_recebido = self.valor_recebido_input.value()
         diferenca = valor_recebido - self.valor_original
-        
+
         # Limpar label se não houver diferença
         if abs(diferenca) < 0.01:  # Considera diferença menor que 1 centavo
             self.diferenca_label.setVisible(False)
             self.diferenca_label.setText("")
             return
-        
+
         # Mostrar diferença
         self.diferenca_label.setVisible(True)
-        
+
         if diferenca > 0:
             texto = f"Valor maior em: {formatar_moeda(diferenca)}"
             cor = "green"
         else:
             texto = f"Valor menor em: {formatar_moeda(abs(diferenca))}"
             cor = "red"
-        
+
         self.diferenca_label.setText(texto)
         self.diferenca_label.setStyleSheet(f"color: {cor}; font-weight: bold;")
 
@@ -157,8 +171,7 @@ class RecebimentoDialog(QDialog):
     def _criar_botoes(self, layout):
         """Cria botões do dialog"""
         button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok |
-            QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
         button_box.accepted.connect(self._verificar_e_aceitar)
         button_box.rejected.connect(self.reject)
@@ -198,17 +211,17 @@ class RecebimentoDialog(QDialog):
             return
 
         valor_recebido = self.valor_recebido_input.value()
-        
+
         if valor_recebido <= 0:
             QMessageBox.warning(self, "Aviso", "Valor deve ser maior que zero.")
             return
 
         # Verificar se há diferença significativa
         diferenca = abs(valor_recebido - self.valor_original)
-        
+
         if diferenca > 0.01:  # Se diferença maior que 1 centavo
             confirmado = self._mostrar_aviso_diferenca(valor_recebido)
-            
+
             if not confirmado:
                 return  # Usuário cancelou
 
@@ -217,7 +230,7 @@ class RecebimentoDialog(QDialog):
     def _mostrar_aviso_diferenca(self, valor_recebido):
         """Mostra aviso sobre diferença de valor"""
         diferenca = valor_recebido - self.valor_original
-        
+
         # Determinar o tipo de diferença
         if diferenca > 0:
             tipo = "maior"
@@ -227,10 +240,10 @@ class RecebimentoDialog(QDialog):
             tipo = "menor"
             acao = "aumentados"
             simbolo = "-"
-        
+
         # Título único
         titulo_janela = "Valor Divergente"
-        
+
         # Mensagem formatada com quebras explícitas
         mensagem = f"""<b>Valor {tipo.capitalize()} que o original</b><br><br>
 
@@ -242,30 +255,30 @@ class RecebimentoDialog(QDialog):
     proporcionalmente para compensar esta diferença.<br><br>
 
     Deseja continuar com o recebimento?"""
-        
+
         # Criar message box
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle(titulo_janela)
         msg_box.setTextFormat(Qt.TextFormat.RichText)
         msg_box.setText(mensagem)
         msg_box.setIcon(QMessageBox.Icon.Warning)
-        
+
         # Botões
         btn_confirmar = msg_box.addButton("Confirmar", QMessageBox.ButtonRole.YesRole)
         btn_confirmar.setProperty("class", "primary-button")
-        
+
         btn_corrigir = msg_box.addButton("Corrigir", QMessageBox.ButtonRole.NoRole)
         btn_corrigir.setProperty("class", "secondary-button")
-        
+
         # Definir botão padrão
         msg_box.setDefaultButton(btn_corrigir)
-        
+
         # Executar message box
         msg_box.exec()
-        
+
         # Verificar qual botão foi pressionado
         botao_pressionado = msg_box.clickedButton()
-        
+
         # Retornar True se o usuário clicou em "Confirmar"
         return botao_pressionado == btn_confirmar
 
@@ -318,11 +331,7 @@ class RecebimentoDialog(QDialog):
         else:
             forma = "Cartão"
 
-        return (
-            self.valor_recebido_input.value(),
-            data_recebimento,
-            forma
-        )
+        return (self.valor_recebido_input.value(), data_recebimento, forma)
 
     # ========== MÉTODOS PÚBLICOS PARA COMPATIBILIDADE ==========
 

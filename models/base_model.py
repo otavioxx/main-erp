@@ -1,6 +1,8 @@
-#\erp\models\base_model.py
-from database import Database
+# \erp\models\base_model.py
 import sqlite3
+
+from database import Database
+
 
 class BaseModel:
     """Classe base para todos os modelos"""
@@ -18,7 +20,7 @@ class BaseModel:
         cursor = conn.cursor()
         try:
             cursor.execute(query, params or ())
-            if query.strip().upper().startswith('SELECT'):
+            if query.strip().upper().startswith("SELECT"):
                 return cursor.fetchall()
             conn.commit()
             return cursor.lastrowid

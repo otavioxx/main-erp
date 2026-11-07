@@ -1,21 +1,30 @@
-import os
 import io
 import logging
+import os
 from datetime import datetime
-from reportlab.lib.pagesizes import A4
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
-from reportlab.lib.units import mm
-from reportlab.lib.enums import TA_LEFT, TA_CENTER
-from PIL import Image as PILImage
 
+from PIL import Image as PILImage
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import mm
+from reportlab.platypus import (
+    Image,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
+
+from database import Database
 from models.condicional import Condicional
 from models.empresa import Empresa
-from database import Database
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 class PrintCondicional:
     HEADER_BG_COLOR = colors.HexColor("#366092")
@@ -28,9 +37,9 @@ class PrintCondicional:
     def _limitar_texto(texto, max_chars):
         """Limita o texto ao número máximo de caracteres"""
         if not texto:
-            return ''
+            return ""
         if len(str(texto)) > max_chars:
-            return str(texto)[:max_chars-3] + "..."
+            return str(texto)[: max_chars - 3] + "..."
         return str(texto)
 
     @staticmethod
@@ -41,10 +50,10 @@ class PrintCondicional:
 
         try:
             if isinstance(data, str):
-                data_obj = datetime.strptime(data, '%Y-%m-%d')
-                return data_obj.strftime('%d/%m/%Y')
+                data_obj = datetime.strptime(data, "%Y-%m-%d")
+                return data_obj.strftime("%d/%m/%Y")
             else:
-                return data.strftime('%d/%m/%Y')
+                return data.strftime("%d/%m/%Y")
         except (ValueError, AttributeError):
             return "Data inválida"
 
@@ -57,12 +66,12 @@ class PrintCondicional:
         try:
             with Database().get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute('SELECT nome FROM clientes WHERE id = ?', (cliente_id,))
+                cursor.execute("SELECT nome FROM clientes WHERE id = ?", (cliente_id,))
                 result = cursor.fetchone()
                 return result[0] if result else "Cliente não encontrado"
         except Exception as e:
             logger.error(f"Erro ao buscar cliente: {e}")
-            return f"Erro: {str(e)}"
+            return f"Erro: {e!s}"
 
     @staticmethod
     def buscar_itens_condicional_detalhados(condicional_id):
@@ -92,7 +101,7 @@ class PrintCondicional:
             return result
 
         except Exception as e:
-            logger.error(f"Erro ao buscar itens da condicional: {str(e)}")
+            logger.error(f"Erro ao buscar itens da condicional: {e!s}")
             return []
         finally:
             try:
@@ -104,14 +113,15 @@ class PrintCondicional:
     def _limpar_nome_arquivo(nome):
         """Remove caracteres inválidos do nome para uso em arquivo"""
         import re
+
         # Remove caracteres especiais e substitui espaços por underscore
-        nome_limpo = re.sub(r'[<>:"/\\|?*]', '', nome)
-        nome_limpo = re.sub(r'\s+', '_', nome_limpo.strip())
+        nome_limpo = re.sub(r'[<>:"/\\|?*]', "", nome)
+        nome_limpo = re.sub(r"\s+", "_", nome_limpo.strip())
         # Limita o tamanho do nome
         return nome_limpo[:50] if len(nome_limpo) > 50 else nome_limpo
 
     @staticmethod
-    def gerar_comprovante(condicional_id, pasta_destino='imprecoes'):
+    def gerar_comprovante(condicional_id, pasta_destino="imprecoes"):
         """Gera um comprovante de condicional em formato PDF com cabeçalho da empresa"""
         try:
             condicional = Condicional.buscar_por_id(condicional_id)
@@ -130,71 +140,73 @@ class PrintCondicional:
                 os.makedirs(pasta_destino)
 
             cliente_nome_limpo = PrintCondicional._limpar_nome_arquivo(cliente_nome)
-            data_atual = datetime.now().strftime('%d-%m-%Y')
-            filename = os.path.join(pasta_destino, f"CONDICIONAL_{cliente_nome_limpo}_{data_atual}.pdf")
+            data_atual = datetime.now().strftime("%d-%m-%Y")
+            filename = os.path.join(
+                pasta_destino, f"CONDICIONAL_{cliente_nome_limpo}_{data_atual}.pdf"
+            )
 
             doc = SimpleDocTemplate(
                 filename,
                 pagesize=A4,
-                rightMargin=10*mm,  # Margens menores para aproveitar espaço
-                leftMargin=10*mm,
-                topMargin=15*mm,
-                bottomMargin=15*mm
+                rightMargin=10 * mm,  # Margens menores para aproveitar espaço
+                leftMargin=10 * mm,
+                topMargin=15 * mm,
+                bottomMargin=15 * mm,
             )
 
             styles = getSampleStyleSheet()
 
             estilo_empresa = ParagraphStyle(
-                'Empresa',
-                parent=styles['Heading1'],
+                "Empresa",
+                parent=styles["Heading1"],
                 fontSize=16,
                 spaceAfter=6,
                 alignment=TA_CENTER,
-                textColor=colors.black
+                textColor=colors.black,
             )
 
             estilo_titulo = ParagraphStyle(
-                'Titulo',
-                parent=styles['Heading2'],
+                "Titulo",
+                parent=styles["Heading2"],
                 fontSize=14,
                 spaceAfter=12,
                 alignment=TA_CENTER,
-                textColor=colors.HexColor('#366092')
+                textColor=colors.HexColor("#366092"),
             )
 
             estilo_subtitulo = ParagraphStyle(
-                'Subtitulo',
-                parent=styles['Heading3'],
+                "Subtitulo",
+                parent=styles["Heading3"],
                 fontSize=12,
                 spaceAfter=6,
                 alignment=TA_LEFT,
-                textColor=colors.black
+                textColor=colors.black,
             )
 
             estilo_info = ParagraphStyle(
-                'Info',
-                parent=styles['Normal'],
+                "Info",
+                parent=styles["Normal"],
                 fontSize=10,
                 spaceAfter=4,
                 alignment=TA_LEFT,
-                fontName='Helvetica-Bold'
+                fontName="Helvetica-Bold",
             )
 
             estilo_normal = ParagraphStyle(
-                'Normal',
-                parent=styles['Normal'],
+                "Normal",
+                parent=styles["Normal"],
                 fontSize=9,
                 spaceAfter=4,
-                alignment=TA_LEFT
+                alignment=TA_LEFT,
             )
 
             estilo_rodape = ParagraphStyle(
-                'Rodape',
-                parent=styles['Normal'],
+                "Rodape",
+                parent=styles["Normal"],
                 fontSize=8,
                 spaceAfter=0,
                 alignment=TA_CENTER,
-                textColor=colors.grey
+                textColor=colors.grey,
             )
 
             elements = []
@@ -206,17 +218,19 @@ class PrintCondicional:
                     img.thumbnail((80, 80))
 
                     temp_logo = io.BytesIO()
-                    img.save(temp_logo, format='PNG')
+                    img.save(temp_logo, format="PNG")
                     temp_logo.seek(0)
 
                     logo = Image(temp_logo, width=60, height=60)
-                    logo.hAlign = 'CENTER'
+                    logo.hAlign = "CENTER"
                     elements.append(logo)
-                    elements.append(Spacer(1, 5*mm))
+                    elements.append(Spacer(1, 5 * mm))
                 except Exception as e:
                     logger.error(f"Erro ao processar logo: {e}")
 
-            nome_empresa = empresa.nome.upper() if empresa and empresa.nome else "NOME DA EMPRESA"
+            nome_empresa = (
+                empresa.nome.upper() if empresa and empresa.nome else "NOME DA EMPRESA"
+            )
             elements.append(Paragraph(nome_empresa, estilo_empresa))
 
             if empresa and empresa.cnpj:
@@ -234,44 +248,66 @@ class PrintCondicional:
             if info_contato:
                 elements.append(Paragraph(" | ".join(info_contato), estilo_normal))
 
-            elements.append(Spacer(1, 8*mm))
+            elements.append(Spacer(1, 8 * mm))
 
-            elements.append(Table(
-                [['']],
-                colWidths=[190*mm],
-                style=[
-                    ('LINEABOVE', (0,0), (-1,-1), 1, colors.HexColor('#366092')),
-                    ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#366092')),
-                ]
-            ))
+            elements.append(
+                Table(
+                    [[""]],
+                    colWidths=[190 * mm],
+                    style=[
+                        ("LINEABOVE", (0, 0), (-1, -1), 1, colors.HexColor("#366092")),
+                        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#366092")),
+                    ],
+                )
+            )
 
-            elements.append(Spacer(1, 8*mm))
+            elements.append(Spacer(1, 8 * mm))
 
-            elements.append(Paragraph(f"COMPROVANTE DE CONDICIONAL - Nº {condicional_id}", estilo_titulo))
-            elements.append(Spacer(1, 6*mm))
+            elements.append(
+                Paragraph(
+                    f"COMPROVANTE DE CONDICIONAL - Nº {condicional_id}", estilo_titulo
+                )
+            )
+            elements.append(Spacer(1, 6 * mm))
 
-            data_formatada = PrintCondicional._formatar_data(condicional.data_condicional)
-            elements.append(Paragraph(f"<b>Data da Condicional:</b> {data_formatada}", estilo_info))
+            data_formatada = PrintCondicional._formatar_data(
+                condicional.data_condicional
+            )
+            elements.append(
+                Paragraph(f"<b>Data da Condicional:</b> {data_formatada}", estilo_info)
+            )
 
             elements.append(Paragraph(f"<b>Cliente:</b> {cliente_nome}", estilo_info))
 
-            data_devolucao = PrintCondicional._formatar_data(condicional.data_prevista_devolucao)
-            elements.append(Paragraph(f"<b>Prev. Devolução:</b> {data_devolucao}", estilo_info))
+            data_devolucao = PrintCondicional._formatar_data(
+                condicional.data_prevista_devolucao
+            )
+            elements.append(
+                Paragraph(f"<b>Prev. Devolução:</b> {data_devolucao}", estilo_info)
+            )
 
-            elements.append(Paragraph(f"<b>Status:</b> {condicional.status.capitalize()}", estilo_info))
+            elements.append(
+                Paragraph(
+                    f"<b>Status:</b> {condicional.status.capitalize()}", estilo_info
+                )
+            )
 
             if condicional.observacao:
-                elements.append(Paragraph(f"<b>Observação:</b> {condicional.observacao}", estilo_info))
+                elements.append(
+                    Paragraph(
+                        f"<b>Observação:</b> {condicional.observacao}", estilo_info
+                    )
+                )
 
-            elements.append(Spacer(1, 8*mm))
+            elements.append(Spacer(1, 8 * mm))
 
             elements.append(Paragraph("ITENS DA CONDICIONAL", estilo_subtitulo))
-            elements.append(Spacer(1, 4*mm))
+            elements.append(Spacer(1, 4 * mm))
 
             if itens:
                 # TABELA COM OS CAMPOS SOLICITADOS: ID, Nome, Tamanho, Cor, Quantidade, Valor de venda
                 tabela_dados = [
-                    ['ID', 'Nome', 'Tamanho', 'Cor', 'Qtd', 'Valor Venda R$']
+                    ["ID", "Nome", "Tamanho", "Cor", "Qtd", "Valor Venda R$"]
                 ]
 
                 total = 0
@@ -280,8 +316,8 @@ class PrintCondicional:
                     # Estrutura da tupla: id, produto_id, nome, cor, tamanho, quantidade, preco_unitario
                     produto_id = item[1] if len(item) > 1 else "N/A"
                     produto_nome = item[2] if len(item) > 2 else "Produto desconhecido"
-                    cor = item[3] if len(item) > 3 and item[3] else ''
-                    tamanho = item[4] if len(item) > 4 and item[4] else ''
+                    cor = item[3] if len(item) > 3 and item[3] else ""
+                    tamanho = item[4] if len(item) > 4 and item[4] else ""
                     quantidade = item[5] if len(item) > 5 else 0
                     preco_unit = float(item[6]) if len(item) > 6 and item[6] else 0.0
 
@@ -293,85 +329,104 @@ class PrintCondicional:
                     tamanho = PrintCondicional._limitar_texto(tamanho, 8)
                     cor = PrintCondicional._limitar_texto(cor, 15)
 
-                    tabela_dados.append([
-                        str(produto_id),                    # ID
-                        produto_nome,                       # Nome
-                        tamanho,                           # Tamanho
-                        cor,                               # Cor
-                        str(quantidade),                   # Quantidade
-                        f"R$ {preco_unit:.2f}"            # Valor Venda
-                    ])
+                    tabela_dados.append(
+                        [
+                            str(produto_id),  # ID
+                            produto_nome,  # Nome
+                            tamanho,  # Tamanho
+                            cor,  # Cor
+                            str(quantidade),  # Quantidade
+                            f"R$ {preco_unit:.2f}",  # Valor Venda
+                        ]
+                    )
 
                 # ID(12) + Nome(70) + Tamanho(15) + Cor(25) + Qtd(12) + Valor(25) = 159mm
-                tabela = Table(tabela_dados,
-                            colWidths=[12*mm,  # ID
-                                       70*mm,  # Nome
-                                       15*mm,  # Tamanho
-                                       25*mm,  # Cor
-                                       12*mm,  # Qtd
-                                       25*mm], # Valor Venda
-                            rowHeights=[6*mm] + [4.5*mm]*(len(tabela_dados)-1))
+                tabela = Table(
+                    tabela_dados,
+                    colWidths=[
+                        12 * mm,  # ID
+                        70 * mm,  # Nome
+                        15 * mm,  # Tamanho
+                        25 * mm,  # Cor
+                        12 * mm,  # Qtd
+                        25 * mm,
+                    ],  # Valor Venda
+                    rowHeights=[6 * mm] + [4.5 * mm] * (len(tabela_dados) - 1),
+                )
 
-                estilo_tabela = TableStyle([
-                    # Cabeçalho
-                    ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#366092')),
-                    ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-                    ('ALIGN', (0,0), (-1,0), 'CENTER'),
-                    ('VALIGN', (0,0), (-1,0), 'MIDDLE'),
-                    ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0,0), (-1,0), 7),
-                    ('TOPPADDING', (0,0), (-1,0), 0.5),
-                    ('BOTTOMPADDING', (0,0), (-1,0), 0.5),
-
-                    # Dados
-                    ('BACKGROUND', (0,1), (-1,-1), colors.beige),
-                    ('TEXTCOLOR', (0,1), (-1,-1), colors.black),
-                    ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
-                    ('FONTSIZE', (0,1), (-1,-1), 6),
-                    ('VALIGN', (0,1), (-1,-1), 'MIDDLE'),
-                    ('TOPPADDING', (0,1), (-1,-1), 0.3),
-                    ('BOTTOMPADDING', (0,1), (-1,-1), 0.3),
-
-                    # Alinhamentos específicos por coluna
-                    ('ALIGN', (0,1), (0,-1), 'CENTER'),  # ID
-                    ('ALIGN', (1,1), (1,-1), 'LEFT'),    # Nome
-                    ('ALIGN', (2,1), (2,-1), 'CENTER'),  # Tamanho
-                    ('ALIGN', (3,1), (3,-1), 'LEFT'),    # Cor
-                    ('ALIGN', (4,1), (4,-1), 'CENTER'),  # Qtd
-                    ('ALIGN', (5,1), (5,-1), 'RIGHT'),   # Valor
-
-                    # Grade
-                    ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                    ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#F8F8F8')])
-                ])
+                estilo_tabela = TableStyle(
+                    [
+                        # Cabeçalho
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#366092")),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+                        ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, 0), 7),
+                        ("TOPPADDING", (0, 0), (-1, 0), 0.5),
+                        ("BOTTOMPADDING", (0, 0), (-1, 0), 0.5),
+                        # Dados
+                        ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+                        ("TEXTCOLOR", (0, 1), (-1, -1), colors.black),
+                        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+                        ("FONTSIZE", (0, 1), (-1, -1), 6),
+                        ("VALIGN", (0, 1), (-1, -1), "MIDDLE"),
+                        ("TOPPADDING", (0, 1), (-1, -1), 0.3),
+                        ("BOTTOMPADDING", (0, 1), (-1, -1), 0.3),
+                        # Alinhamentos específicos por coluna
+                        ("ALIGN", (0, 1), (0, -1), "CENTER"),  # ID
+                        ("ALIGN", (1, 1), (1, -1), "LEFT"),  # Nome
+                        ("ALIGN", (2, 1), (2, -1), "CENTER"),  # Tamanho
+                        ("ALIGN", (3, 1), (3, -1), "LEFT"),  # Cor
+                        ("ALIGN", (4, 1), (4, -1), "CENTER"),  # Qtd
+                        ("ALIGN", (5, 1), (5, -1), "RIGHT"),  # Valor
+                        # Grade
+                        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                        (
+                            "ROWBACKGROUNDS",
+                            (0, 1),
+                            (-1, -1),
+                            [colors.white, colors.HexColor("#F8F8F8")],
+                        ),
+                    ]
+                )
 
                 tabela.setStyle(estilo_tabela)
                 elements.append(tabela)
-                elements.append(Spacer(1, 6*mm))
+                elements.append(Spacer(1, 6 * mm))
 
-                total_dados = [
-                    ['', '', '', '', 'TOTAL:', f"R$ {total:.2f}"]
-                ]
+                total_dados = [["", "", "", "", "TOTAL:", f"R$ {total:.2f}"]]
 
-                tabela_total = Table(total_dados, colWidths=[12*mm, 70*mm, 15*mm, 25*mm, 12*mm, 25*mm])
+                tabela_total = Table(
+                    total_dados,
+                    colWidths=[12 * mm, 70 * mm, 15 * mm, 25 * mm, 12 * mm, 25 * mm],
+                )
 
-                estilo_total = TableStyle([
-                    ('ALIGN', (0,0), (4,0), 'RIGHT'),
-                    ('ALIGN', (5,0), (5,0), 'RIGHT'),
-                    ('FONTNAME', (4,0), (5,0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (4,0), (5,0), 10),
-                    ('LINEABOVE', (4,0), (5,0), 1, colors.black),
-                ])
+                estilo_total = TableStyle(
+                    [
+                        ("ALIGN", (0, 0), (4, 0), "RIGHT"),
+                        ("ALIGN", (5, 0), (5, 0), "RIGHT"),
+                        ("FONTNAME", (4, 0), (5, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (4, 0), (5, 0), 10),
+                        ("LINEABOVE", (4, 0), (5, 0), 1, colors.black),
+                    ]
+                )
 
                 tabela_total.setStyle(estilo_total)
                 elements.append(tabela_total)
             else:
-                elements.append(Paragraph("Nenhum item encontrado nesta condicional.", estilo_normal))
+                elements.append(
+                    Paragraph(
+                        "Nenhum item encontrado nesta condicional.", estilo_normal
+                    )
+                )
 
-            elements.append(Paragraph(
-                f"Emitido em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
-                estilo_rodape
-            ))
+            elements.append(
+                Paragraph(
+                    f"Emitido em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
+                    estilo_rodape,
+                )
+            )
 
             doc.build(elements)
             logger.info(f"Comprovante de condicional gerado: {filename}")
@@ -380,5 +435,6 @@ class PrintCondicional:
         except Exception as e:
             logger.error(f"Erro ao gerar comprovante de condicional PDF: {e}")
             import traceback
+
             traceback.print_exc()
             return None

@@ -2,15 +2,33 @@
 Dialog de Produto - Otimizado para novo sistema de estilos com Cadastro em Lote
 """
 
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QLineEdit, QLabel, QDialogButtonBox, QDoubleSpinBox,
-                             QSpinBox, QCheckBox, QGroupBox, QFrame, QMessageBox)
 from PyQt6.QtCore import Qt
-from models.produto import Produto
-from models.fornecedor import Fornecedor
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QDialog,
+    QDialogButtonBox,
+    QDoubleSpinBox,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSpinBox,
+    QVBoxLayout,
+)
+
 from dialogs.fornecedor_selection_dialog import FornecedorSelectionDialog
-from utils.helpers import SelectAllLineEdit, SelectAllDoubleSpinBox, SelectAllSpinBox
-from utils.helpers import aplicar_maiuscula_formulario
+from models.fornecedor import Fornecedor
+from models.produto import Produto
+from utils.helpers import (
+    SelectAllDoubleSpinBox,
+    SelectAllLineEdit,
+    SelectAllSpinBox,
+    aplicar_maiuscula_formulario,
+)
+
 
 class ProdutoDialog(QDialog):
     """Dialog para cadastro/edição de produtos"""
@@ -20,7 +38,9 @@ class ProdutoDialog(QDialog):
         self.produto = produto or Produto()
         self.fornecedor_nome = ""
         self.produto_original = None  # Para armazenar dados do produto original
-        self.ultimo_produto_salvo_id = None  # Para armazenar ID do último produto salvo no lote
+        self.ultimo_produto_salvo_id = (
+            None  # Para armazenar ID do último produto salvo no lote
+        )
         self.campos_navegacao = []  # Lista de campos para navegação com Tab/Enter
         self._init_ui()
 
@@ -177,7 +197,9 @@ class ProdutoDialog(QDialog):
         self.fornecedor_label = QLabel("Nenhum fornecedor selecionado")
         self.fornecedor_label.setFixedWidth(200)
         self.fornecedor_label.setWordWrap(False)
-        self.fornecedor_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self.fornecedor_label.setAlignment(
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft
+        )
 
         # Carregar fornecedor atual se existir
         if self.produto.fornecedor_id:
@@ -218,7 +240,9 @@ class ProdutoDialog(QDialog):
             linha2_layout = QHBoxLayout()
             self.cadastro_lote_checkbox = QCheckBox("Cadastro em lote")
             self.cadastro_lote_checkbox.setChecked(False)
-            self.cadastro_lote_checkbox.setToolTip("Manter janela aberta após cadastrar, preservando todos os dados para facilitar cadastro de produtos similares")
+            self.cadastro_lote_checkbox.setToolTip(
+                "Manter janela aberta após cadastrar, preservando todos os dados para facilitar cadastro de produtos similares"
+            )
             linha2_layout.addWidget(self.cadastro_lote_checkbox)
             linha2_layout.addStretch()
             opcoes_layout.addLayout(linha2_layout)
@@ -229,8 +253,7 @@ class ProdutoDialog(QDialog):
     def _criar_botoes(self, layout):
         """Cria botões do dialog"""
         buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok |
-            QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Salvar")
         buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Cancelar")
@@ -249,7 +272,9 @@ class ProdutoDialog(QDialog):
                 except:
                     pass
                 # Conecta para navegar para próximo campo
-                campo.returnPressed.connect(lambda idx=i: self._navegar_para_proximo(idx))
+                campo.returnPressed.connect(
+                    lambda idx=i: self._navegar_para_proximo(idx)
+                )
             elif isinstance(campo, (QDoubleSpinBox, QSpinBox)):
                 # Para spinboxes, precisamos sobrescrever keyPressEvent
                 campo.keyPressEvent = self._criar_key_press_event_spinbox(campo, i)
@@ -257,7 +282,7 @@ class ProdutoDialog(QDialog):
     def _navegar_para_proximo(self, indice_atual):
         """Navega para o próximo campo na lista"""
         proximo_indice = indice_atual + 1
-        
+
         if proximo_indice < len(self.campos_navegacao):
             proximo_campo = self.campos_navegacao[proximo_indice]
             proximo_campo.setFocus()
@@ -269,6 +294,7 @@ class ProdutoDialog(QDialog):
 
     def _criar_key_press_event_spinbox(self, spinbox, indice):
         """Cria um keyPressEvent personalizado para spinboxes"""
+
         def keyPressEvent(event):
             if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
                 self._navegar_para_proximo(indice)
@@ -276,7 +302,7 @@ class ProdutoDialog(QDialog):
             else:
                 # Chama o comportamento padrão
                 super(type(spinbox), spinbox).keyPressEvent(event)
-        
+
         return keyPressEvent
 
     def keyPressEvent(self, event):
@@ -284,7 +310,7 @@ class ProdutoDialog(QDialog):
         if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
             # Verifica se o foco está em algum widget que não seja os botões
             widget_focado = self.focusWidget()
-            
+
             # Se o foco estiver nos botões do QDialogButtonBox, permite o Enter
             if isinstance(widget_focado, QPushButton):
                 # Permite o comportamento padrão (acionar o botão)
@@ -356,12 +382,16 @@ class ProdutoDialog(QDialog):
 
                     # Atualiza o fornecedor na interface
                     if produto_template.fornecedor_id:
-                        fornecedor = Fornecedor.buscar_por_id(produto_template.fornecedor_id)
+                        fornecedor = Fornecedor.buscar_por_id(
+                            produto_template.fornecedor_id
+                        )
                         if fornecedor:
                             self.fornecedor_nome = fornecedor.nome
                             self.fornecedor_label.setText(fornecedor.nome)
                         else:
-                            self.fornecedor_label.setText("Nenhum fornecedor selecionado")
+                            self.fornecedor_label.setText(
+                                "Nenhum fornecedor selecionado"
+                            )
                     else:
                         self.fornecedor_label.setText("Nenhum fornecedor selecionado")
 
@@ -389,13 +419,13 @@ class ProdutoDialog(QDialog):
                 QMessageBox.warning(self, "Erro", "O nome do produto é obrigatório!")
                 self.nome_edit.setFocus()
                 return
-            
+
             # Valida se a cor foi preenchida
             if not self.cor_edit.text().strip():
                 QMessageBox.warning(self, "Erro", "A cor do produto é obrigatória!")
                 self.cor_edit.setFocus()
                 return
-            
+
             # Valida se o tamanho foi preenchido
             if not self.tamanho_edit.text().strip():
                 QMessageBox.warning(self, "Erro", "O tamanho do produto é obrigatório!")
@@ -409,8 +439,13 @@ class ProdutoDialog(QDialog):
             produto_atualizado.salvar()
 
             # Verifica se é cadastro em lote E é um produto novo
-            eh_novo_produto = self.produto.id is None or (hasattr(self, 'produto_original') and self.produto_original is None)
-            eh_cadastro_lote = hasattr(self, 'cadastro_lote_checkbox') and self.cadastro_lote_checkbox.isChecked()
+            eh_novo_produto = self.produto.id is None or (
+                hasattr(self, "produto_original") and self.produto_original is None
+            )
+            eh_cadastro_lote = (
+                hasattr(self, "cadastro_lote_checkbox")
+                and self.cadastro_lote_checkbox.isChecked()
+            )
 
             if eh_novo_produto and eh_cadastro_lote:
                 # Armazena o ID do produto recém-salvo para usar como template
@@ -421,7 +456,7 @@ class ProdutoDialog(QDialog):
                     self,
                     "Produto Cadastrado",
                     f"Produto '{produto_atualizado.nome}' cadastrado com sucesso!\n\n"
-                    "A janela permanecerá aberta com todos os dados mantidos para cadastrar o próximo produto."
+                    "A janela permanecerá aberta com todos os dados mantidos para cadastrar o próximo produto.",
                 )
 
                 # Prepara para o próximo produto
@@ -434,15 +469,22 @@ class ProdutoDialog(QDialog):
                 super().accept()
 
         except Exception as e:
-            QMessageBox.critical(self, "Erro ao salvar", f"Erro ao salvar produto:\n{str(e)}")
+            QMessageBox.critical(
+                self, "Erro ao salvar", f"Erro ao salvar produto:\n{e!s}"
+            )
 
     def reject(self):
         """Override do método reject para confirmar cancelamento se houver alterações"""
         # Verifica se está em modo de cadastro em lote e há dados preenchidos
-        eh_cadastro_lote = hasattr(self, 'cadastro_lote_checkbox') and self.cadastro_lote_checkbox.isChecked()
-        tem_dados = (self.nome_edit.text().strip() or
-                    self.preco_custo_spin.value() > 0 or
-                    self.preco_venda_spin.value() > 0)
+        eh_cadastro_lote = (
+            hasattr(self, "cadastro_lote_checkbox")
+            and self.cadastro_lote_checkbox.isChecked()
+        )
+        tem_dados = (
+            self.nome_edit.text().strip()
+            or self.preco_custo_spin.value() > 0
+            or self.preco_venda_spin.value() > 0
+        )
 
         if eh_cadastro_lote and tem_dados:
             resposta = QMessageBox.question(
@@ -451,7 +493,7 @@ class ProdutoDialog(QDialog):
                 "Você está no modo de cadastro em lote e há dados preenchidos.\n"
                 "Deseja realmente cancelar e fechar a janela?",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
+                QMessageBox.StandardButton.No,
             )
 
             if resposta == QMessageBox.StandardButton.No:

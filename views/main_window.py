@@ -1,5 +1,3 @@
-
-from dialogs.backup_dialog import BackupConfig
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication,
@@ -17,7 +15,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from dialogs.backup_dialog import BackupDialog
+from dialogs.backup_dialog import BackupConfig, BackupDialog
 from utils.helpers import aplicar_maiuscula_formulario
 from views.cliente_view import ClienteView
 from views.condicional_view import CondicionalView
@@ -54,7 +52,7 @@ class StatusBarWidget(QWidget):
 class MainWindow(QMainWindow):
     # Sinal para quando backup é realizado
     backup_realizado = pyqtSignal(str)
-    
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("MainERP")
@@ -263,7 +261,7 @@ class MainWindow(QMainWindow):
 
             # Mostrar diálogo modalmente
             result = backup_dialog.exec()
-            
+
             # VERIFICAÇÃO EXPLÍCITA: Se o diálogo foi aceito, fecha o sistema
             if result == QDialog.DialogCode.Accepted:
                 print("✅ Backup concluído, fechando sistema...")
@@ -277,15 +275,15 @@ class MainWindow(QMainWindow):
         """Chamado quando o backup é concluído com sucesso"""
         # Salvar a data do backup
         BackupConfig.save_last_backup_date()
-        
+
         # Não tenta acessar status_label que não existe
         # Opcional: mostrar mensagem na status bar
-        if hasattr(self, 'status_bar'):
+        if hasattr(self, "status_bar"):
             self.status_bar.showMessage("✅ Backup concluído com sucesso!", 3000)
-        
+
         # Emitir sinal de backup realizado (se necessário)
         self.backup_realizado.emit(backup_path)
-        
+
         # O fechamento do sistema será feito no método _mostrar_dialogo_backup
         # após verificar o resultado do diálogo
 
@@ -297,7 +295,7 @@ class MainWindow(QMainWindow):
             "Não foi possível abrir o diálogo de backup.\n\n"
             "Deseja fechar o sistema mesmo assim?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No
+            QMessageBox.StandardButton.No,
         )
 
         if reply == QMessageBox.StandardButton.Yes:

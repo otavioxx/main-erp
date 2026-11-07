@@ -1,7 +1,17 @@
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QLabel, QGroupBox, QRadioButton, QButtonGroup,
-                             QComboBox, QFrame, QApplication)
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QApplication,
+    QButtonGroup,
+    QComboBox,
+    QDialog,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QRadioButton,
+    QVBoxLayout,
+)
 
 
 class RelatorioProdutoDialog(QDialog):
@@ -87,9 +97,9 @@ class RelatorioProdutoDialog(QDialog):
         ordenar_layout.addWidget(QLabel("Ordenar por:"))
 
         self.combo_ordenar = QComboBox()
-        self.combo_ordenar.addItems([
-            "ID", "Nome", "Estoque", "Preço de Venda", "Preço de Custo"
-        ])
+        self.combo_ordenar.addItems(
+            ["ID", "Nome", "Estoque", "Preço de Venda", "Preço de Custo"]
+        )
         self.combo_ordenar.setCurrentText("ID")
         self.combo_ordenar.setMaximumWidth(150)
         ordenar_layout.addWidget(self.combo_ordenar)
@@ -108,7 +118,9 @@ class RelatorioProdutoDialog(QDialog):
         self.direcao_group.addButton(self.rb_crescente)
         self.direcao_group.addButton(self.rb_decrescente)
 
-        self.rb_decrescente.setChecked(True)  # Padrão decrescente (ID mais recente primeiro)
+        self.rb_decrescente.setChecked(
+            True
+        )  # Padrão decrescente (ID mais recente primeiro)
 
         direcao_layout.addWidget(self.rb_crescente)
         direcao_layout.addWidget(self.rb_decrescente)
@@ -178,7 +190,7 @@ class RelatorioProdutoDialog(QDialog):
             "Nome": "nome",
             "Estoque": "estoque",
             "Preço de Venda": "preco_venda",
-            "Preço de Custo": "preco_custo"
+            "Preço de Custo": "preco_custo",
         }
 
         campo = campo_map.get(self.combo_ordenar.currentText(), "id")
@@ -191,8 +203,8 @@ class RelatorioProdutoDialog(QDialog):
         campo_ordenacao, direcao_ordenacao = self._obter_ordenacao()
 
         return {
-            'filtro_estoque': self._obter_filtro_estoque(),
-            'filtro_status': self._obter_filtro_status(),
-            'ordenar_por': campo_ordenacao,
-            'direcao': direcao_ordenacao
+            "filtro_estoque": self._obter_filtro_estoque(),
+            "filtro_status": self._obter_filtro_status(),
+            "ordenar_por": campo_ordenacao,
+            "direcao": direcao_ordenacao,
         }

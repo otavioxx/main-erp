@@ -233,43 +233,43 @@ class VendaView(TableScrollNavigationMixin, QWidget):
 
     def _configurar_tabela_vendas(self):
         """Configura a tabela de vendas - VERSÃO FINAL COM STRETCH"""
-        
+
         # Configuração básica das colunas
         self.tabela_vendas.setColumnCount(6)
         self.tabela_vendas.setHorizontalHeaderLabels(
             ["ID", "Cliente", "Data", "Pagamento", "Desconto", "Total"]
         )
-        
+
         # Configuração das colunas (com Stretch na coluna Cliente)
         header = self.tabela_vendas.horizontalHeader()
-        
+
         # Modo Interactive para permitir redimensionamento manual
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        
+
         # Configurações específicas por coluna
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)     # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)   # Cliente
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)     # Data
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)     # Pagamento
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)     # Desconto
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)     # Total
-        
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Cliente
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Data
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Pagamento
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Desconto
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Total
+
         # Larguras para colunas fixas (a coluna Cliente será stretch)
         larguras_fixas = [50, 0, 100, 120, 80, 100]  # 0 para Cliente pois será stretch
         for i, largura in enumerate(larguras_fixas):
             if largura > 0:  # Aplica apenas larguras positivas
                 self.tabela_vendas.setColumnWidth(i, largura)
-        
+
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # 1. REMOVER QUALQUER ESTILO EXISTENTE
         self.tabela_vendas.setStyleSheet("")
-        
+
         # 2. Configurar VERTICAL HEADER
         vheader = self.tabela_vendas.verticalHeader()
-        
+
         # ALTURA DESEJADA (use o mesmo valor da tabela de produtos)
         altura_desejada = 22
-        
+
         vheader.setDefaultSectionSize(altura_desejada)
         vheader.setMinimumSectionSize(altura_desejada)
         vheader.setMaximumSectionSize(altura_desejada)
@@ -277,7 +277,7 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         vheader.setCascadingSectionResizes(False)
         vheader.setStretchLastSection(False)
         vheader.setVisible(False)  # Opcional: esconder números
-        
+
         # 3. CSS SIMPLES que FUNCIONA
         css = f"""
         QTableWidget::item {{
@@ -288,32 +288,39 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             font-size: 11px !important;
         }}
         """
-        
+
         self.tabela_vendas.setStyleSheet(css)
-        
+
         # 4. Timer para garantir após renderização
         from PyQt6.QtCore import QTimer
-        QTimer.singleShot(100, lambda: self._forcar_altura_vendas_final(altura_desejada))
-        
+
+        QTimer.singleShot(
+            100, lambda: self._forcar_altura_vendas_final(altura_desejada)
+        )
+
         # ========== FIM DA CONFIGURAÇÃO ==========
-        
+
         # Configurações gerais
-        self.tabela_vendas.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.tabela_vendas.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
         self.tabela_vendas.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.tabela_vendas.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.tabela_vendas.setAlternatingRowColors(True)
         self.tabela_vendas.setSortingEnabled(False)
-        
+
         # Navegação
-        self.setup_scroll_navigation(tabela=self.tabela_vendas, scroll_sensibilidade=1, auto_select_first=True)
+        self.setup_scroll_navigation(
+            tabela=self.tabela_vendas, scroll_sensibilidade=1, auto_select_first=True
+        )
 
     def _forcar_altura_vendas_final(self, altura_desejada):
         """Força a altura após renderização - para tabela de vendas"""
-        if not hasattr(self, 'tabela_vendas'):
+        if not hasattr(self, "tabela_vendas"):
             return
-        
+
         vheader = self.tabela_vendas.verticalHeader()
-        
+
         # Forçar linha por linha (só se necessário)
         for row in range(self.tabela_vendas.rowCount()):
             if vheader.sectionSize(row) != altura_desejada:
@@ -612,7 +619,7 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         except Exception as e:
             self._mostrar_erro(
                 "Erro na Exportação",
-                f"Ocorreu um erro ao exportar as vendas:\n{str(e)}",
+                f"Ocorreu um erro ao exportar as vendas:\n{e!s}",
             )
 
     def _validar_data(self, data_str):
@@ -637,7 +644,7 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         except Exception as e:
             self._mostrar_erro(
                 "Erro na Impressão",
-                f"Ocorreu um erro ao gerar o comprovante:\n{str(e)}",
+                f"Ocorreu um erro ao gerar o comprovante:\n{e!s}",
             )
 
     def _tratar_arquivo_gerado(self, filename, mensagem_sucesso):

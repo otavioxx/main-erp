@@ -207,12 +207,12 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
         for i, largura in enumerate(larguras_colunas):
             if largura > 0:  # Aplica apenas larguras positivas
                 self.tabela_fornecedores.setColumnWidth(i, largura)
-        
+
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
         vheader = self.tabela_fornecedores.verticalHeader()
         altura_desejada = 22
-        
+
         vheader.setDefaultSectionSize(altura_desejada)
         vheader.setMinimumSectionSize(altura_desejada)
         vheader.setMaximumSectionSize(altura_desejada)
@@ -220,19 +220,19 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
         vheader.setCascadingSectionResizes(False)
         vheader.setStretchLastSection(False)
         vheader.setVisible(False)
-        
+
         # Função para aplicar altura quando dados forem carregados
         def aplicar_altura_quando_necessario():
             try:
-                if hasattr(self, 'tabela_fornecedores') and self.tabela_fornecedores:
+                if hasattr(self, "tabela_fornecedores") and self.tabela_fornecedores:
                     for row in range(self.tabela_fornecedores.rowCount()):
                         self.tabela_fornecedores.setRowHeight(row, altura_desejada)
             except:
                 pass
-        
+
         # Conectar ao sinal de dados alterados (quando a tabela for populada)
         try:
-            if hasattr(self.tabela_fornecedores, 'model'):
+            if hasattr(self.tabela_fornecedores, "model"):
                 model = self.tabela_fornecedores.model()
                 model.rowsInserted.connect(
                     lambda parent, first, last: aplicar_altura_quando_necessario()

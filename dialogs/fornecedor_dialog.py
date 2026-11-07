@@ -1,10 +1,20 @@
-#\erp\views\fornecedor_view.py
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
-                             QLabel, QDialogButtonBox, QFrame, QTextEdit, QCheckBox, QGroupBox)
+# \erp\views\fornecedor_view.py
 from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import (
+    QCheckBox,
+    QDialog,
+    QDialogButtonBox,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QTextEdit,
+    QVBoxLayout,
+)
+
 from models.fornecedor import Fornecedor
-from utils.helpers import SelectAllLineEdit
-from utils.helpers import aplicar_maiuscula_formulario
+from utils.helpers import SelectAllLineEdit, aplicar_maiuscula_formulario
+
 
 class FornecedorDialog(QDialog):
     def __init__(self, fornecedor=None, parent=None):
@@ -40,7 +50,9 @@ class FornecedorDialog(QDialog):
 
         dados_layout.addWidget(QLabel("Nome/Razão Social:*"))
         self.nome_edit = SelectAllLineEdit(self.fornecedor.nome)
-        self.nome_edit.setPlaceholderText("Ex: Comércio de Materiais de Construção Ltda")
+        self.nome_edit.setPlaceholderText(
+            "Ex: Comércio de Materiais de Construção Ltda"
+        )
         dados_layout.addWidget(self.nome_edit)
 
         dados_layout.addWidget(QLabel("CNPJ:"))
@@ -59,7 +71,9 @@ class FornecedorDialog(QDialog):
 
         contato_layout.addWidget(QLabel("Endereço completo:"))
         self.endereco_edit = SelectAllLineEdit(self.fornecedor.endereco)
-        self.endereco_edit.setPlaceholderText("Ex: Av. Industrial, 1000 - Galpão 5 - São Paulo/SP")
+        self.endereco_edit.setPlaceholderText(
+            "Ex: Av. Industrial, 1000 - Galpão 5 - São Paulo/SP"
+        )
         contato_layout.addWidget(self.endereco_edit)
 
         contato_layout.addWidget(QLabel("Telefone para contato:"))
@@ -83,7 +97,9 @@ class FornecedorDialog(QDialog):
 
         obs_layout.addWidget(QLabel("Condições comerciais, prazos, observações:"))
         self.observacao_edit = QTextEdit(self.fornecedor.observacao)
-        self.observacao_edit.setPlaceholderText("Ex: Prazo de entrega 15 dias, pagamento 30/60/90, \ncontato: Sr. Carlos - (11) 99999-9999")
+        self.observacao_edit.setPlaceholderText(
+            "Ex: Prazo de entrega 15 dias, pagamento 30/60/90, \ncontato: Sr. Carlos - (11) 99999-9999"
+        )
         self.observacao_edit.setMaximumHeight(100)
         obs_layout.addWidget(self.observacao_edit)
 
@@ -100,7 +116,9 @@ class FornecedorDialog(QDialog):
 
         self.ativo_checkbox = QCheckBox("Fornecedor ativo no sistema")
         self.ativo_checkbox.setChecked(self.fornecedor.ativo)
-        self.ativo_checkbox.setToolTip("Desmarque para inativar o fornecedor (não aparecerá nas listas normais)")
+        self.ativo_checkbox.setToolTip(
+            "Desmarque para inativar o fornecedor (não aparecerá nas listas normais)"
+        )
 
         status_layout.addWidget(status_info)
         status_layout.addWidget(self.ativo_checkbox)
@@ -114,13 +132,18 @@ class FornecedorDialog(QDialog):
         buttons_layout = QHBoxLayout()
         buttons_layout.setContentsMargins(0, 0, 0, 0)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok |
-                                  QDialogButtonBox.StandardButton.Cancel)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
 
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setToolTip("Salvar as informações do fornecedor")
-        buttons.button(QDialogButtonBox.StandardButton.Cancel).setToolTip("Cancelar e fechar sem salvar")
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setToolTip(
+            "Salvar as informações do fornecedor"
+        )
+        buttons.button(QDialogButtonBox.StandardButton.Cancel).setToolTip(
+            "Cancelar e fechar sem salvar"
+        )
 
         buttons_layout.addStretch()
         buttons_layout.addWidget(buttons)
@@ -157,9 +180,13 @@ class FornecedorDialog(QDialog):
         except ValueError as e:
             # Mostra erro de validação
             from PyQt6.QtWidgets import QMessageBox
+
             QMessageBox.warning(self, "Erro de Validação", str(e))
 
         except Exception as e:
             # Mostra erro de salvamento
             from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.critical(self, "Erro ao Salvar", f"Não foi possível salvar o fornecedor:\n{str(e)}")
+
+            QMessageBox.critical(
+                self, "Erro ao Salvar", f"Não foi possível salvar o fornecedor:\n{e!s}"
+            )

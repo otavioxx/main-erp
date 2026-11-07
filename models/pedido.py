@@ -1,13 +1,26 @@
 # \erp\models\pedido.py
 from datetime import datetime
+
 from database import Database
+
 from .base_model import BaseModel
 
-class Pedido(BaseModel):
-    TABLE_NAME = 'pedidos'
 
-    def __init__(self, id=None, fornecedor_id=None, data_pedido=None, data_recebimento=None,
-                 valor_total=0, valor_frete=0, desconto=0, observacao=None, status='pendente'):
+class Pedido(BaseModel):
+    TABLE_NAME = "pedidos"
+
+    def __init__(
+        self,
+        id=None,
+        fornecedor_id=None,
+        data_pedido=None,
+        data_recebimento=None,
+        valor_total=0,
+        valor_frete=0,
+        desconto=0,
+        observacao=None,
+        status="pendente",
+    ):
         self.id = id
         self.fornecedor_id = fornecedor_id
         self.data_pedido = data_pedido or datetime.now().date()
@@ -24,24 +37,40 @@ class Pedido(BaseModel):
 
         try:
             if self.id:
-                query = '''
+                query = """
                     UPDATE pedidos
                     SET fornecedor_id=?, data_pedido=?, data_recebimento=?,
                         valor_total=?, valor_frete=?, desconto=?, observacao=?, status=?
                     WHERE id=?
-                '''
-                params = (self.fornecedor_id, self.data_pedido, self.data_recebimento,
-                         self.valor_total, self.valor_frete, self.desconto, self.observacao,
-                         self.status, self.id)
+                """
+                params = (
+                    self.fornecedor_id,
+                    self.data_pedido,
+                    self.data_recebimento,
+                    self.valor_total,
+                    self.valor_frete,
+                    self.desconto,
+                    self.observacao,
+                    self.status,
+                    self.id,
+                )
             else:
-                query = '''
+                query = """
                     INSERT INTO pedidos
                     (fornecedor_id, data_pedido, data_recebimento, valor_total,
                      valor_frete, desconto, observacao, status)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                '''
-                params = (self.fornecedor_id, self.data_pedido, self.data_recebimento,
-                         self.valor_total, self.valor_frete, self.desconto, self.observacao, self.status)
+                """
+                params = (
+                    self.fornecedor_id,
+                    self.data_pedido,
+                    self.data_recebimento,
+                    self.valor_total,
+                    self.valor_frete,
+                    self.desconto,
+                    self.observacao,
+                    self.status,
+                )
 
             cursor.execute(query, params)
             conn.commit()
@@ -82,15 +111,15 @@ class Pedido(BaseModel):
             if result:
                 # Mapear explicitamente cada campo para evitar confusão
                 return cls(
-                    id=result[0],                    # id
-                    fornecedor_id=result[1],         # fornecedor_id
-                    data_pedido=result[2],           # data_pedido
-                    data_recebimento=result[3],      # data_recebimento
-                    valor_total=result[4],           # valor_total
-                    valor_frete=result[5],           # valor_frete
-                    desconto=result[6],              # desconto
-                    observacao=result[7],            # observacao
-                    status=result[8]                 # status
+                    id=result[0],  # id
+                    fornecedor_id=result[1],  # fornecedor_id
+                    data_pedido=result[2],  # data_pedido
+                    data_recebimento=result[3],  # data_recebimento
+                    valor_total=result[4],  # valor_total
+                    valor_frete=result[5],  # valor_frete
+                    desconto=result[6],  # desconto
+                    observacao=result[7],  # observacao
+                    status=result[8],  # status
                 )
             return None
         except Exception as e:
@@ -137,15 +166,15 @@ class Pedido(BaseModel):
             pedidos = []
             for result in results:
                 pedido = cls(
-                    id=result[0],                    # id
-                    fornecedor_id=result[1],         # fornecedor_id
-                    data_pedido=result[2],           # data_pedido
-                    data_recebimento=result[3],      # data_recebimento
-                    valor_total=result[4],           # valor_total
-                    valor_frete=result[5],           # valor_frete
-                    desconto=result[6],              # desconto
-                    observacao=result[7],            # observacao
-                    status=result[8]                 # status
+                    id=result[0],  # id
+                    fornecedor_id=result[1],  # fornecedor_id
+                    data_pedido=result[2],  # data_pedido
+                    data_recebimento=result[3],  # data_recebimento
+                    valor_total=result[4],  # valor_total
+                    valor_frete=result[5],  # valor_frete
+                    desconto=result[6],  # desconto
+                    observacao=result[7],  # observacao
+                    status=result[8],  # status
                 )
                 pedidos.append(pedido)
 
@@ -161,17 +190,20 @@ class Pedido(BaseModel):
                 pass
 
     def marcar_como_recebido(self):
-        self.status = 'recebido'
+        self.status = "recebido"
         self.data_recebimento = datetime.now().date()
         self.salvar()
 
     def cancelar(self):
-        self.status = 'cancelado'
+        self.status = "cancelado"
         self.salvar()
 
     def obter_fornecedor(self):
         from models.fornecedor import Fornecedor
-        return Fornecedor.buscar_por_id(self.fornecedor_id) if self.fornecedor_id else None
+
+        return (
+            Fornecedor.buscar_por_id(self.fornecedor_id) if self.fornecedor_id else None
+        )
 
     def obter_itens(self):
         """MÉTODO MODIFICADO para incluir valor de venda"""
@@ -179,7 +211,7 @@ class Pedido(BaseModel):
             conn = Database().get_connection()
             cursor = conn.cursor()
 
-            query = '''
+            query = """
                 SELECT
                     ip.id,           -- 0
                     ip.pedido_id,    -- 1
@@ -193,7 +225,7 @@ class Pedido(BaseModel):
                 FROM itens_pedido ip
                 JOIN produtos p ON ip.produto_id = p.id
                 WHERE ip.pedido_id = ?
-            '''
+            """
             cursor.execute(query, (self.id,))
             results = cursor.fetchall()
             return results if results else []

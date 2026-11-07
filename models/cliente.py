@@ -1,10 +1,23 @@
-#\erp\model\cliente.py
-from database import Database
-from datetime import datetime
+# \erp\model\cliente.py
 import sqlite3
+from datetime import datetime
+
+from database import Database
+
 
 class Cliente:
-    def __init__(self, id=None, nome="", cpf_cnpj="", endereco="", telefone="", email="", observacao="", data_cadastro=None, ativo=True):
+    def __init__(
+        self,
+        id=None,
+        nome="",
+        cpf_cnpj="",
+        endereco="",
+        telefone="",
+        email="",
+        observacao="",
+        data_cadastro=None,
+        ativo=True,
+    ):
         self.id = id
         self.nome = nome
         self.cpf_cnpj = cpf_cnpj
@@ -24,15 +37,39 @@ class Cliente:
 
         try:
             if self.id:
-                cursor.execute('''
+                cursor.execute(
+                    """
                     UPDATE clientes SET nome=?, cpf_cnpj=?, endereco=?, telefone=?, email=?, observacao=?, ativo=?
                     WHERE id=?
-                ''', (self.nome, cpf_cnpj, self.endereco, self.telefone, self.email, self.observacao, self.ativo, self.id))
+                """,
+                    (
+                        self.nome,
+                        cpf_cnpj,
+                        self.endereco,
+                        self.telefone,
+                        self.email,
+                        self.observacao,
+                        self.ativo,
+                        self.id,
+                    ),
+                )
             else:
-                cursor.execute('''
+                cursor.execute(
+                    """
                     INSERT INTO clientes (nome, cpf_cnpj, endereco, telefone, email, observacao, data_cadastro, ativo)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (self.nome, cpf_cnpj, self.endereco, self.telefone, self.email, self.observacao, self.data_cadastro, self.ativo))
+                """,
+                    (
+                        self.nome,
+                        cpf_cnpj,
+                        self.endereco,
+                        self.telefone,
+                        self.email,
+                        self.observacao,
+                        self.data_cadastro,
+                        self.ativo,
+                    ),
+                )
                 self.id = cursor.lastrowid
 
             conn.commit()
@@ -61,15 +98,17 @@ class Cliente:
         cursor = conn.cursor()
 
         if apenas_ativos:
-            cursor.execute('SELECT * FROM clientes WHERE ativo = 1 ORDER BY nome')
+            cursor.execute("SELECT * FROM clientes WHERE ativo = 1 ORDER BY nome")
         else:
-            cursor.execute('SELECT * FROM clientes ORDER BY nome')
+            cursor.execute("SELECT * FROM clientes ORDER BY nome")
 
         clientes = []
         for row in cursor.fetchall():
             cpf_cnpj = row[2] if row[2] is not None else ""
             ativo = bool(row[8]) if len(row) > 8 else True
-            cliente = Cliente(row[0], row[1], cpf_cnpj, row[3], row[4], row[5], row[6], row[7], ativo)
+            cliente = Cliente(
+                row[0], row[1], cpf_cnpj, row[3], row[4], row[5], row[6], row[7], ativo
+            )
             clientes.append(cliente)
 
         conn.close()
@@ -81,14 +120,16 @@ class Cliente:
         conn = db.get_connection()
         cursor = conn.cursor()
 
-        cursor.execute('SELECT * FROM clientes WHERE id = ?', (cliente_id,))
+        cursor.execute("SELECT * FROM clientes WHERE id = ?", (cliente_id,))
         row = cursor.fetchone()
         conn.close()
 
         if row:
             cpf_cnpj = row[2] if row[2] is not None else ""
             ativo = bool(row[8]) if len(row) > 8 else True
-            return Cliente(row[0], row[1], cpf_cnpj, row[3], row[4], row[5], row[6], row[7], ativo)
+            return Cliente(
+                row[0], row[1], cpf_cnpj, row[3], row[4], row[5], row[6], row[7], ativo
+            )
         return None
 
     @staticmethod
@@ -97,11 +138,13 @@ class Cliente:
         conn = db.get_connection()
         cursor = conn.cursor()
 
-        cursor.execute('SELECT * FROM clientes WHERE ativo = 0 ORDER BY nome')
+        cursor.execute("SELECT * FROM clientes WHERE ativo = 0 ORDER BY nome")
         clientes = []
         for row in cursor.fetchall():
             cpf_cnpj = row[2] if row[2] is not None else ""
-            cliente = Cliente(row[0], row[1], cpf_cnpj, row[3], row[4], row[5], row[6], row[7], False)
+            cliente = Cliente(
+                row[0], row[1], cpf_cnpj, row[3], row[4], row[5], row[6], row[7], False
+            )
             clientes.append(cliente)
 
         conn.close()

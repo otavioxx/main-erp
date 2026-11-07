@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
     QFrame,
+    QGridLayout,  # NOVO: Importado para layout em grid
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
@@ -21,7 +22,6 @@ from PyQt6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
-    QGridLayout,  # NOVO: Importado para layout em grid
 )
 
 from dialogs.cliente_selection_dialog import ClienteSelectionDialog
@@ -129,7 +129,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     event.accept()  # Fecha após salvar
                 except Exception as e:
                     QMessageBox.warning(
-                        self, "Erro ao salvar", f"Não foi possível salvar: {str(e)}"
+                        self, "Erro ao salvar", f"Não foi possível salvar: {e!s}"
                     )
                     event.ignore()  # Não fecha se houver erro
                     return
@@ -189,7 +189,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         """Cria seção de seleção de cliente"""
         grupo_cliente = QGroupBox("Cliente")
         grupo_cliente.setProperty("class", "clean-group")
-        
+
         # Configurar tamanho mínimo e altura fixa
         grupo_cliente.setMinimumWidth(250)
         grupo_cliente.setFixedHeight(120)  # <-- ALTURA FIXA AQUI
@@ -211,7 +211,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.label_cliente = QLabel("Não selecionado")
         self.label_cliente.setWordWrap(True)
         cliente_layout.addWidget(self.label_cliente)
-        
+
         grupo_cliente.setLayout(cliente_layout)
         parent_layout.addWidget(grupo_cliente)
 
@@ -219,7 +219,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         """Cria frame para entrada rápida de produtos"""
         grupo_entrada = QGroupBox("Entrada Rápida de Produto")
         grupo_entrada.setProperty("class", "clean-group")
-        
+
         # Configurar tamanho mínimo e altura fixa
         grupo_entrada.setMinimumWidth(350)
         grupo_entrada.setFixedHeight(120)  # <-- ALTURA FIXA AQUI (mesma do cliente)
@@ -269,10 +269,10 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         self.entry_codigo.returnPressed.connect(self._processar_enter_codigo)
         self.entry_codigo.textChanged.connect(self._buscar_produto_por_codigo)
         self.entry_codigo.textChanged.connect(self._marcar_como_modificado)
-        
+
         self.entry_quantidade.returnPressed.connect(self._processar_enter_quantidade)
         self.entry_quantidade.textChanged.connect(self._marcar_como_modificado)
-        
+
         self.entry_valor.returnPressed.connect(self._processar_enter_valor)
         self.entry_valor.textChanged.connect(self._marcar_como_modificado)
 
@@ -283,14 +283,14 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
     def _criar_secao_produtos(self, layout):
         """Cria seção da tabela de produtos - AGORA COM MAIS ESPAÇO"""
         from PyQt6.QtWidgets import QSizePolicy  # IMPORT ADICIONADO AQUI
-        
+
         grupo_produtos = QGroupBox("Produtos da Venda")
         grupo_produtos.setProperty("class", "clean-group")
-        
+
         # Fazer este grupo ocupar mais espaço vertical
         grupo_produtos.setSizePolicy(
             QSizePolicy.Policy.Expanding,  # Horizontal
-            QSizePolicy.Policy.Expanding   # Vertical
+            QSizePolicy.Policy.Expanding,  # Vertical
         )
 
         produtos_layout = QVBoxLayout()
@@ -725,9 +725,9 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             self._limpar_entrada_rapida()
 
         except ValueError as e:
-            QMessageBox.warning(self, "Aviso", f"Valores inválidos: {str(e)}")
+            QMessageBox.warning(self, "Aviso", f"Valores inválidos: {e!s}")
         except Exception as e:
-            QMessageBox.warning(self, "Erro", f"Erro ao adicionar produto: {str(e)}")
+            QMessageBox.warning(self, "Erro", f"Erro ao adicionar produto: {e!s}")
 
     def _limpar_entrada_rapida(self):
         """Limpa campos de entrada rápida e volta foco para código"""
@@ -769,7 +769,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 except Exception as e:
                     # Se houver erro ao salvar, não fecha
                     QMessageBox.warning(
-                        self, "Erro ao salvar", f"Não foi possível salvar: {str(e)}"
+                        self, "Erro ao salvar", f"Não foi possível salvar: {e!s}"
                     )
                     return
 
@@ -831,13 +831,13 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         quantidade_dialog = QInputDialog(self)
 
         quantidade_dialog.setWindowTitle("Quantidade")
-        
+
         nome_completo = produto.nome
-        if hasattr(produto, 'cor') and produto.cor:
+        if hasattr(produto, "cor") and produto.cor:
             nome_completo += f" {produto.cor}"
-        if hasattr(produto, 'tamanho') and produto.tamanho:
+        if hasattr(produto, "tamanho") and produto.tamanho:
             nome_completo += f" {produto.tamanho}"
-        
+
         quantidade_dialog.setLabelText(nome_completo)
         quantidade_dialog.setIntValue(1)
         quantidade_dialog.setIntMinimum(1)
@@ -863,10 +863,10 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
                 preco_dialog.setWindowTitle("Preço de Venda")
                 preco_dialog.setLabelText("Digite o preço de venda:")
-                
+
                 # CORREÇÃO: Configurar o valor máximo para um número alto
                 VALOR_MAXIMO = 9999999.99
-                
+
                 # Configurar o QDoubleSpinBox diretamente
                 preco_dialog.setDoubleValue(produto.preco_venda)
                 preco_dialog.setDoubleMinimum(0.01)
@@ -885,7 +885,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
                 from PyQt6.QtCore import QTimer
                 from PyQt6.QtWidgets import QDoubleSpinBox
-                
+
                 def configurar_spinbox():
                     spinboxes = preco_dialog.findChildren(QDoubleSpinBox)
                     for spinbox in spinboxes:
@@ -895,21 +895,21 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                         spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
                         # Garantir que o valor inicial seja mostrado corretamente
                         spinbox.setValue(produto.preco_venda)
-                        
+
                         # CORREÇÃO: Forçar seleção total do texto quando o spinbox receber foco
                         spinbox.selectAll()
-                        
+
                         # Usar um timer para garantir que a seleção ocorra após o diálogo ser totalmente exibido
                         QTimer.singleShot(100, spinbox.selectAll)
-                        
+
                         # Conectar ao sinal de foco para sempre selecionar tudo quando ganhar foco
                         spinbox.focusInEvent = lambda event, sb=spinbox: (
                             QDoubleSpinBox.focusInEvent(sb, event),
-                            sb.selectAll()
+                            sb.selectAll(),
                         )
-                        
+
                         break
-                
+
                 QTimer.singleShot(50, configurar_spinbox)
 
                 if preco_dialog.exec() == QDialog.DialogCode.Accepted:
@@ -933,9 +933,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                         self._adicionar_produto(produto_venda, quantidade)
                     else:
                         QMessageBox.warning(
-                            self, 
-                            "Aviso", 
-                            "O preço de venda deve ser maior que zero."
+                            self, "Aviso", "O preço de venda deve ser maior que zero."
                         )
 
     def _adicionar_produto(self, produto, quantidade):
@@ -1192,15 +1190,15 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
                 QMessageBox.information(self, "Sucesso", "Venda realizada com sucesso!")
                 self.venda_realizada.emit()
-                
+
                 # Limpar flag de modificações após salvar com sucesso
                 self._modificacoes_nao_salvas = False
                 self._atualizar_indicador_modificacoes()
-                
+
                 self.accept()
 
             except Exception as e:
-                QMessageBox.critical(self, "Erro", f"Erro ao processar venda: {str(e)}")
+                QMessageBox.critical(self, "Erro", f"Erro ao processar venda: {e!s}")
 
     # ========== MÉTODOS PÚBLICOS PARA COMPATIBILIDADE ==========
 

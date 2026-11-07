@@ -2,16 +2,26 @@
 Dialog de Pagamento - Versão Simplificada com Entrada
 """
 
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QPushButton,
-                             QLabel, QMessageBox, QGroupBox, QRadioButton,
-                             QButtonGroup, QSpinBox, QDialogButtonBox,
-                             QLineEdit)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QGuiApplication
 from datetime import datetime, timedelta
 
-from utils.helpers import SelectAllDoubleSpinBox
-from utils.helpers import formatar_moeda
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QGuiApplication
+from PyQt6.QtWidgets import (
+    QButtonGroup,
+    QDialog,
+    QDialogButtonBox,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QRadioButton,
+    QSpinBox,
+    QVBoxLayout,
+)
+
+from utils.helpers import SelectAllDoubleSpinBox, formatar_moeda
 
 
 class PagamentoDialog(QDialog):
@@ -135,8 +145,7 @@ class PagamentoDialog(QDialog):
 
         # Botões
         button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok |
-            QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
         button_box.accepted.connect(self._validar_e_aceitar)
         button_box.rejected.connect(self.reject)
@@ -177,11 +186,11 @@ class PagamentoDialog(QDialog):
         is_crediario = self.rb_crediario.isChecked()
 
         # Verificar se os grupos existem antes de tentar modificá-los
-        if hasattr(self, 'entrada_group'):
+        if hasattr(self, "entrada_group"):
             self.entrada_group.setVisible(is_crediario)
-        if hasattr(self, 'parcelas_group'):
+        if hasattr(self, "parcelas_group"):
             self.parcelas_group.setVisible(is_crediario)
-        if hasattr(self, 'vencimento_group'):
+        if hasattr(self, "vencimento_group"):
             self.vencimento_group.setVisible(is_crediario)
 
         if not is_crediario:
@@ -208,26 +217,36 @@ class PagamentoDialog(QDialog):
 
     def _calcular_financiado(self):
         """Calcula valor financiado"""
-        if hasattr(self, 'entrada_input'):
+        if hasattr(self, "entrada_input"):
             self.valor_entrada = self.entrada_input.value()
 
         valor_financiado = self.valor_total - self.valor_entrada
 
-        if hasattr(self, 'label_financiado'):
-            self.label_financiado.setText(f"Valor a financiar: {formatar_moeda(valor_financiado)}")
+        if hasattr(self, "label_financiado"):
+            self.label_financiado.setText(
+                f"Valor a financiar: {formatar_moeda(valor_financiado)}"
+            )
 
         self._calcular_parcela()
 
     def _calcular_parcela(self):
         """Calcula valor da parcela"""
-        if not hasattr(self, 'label_valor_parcela') or not hasattr(self, 'rb_crediario'):
+        if not hasattr(self, "label_valor_parcela") or not hasattr(
+            self, "rb_crediario"
+        ):
             return
 
         if self.rb_crediario.isChecked():
             valor_financiado = self.valor_total - self.valor_entrada
-            if valor_financiado > 0 and hasattr(self, 'parcelas_spinner') and self.parcelas_spinner.value() > 0:
+            if (
+                valor_financiado > 0
+                and hasattr(self, "parcelas_spinner")
+                and self.parcelas_spinner.value() > 0
+            ):
                 valor_parcela = valor_financiado / self.parcelas_spinner.value()
-                self.label_valor_parcela.setText(f"Valor da parcela: {formatar_moeda(valor_parcela)}")
+                self.label_valor_parcela.setText(
+                    f"Valor da parcela: {formatar_moeda(valor_parcela)}"
+                )
             else:
                 self.label_valor_parcela.setText("Valor da parcela: R$ 0,00")
         else:
@@ -245,18 +264,24 @@ class PagamentoDialog(QDialog):
         """Valida dados antes de aceitar"""
         if self.rb_crediario.isChecked():
             if self.valor_entrada >= self.valor_total:
-                QMessageBox.warning(self, "Erro", "Valor de entrada deve ser menor que o total.")
+                QMessageBox.warning(
+                    self, "Erro", "Valor de entrada deve ser menor que o total."
+                )
                 return
 
             valor_financiado = self.valor_total - self.valor_entrada
             if valor_financiado <= 0:
-                QMessageBox.warning(self, "Erro", "Valor financiado deve ser maior que zero.")
+                QMessageBox.warning(
+                    self, "Erro", "Valor financiado deve ser maior que zero."
+                )
                 return
 
             # Validar formato da data
             data_texto = self.data_vencimento.text().strip()
             if not self._validar_data(data_texto):
-                QMessageBox.warning(self, "Erro", "Data deve estar no formato DD/MM/AAAA.")
+                QMessageBox.warning(
+                    self, "Erro", "Data deve estar no formato DD/MM/AAAA."
+                )
                 return
 
         self.accept()
@@ -288,9 +313,9 @@ class PagamentoDialog(QDialog):
 
         # Retorna no formato esperado pelo código original
         return {
-            'forma_pagamento': forma,
-            'parcelas': parcelas,
-            'data_primeiro_vencimento': data_vencimento,
-            'valor_entrada': self.valor_entrada,
-            'valor_financiado': valor_financiado
+            "forma_pagamento": forma,
+            "parcelas": parcelas,
+            "data_primeiro_vencimento": data_vencimento,
+            "valor_entrada": self.valor_entrada,
+            "valor_financiado": valor_financiado,
         }

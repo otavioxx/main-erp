@@ -2,15 +2,27 @@
 Dialog de Seleção de Fornecedores - Padronizado com sistema de estilos
 """
 
-from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTableWidget,
-                             QTableWidgetItem, QHeaderView, QLineEdit,
-                             QLabel, QDialogButtonBox, QFrame, QMessageBox)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QKeyEvent
-from models.fornecedor import Fornecedor
+from PyQt6.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QFrame,
+    QHBoxLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+)
+
 from dialogs.fornecedor_dialog import FornecedorDialog
-from utils.helpers import aplicar_maiuscula_formulario
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
+from models.fornecedor import Fornecedor
+from utils.helpers import aplicar_maiuscula_formulario
+
 
 class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
     """Dialog para seleção de fornecedores com F1 para novo cadastro"""
@@ -81,9 +93,9 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
         """Cria tabela de fornecedores"""
         self.tabela_fornecedores = QTableWidget()
         self.tabela_fornecedores.setColumnCount(4)
-        self.tabela_fornecedores.setHorizontalHeaderLabels([
-            "ID", "Nome", "CNPJ", "Telefone"
-        ])
+        self.tabela_fornecedores.setHorizontalHeaderLabels(
+            ["ID", "Nome", "CNPJ", "Telefone"]
+        )
 
         # Configurar colunas
         header = self.tabela_fornecedores.horizontalHeader()
@@ -99,9 +111,15 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
                 self.tabela_fornecedores.setColumnWidth(i, largura)
 
         # Configurações gerais
-        self.tabela_fornecedores.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.tabela_fornecedores.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
-        self.tabela_fornecedores.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.tabela_fornecedores.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.tabela_fornecedores.setSelectionMode(
+            QTableWidget.SelectionMode.SingleSelection
+        )
+        self.tabela_fornecedores.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers
+        )
         self.tabela_fornecedores.setAlternatingRowColors(True)
         self.tabela_fornecedores.verticalHeader().setVisible(False)
 
@@ -109,8 +127,8 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
 
         self.setup_scroll_navigation(
             tabela=self.tabela_fornecedores,
-            scroll_sensibilidade=1,      # 1 linha por scroll (padrão)
-            auto_select_first=True       # Seleciona primeira linha automaticamente
+            scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
+            auto_select_first=True,  # Seleciona primeira linha automaticamente
         )
 
         layout.addWidget(self.tabela_fornecedores)
@@ -118,8 +136,7 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
     def _criar_botoes(self, layout):
         """Cria botões do dialog"""
         buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok |
-            QDialogButtonBox.StandardButton.Cancel
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
         buttons.accepted.connect(self._selecionar_fornecedor)
         buttons.rejected.connect(self.reject)
@@ -145,7 +162,7 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
             except ValueError as e:
                 QMessageBox.warning(self, "Erro", str(e))
             except Exception as e:
-                QMessageBox.critical(self, "Erro", f"Erro ao cadastrar: {str(e)}")
+                QMessageBox.critical(self, "Erro", f"Erro ao cadastrar: {e!s}")
 
     def _selecionar_novo_fornecedor(self, fornecedor_id):
         """Seleciona fornecedor recém-cadastrado"""
@@ -171,13 +188,19 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
             self.tabela_fornecedores.setItem(row, 0, item_id)
 
             # Nome
-            self.tabela_fornecedores.setItem(row, 1, QTableWidgetItem(fornecedor.nome or ""))
+            self.tabela_fornecedores.setItem(
+                row, 1, QTableWidgetItem(fornecedor.nome or "")
+            )
 
             # CNPJ
-            self.tabela_fornecedores.setItem(row, 2, QTableWidgetItem(fornecedor.cnpj or ""))
+            self.tabela_fornecedores.setItem(
+                row, 2, QTableWidgetItem(fornecedor.cnpj or "")
+            )
 
             # Telefone
-            self.tabela_fornecedores.setItem(row, 3, QTableWidgetItem(fornecedor.telefone or ""))
+            self.tabela_fornecedores.setItem(
+                row, 3, QTableWidgetItem(fornecedor.telefone or "")
+            )
 
     def _filtrar_fornecedores(self):
         """Filtra fornecedores por busca"""
@@ -188,7 +211,8 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
             return
 
         fornecedores_filtrados = [
-            f for f in self.fornecedores
+            f
+            for f in self.fornecedores
             if self._fornecedor_corresponde_busca(f, texto_busca)
         ]
 
@@ -201,7 +225,7 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
             str(fornecedor.id),
             fornecedor.cnpj.lower() if fornecedor.cnpj else "",
             fornecedor.telefone.lower() if fornecedor.telefone else "",
-            fornecedor.email.lower() if fornecedor.email else ""
+            fornecedor.email.lower() if fornecedor.email else "",
         ]
         return any(texto_busca in campo for campo in campos)
 

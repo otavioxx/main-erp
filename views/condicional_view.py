@@ -285,12 +285,12 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
         for i, largura in enumerate(larguras_colunas):
             if largura > 0:  # Aplica apenas larguras positivas
                 self.tabela_condicionais.setColumnWidth(i, largura)
-        
+
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
         vheader = self.tabela_condicionais.verticalHeader()
         altura_desejada = 22
-        
+
         vheader.setDefaultSectionSize(altura_desejada)
         vheader.setMinimumSectionSize(altura_desejada)
         vheader.setMaximumSectionSize(altura_desejada)
@@ -298,19 +298,19 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
         vheader.setCascadingSectionResizes(False)
         vheader.setStretchLastSection(False)
         vheader.setVisible(False)
-        
+
         # Função para aplicar altura quando dados forem carregados
         def aplicar_altura_quando_necessario():
             try:
-                if hasattr(self, 'tabela_condicionais') and self.tabela_condicionais:
+                if hasattr(self, "tabela_condicionais") and self.tabela_condicionais:
                     for row in range(self.tabela_condicionais.rowCount()):
                         self.tabela_condicionais.setRowHeight(row, altura_desejada)
             except:
                 pass
-        
+
         # Conectar ao sinal de dados alterados (quando a tabela for populada)
         try:
-            if hasattr(self.tabela_condicionais, 'model'):
+            if hasattr(self.tabela_condicionais, "model"):
                 model = self.tabela_condicionais.model()
                 model.rowsInserted.connect(
                     lambda parent, first, last: aplicar_altura_quando_necessario()
@@ -848,7 +848,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
         except Exception as e:
             self._mostrar_erro(
                 "Erro na Exportação",
-                f"Ocorreu um erro ao exportar as condicionais:\n{str(e)}",
+                f"Ocorreu um erro ao exportar as condicionais:\n{e!s}",
             )
 
     def _validar_data(self, data_str):
@@ -873,7 +873,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
         except Exception as e:
             self._mostrar_erro(
                 "Erro na Impressão",
-                f"Ocorreu um erro ao gerar o comprovante:\n{str(e)}",
+                f"Ocorreu um erro ao gerar o comprovante:\n{e!s}",
             )
 
     def _tratar_arquivo_gerado(self, filename, mensagem_sucesso):

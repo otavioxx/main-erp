@@ -1,6 +1,7 @@
 # \erp\main.py
 import atexit
 import os
+import sqlite3
 import sys
 from datetime import datetime
 
@@ -19,7 +20,6 @@ from config import obter_config
 from database import Database
 from styles import aplicar_tema_dark  # Alterado para aplicar_tema_dark
 from views.main_window import MainWindow
-
 
 # Códigos de saída entendidos pelo launcher (distribuicao/launcher.pyw)
 EXIT_REINICIAR = 100  # o sistema pediu reinício (ex.: após restaurar backup)
@@ -45,8 +45,8 @@ def definir_identidade_windows():
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
             "DigitalSolutions.MainERP"
         )
-    except Exception:
-        pass
+    except (AttributeError, OSError, ctypes.ArgumentError):
+        return
 
 
 def confirmar_abertura():
@@ -77,7 +77,7 @@ def limpar_pasta_relatorios():
                 caminho_arquivo = os.path.join(caminho_relatorios, arquivo)
                 if os.path.isfile(caminho_arquivo):
                     os.unlink(caminho_arquivo)
-    except Exception as e:
+    except OSError as e:
         print(f"Erro ao limpar pasta de relatórios: {e}")
 
 
@@ -97,7 +97,7 @@ def verificar_banco_dados():
         else:
             pass
 
-    except Exception as e:
+    except sqlite3.Error as e:
         print(f"Erro ao verificar banco: {e}")
     finally:
         conn.close()
@@ -184,24 +184,24 @@ def show_splash(
         painter.end()
         return splash_pixmap
 
+    class SplashScreenComMensagem(QSplashScreen):
+        def __init__(self, pixmap):
+            super().__init__(pixmap)
+
+        def update_message(self, message):
+            new_pixmap = create_splash_pixmap(message)
+            self.setPixmap(new_pixmap)
+            self.setMask(new_pixmap.mask())
+
     # Cria splash inicial sem mensagem
     initial_pixmap = create_splash_pixmap()
-    splash = QSplashScreen(initial_pixmap)
+    splash = SplashScreenComMensagem(initial_pixmap)
     splash.setMask(initial_pixmap.mask())
 
     # Aplica ícone no splash se disponível
     icon = carregar_icone_aplicacao()
     if not icon.isNull():
         splash.setWindowIcon(icon)
-
-    # Adiciona método para atualizar mensagem
-    def update_message(message):
-        new_pixmap = create_splash_pixmap(message)
-        splash.setPixmap(new_pixmap)
-        splash.setMask(new_pixmap.mask())
-
-    # Adiciona o método ao objeto splash
-    splash.update_message = update_message
 
     splash.show()
     return splash
@@ -216,24 +216,28 @@ def verificar_instancia_unica(nome_aplicacao):
         # Tenta importar as bibliotecas do Windows
         import win32api
         import win32event
+        import win32security
         import winerror
 
         # Cria um nome único para o mutex baseado no nome do aplicativo
         mutex_name = f"Global\\{nome_aplicacao}_Mutex"
 
-        # Tenta criar o mutex
-        mutex = win32event.CreateMutex(None, False, mutex_name)
+        # Cria um atributo de segurança vazio para atender ao tipo esperado
+        # pelo pywin32 e evitar o erro de análise de tipo em IDEs.
+        mutex_attributes = win32security.SECURITY_ATTRIBUTES()
+        mutex = win32event.CreateMutex(mutex_attributes, False, mutex_name)
+        mutex_handle = int(mutex)
         last_error = win32api.GetLastError()
 
         if last_error == winerror.ERROR_ALREADY_EXISTS:
             # Mutex já existe - outra instância está executando
-            win32api.CloseHandle(mutex)
+            win32api.CloseHandle(mutex_handle)
             return False
 
         # Registra função para fechar o mutex quando o programa terminar
         def cleanup_mutex():
             try:
-                win32api.CloseHandle(mutex)
+                win32api.CloseHandle(mutex_handle)
             except:
                 pass
 
@@ -434,7 +438,7 @@ def main():
         QMessageBox.critical(
             None,
             "Erro de Inicialização",
-            f"Erro durante a inicialização do sistema:\n{str(e)}",
+            f"Erro durante a inicialização do sistema:\n{e!s}",
         )
         sys.exit(1)
 
@@ -455,12 +459,11 @@ def main():
 
     if remaining > 0:
         print(
-            f"Aguardando {remaining/1000:.1f}s adicionais para duração mínima do splash..."
+            f"Aguardando {remaining / 1000:.1f}s adicionais para duração mínima do splash..."
         )
         update_splash_message("Preparando sistema...")
         QTimer.singleShot(int(remaining), show_main_window)
     else:
-
         show_main_window()
 
     # Executar aplicação
@@ -474,7 +477,9 @@ def main():
 
         sys.exit(result)
     except Exception as e:
-        erro_fatal("Erro inesperado", f"O sistema encontrou um erro e será fechado:\n{e}")
+        erro_fatal(
+            "Erro inesperado", f"O sistema encontrou um erro e será fechado:\n{e}"
+        )
         sys.exit(1)
 
 
