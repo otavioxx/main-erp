@@ -125,38 +125,56 @@ anterior não for compatível com o esquema migrado, feche o aplicativo e restau
 compatível pela rotina de restauração. Não substitua arquivos do banco enquanto o programa
 estiver aberto. Backups pré-migração ficam em `dados\backups\`.
 
-## Atualização online (opcional; servidor ainda precisa ser configurado)
+## Atualização automática via GitHub Releases
 
-O suporte no launcher já existe, mas a instalação vem com `update_url` vazio: não há um
-servidor de atualização configurado por padrão. Para habilitar:
+O launcher usa por padrão o manifesto:
 
-1. Gere e teste a release conforme a seção **Preparar uma nova release**.
-2. Publique o ZIP e o `version.json` correspondentes em um servidor confiável com HTTPS.
-   O valor `url` do manifesto deve apontar para o ZIP acessível pelo launcher; prefira URL
-   relativa ao manifesto ou HTTPS. Mantenha os dois arquivos disponíveis enquanto os
-   clientes precisarem baixar essa versão.
-3. Em cada instalação, configure
-   `%LOCALAPPDATA%\MainERP\sistema\launcher.json` com a URL HTTPS do manifesto:
+`https://github.com/otavioxx/main-erp/releases/latest/download/version.json`
 
-   ```json
-   {
-     "update_url": "https://servidor-confiavel.example/mainerp/version.json"
-   }
-   ```
+O instalador grava esse endereço em
+`%LOCALAPPDATA%\MainERP\sistema\launcher.json`. Se o arquivo já tiver uma URL própria,
+ela é preservada. Para as atualizações anônimas funcionarem, o repositório e os assets
+da release precisam estar públicos. Enquanto o repositório estiver privado, os usuários
+sem acesso não conseguem baixar os arquivos; o aplicativo instalado continua abrindo e o
+launcher registra a falha em `sistema\logs\launcher.log`.
 
-4. Abra o MainERP pelo atalho. Antes de iniciar o sistema, o launcher consulta o manifesto;
-   se a versão for mais nova, baixa o ZIP, confere o SHA256 e só então instala. Se não
-   houver conexão ou o manifesto/pacote falhar, a versão instalada continua disponível e
-   o erro é registrado em `sistema\logs\launcher.log`.
+Em cada release, publique **os dois assets** na mesma GitHub Release:
+
+- `MainERP-<versão>.zip`
+- `version.json` gerado junto com esse ZIP.
+
+Marque como **Latest** a release mais nova. O manifesto contém a versão, o nome do ZIP e
+o SHA256. Mantenha o campo `url` como nome do ZIP (por exemplo,
+`MainERP-0.09.zip`): o launcher resolve esse caminho relativo ao endpoint
+`latest/download/version.json`, que leva ao asset da mesma release. Não edite manualmente
+o SHA256 nem reutilize assets/version de builds diferentes. Se recriar o ZIP, regenere e
+publique também o manifesto correspondente.
+
+Fluxo de publicação:
+
+1. Prepare, valide e gere os artefatos conforme **Preparar uma nova release**.
+2. Na página **Releases** do GitHub, crie uma release para a nova versão/tag e anexe o ZIP
+   e o `version.json`. Publique-a como a versão mais recente (não como pre-release).
+3. Verifique em uma janela anônima que os dois assets podem ser baixados sem login.
+4. Em uma instalação de teste, configure `launcher.json` para o endpoint acima e abra o
+   MainERP pelo atalho. Confirme a versão instalada, o SHA256 e o log do launcher antes de
+   anunciar a atualização.
+5. Os usuários atualizam ao fechar e abrir o MainERP pelo atalho com conexão à internet.
+   O launcher consulta o manifesto antes de iniciar o aplicativo; se encontrar versão
+   superior, baixa o ZIP, confere o SHA256 e instala. Se a consulta/download falhar, mantém
+   a versão já instalada e registra o erro no log.
+
+Para instalações antigas, atualize uma vez o launcher e o
+`%LOCALAPPDATA%\MainERP\sistema\launcher.json` (por exemplo, executando o instalador atual
+ou colocando o endereço acima em `update_url`). Depois disso, futuras releases são
+detectadas automaticamente. Para desativar atualizações online, defina
+`"disable_online_updates": true` no `launcher.json`; pacotes locais continuarão sendo
+processados.
 
 O SHA256 detecta pacote diferente ou corrompido, mas não substitui assinatura digital:
 quem controla o manifesto também pode publicar outro hash. Assinatura dos pacotes ainda
-não está implementada. Por isso, distribua somente por HTTPS sob seu controle e proteja
-o acesso de publicação ao servidor. O modo online aceita caminhos locais e URLs HTTP,
-mas HTTP não protege contra alteração em trânsito e não deve ser usado para releases.
-
-Para desativar atualizações online, deixe `update_url` vazio. Os pacotes locais em
-`sistema\atualizacoes\` continuam sendo processados normalmente.
+não está implementada. Proteja a conta GitHub com autenticação multifator e limite quem
+pode publicar releases. O instalador padrão é público e não usa tokens de acesso.
 
 ## Diagnóstico de atualização
 

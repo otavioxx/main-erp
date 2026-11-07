@@ -37,6 +37,9 @@ RUNTIME = ROOT / "runtime"
 CURRENT = ROOT / "current.txt"
 CONFIG = ROOT / "launcher.json"  # {"update_url": ""}
 HASH_REQUISITOS = ROOT / ".requirements.sha256"
+UPDATE_MANIFEST_URL = (
+    "https://github.com/otavioxx/main-erp/releases/latest/download/version.json"
+)
 
 EXIT_REINICIAR = 100  # o sistema pediu reinício
 CODIGOS_NORMAIS = {0, 3}  # 0 = saiu normal, 3 = já havia outra instância aberta
@@ -354,7 +357,7 @@ def aplicar_atualizacoes_locais(aviso):
 
 
 # ----------------------------------------------------------------------
-# Atualização automática (servidor ou pasta de rede) - opcional
+# Atualização automática (GitHub Releases por padrão; URL pode ser personalizada)
 #   launcher.json: {"update_url": "https://servidor/mainerp/version.json"}
 #   version.json:  {"version": "0.07", "url": "MainERP-0.07.zip", "sha256": "..."}
 # ----------------------------------------------------------------------
@@ -396,7 +399,12 @@ def atualizar_online(aviso):
         cfg = json.loads(CONFIG.read_text(encoding="utf-8")) if CONFIG.exists() else {}
     except (OSError, ValueError):
         cfg = {}
-    origem = str(cfg.get("update_url") or "").strip()
+    if not isinstance(cfg, dict):
+        log("Configuração do launcher inválida; usando o manifesto padrão.")
+        cfg = {}
+    if cfg.get("disable_online_updates") is True:
+        return
+    origem = str(cfg.get("update_url") or UPDATE_MANIFEST_URL).strip()
     if not origem:
         return
     try:

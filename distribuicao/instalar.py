@@ -25,6 +25,10 @@ sys.path.insert(0, str(AQUI))
 
 import criar_release
 
+UPDATE_MANIFEST_URL = (
+    "https://github.com/otavioxx/main-erp/releases/latest/download/version.json"
+)
+
 
 def base_padrao() -> Path:
     base = os.environ.get("LOCALAPPDATA") or str(Path.home() / ".mainerp")
@@ -39,6 +43,25 @@ def python_do_runtime(runtime: Path, gui: bool = False) -> Path:
 
 def ps_quote(texto: str | Path) -> str:
     return "'" + str(texto).replace("'", "''") + "'"
+
+
+def configurar_launcher(config_path: Path) -> None:
+    """Define o manifesto padrão sem sobrescrever uma URL já configurada."""
+    if config_path.exists():
+        configuracao = json.loads(config_path.read_text(encoding="utf-8"))
+        if not isinstance(configuracao, dict):
+            raise ValueError(f"Configuração inválida em {config_path}")
+    else:
+        configuracao = {}
+
+    if configuracao.get("disable_online_updates") is not True:
+        configuracao.setdefault("update_url", UPDATE_MANIFEST_URL)
+        if not configuracao["update_url"]:
+            configuracao["update_url"] = UPDATE_MANIFEST_URL
+
+    config_path.write_text(
+        json.dumps(configuracao, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 def criar_atalhos(sistema: Path, launcher: Path, icone: Path):
@@ -106,8 +129,7 @@ def main():
     icone = sistema / "icon.ico"
     shutil.copy2(PROJETO / "icon.ico", icone)
     cfg = sistema / "launcher.json"
-    if not cfg.exists():
-        cfg.write_text(json.dumps({"update_url": ""}, indent=2), encoding="utf-8")
+    configurar_launcher(cfg)
 
     # 3) release atual do código, entregue pelo mesmo caminho das atualizações
     print("Empacotando a versão atual do código...")
