@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from app_logging import registrar_excecao
 from database import Database
 from dialogs.cliente_selection_dialog import ClienteSelectionDialog
 from dialogs.recebimento_dialog import RecebimentoDialog
@@ -334,6 +335,10 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 return
             except Exception:
                 # Qualquer outro erro, ignorar silenciosamente
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in RecebimentoView._criar_tabela_duplicatas.aplicar_altura_fixa_segura in views/recebimento_view.py",
+                )
                 return
 
         # 5. Timer SEGURO para aplicar após renderização
@@ -779,7 +784,11 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 if dup[0] == duplicata_id:
                     return dup
             return None
-        except Exception:
+        except (IndexError, RuntimeError, TypeError, ValueError):
+            registrar_excecao(
+                __name__,
+                "Exception handled in RecebimentoView._get_duplicata_selecionada in views/recebimento_view.py",
+            )
             return None
 
     def _receber_duplicata(self):

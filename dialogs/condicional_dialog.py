@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from app_logging import registrar_excecao
 from dialogs.cliente_selection_dialog import ClienteSelectionDialog
 from dialogs.observacao_dialog import ObservacaoDialog
 from dialogs.produto_selection_dialog import ProdutoSelectionDialog
@@ -134,6 +135,10 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     self._salvar_condicional()
                     event.accept()  # Fecha após salvar
                 except Exception as e:
+                    registrar_excecao(
+                        __name__,
+                        "Exception handled in CondicionalDialog.closeEvent in dialogs/condicional_dialog.py",
+                    )
                     QMessageBox.warning(
                         self, "Erro ao salvar", f"Não foi possível salvar: {e!s}"
                     )
@@ -610,6 +615,10 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             else:
                 self.entry_valor.clear()
         except Exception:
+            registrar_excecao(
+                __name__,
+                "Exception handled in CondicionalDialog._atualizar_valor_automatico in dialogs/condicional_dialog.py",
+            )
             self.entry_valor.clear()
 
     def _limpar_info_produto(self):
@@ -731,6 +740,10 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         except ValueError as e:
             QMessageBox.warning(self, "Aviso", f"Valores inválidos: {e!s}")
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in CondicionalDialog._adicionar_produto_entrada_rapida in dialogs/condicional_dialog.py",
+            )
             QMessageBox.warning(self, "Erro", f"Erro ao adicionar produto: {e!s}")
 
     def _limpar_entrada_rapida(self):
@@ -765,6 +778,10 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     self._salvar_condicional()
                     self.reject()
                 except Exception as e:
+                    registrar_excecao(
+                        __name__,
+                        "Exception handled in CondicionalDialog._cancelar_condicional in dialogs/condicional_dialog.py",
+                    )
                     QMessageBox.warning(
                         self, "Erro ao salvar", f"Não foi possível salvar: {e!s}"
                     )
@@ -1156,6 +1173,10 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     self._atualizar_tabela()
                     self._modificacoes_nao_salvas = False
             except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in CondicionalDialog._carregar_dados in dialogs/condicional_dialog.py",
+                )
                 QMessageBox.warning(
                     self, "Erro", f"Erro ao carregar condicional: {e!s}"
                 )

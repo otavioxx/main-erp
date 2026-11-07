@@ -1,3 +1,7 @@
+import sqlite3
+
+from app_logging import registrar_excecao
+
 # \erp\model\produto.py
 from models.base_model import BaseModel
 
@@ -129,8 +133,12 @@ class Produto(BaseModel):
             if not isinstance(result, list):
                 raise TypeError("A consulta de pedidos ativos não retornou uma lista.")
             return result[0][0] if result else 0
-        except Exception:
+        except sqlite3.Error:
             # Se a tabela não existir ou houver erro, considera 0
+            registrar_excecao(
+                __name__,
+                "Exception handled in Produto._contar_pedidos_ativos in models/produto.py",
+            )
             return 0
 
     def _contar_condicionais_ativas(self):
@@ -148,8 +156,12 @@ class Produto(BaseModel):
                     "A consulta de condicionais ativas não retornou uma lista."
                 )
             return result[0][0] if result else 0
-        except Exception:
+        except sqlite3.Error:
             # Se a tabela não existir ou houver erro, considera 0
+            registrar_excecao(
+                __name__,
+                "Exception handled in Produto._contar_condicionais_ativas in models/produto.py",
+            )
             return 0
 
     def inativar(self):

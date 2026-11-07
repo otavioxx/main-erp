@@ -15,8 +15,8 @@ select = [
     "UP036",                     # bloco de versão obsoleto
 ]
 ignore = [
-    # TODO (Fase 1 do ROADMAP): 147 ocorrências de "except Exception". Nas telas é
-    # intencional (mostrar QMessageBox). O que falta é registrar o erro em log.
+    # 158 ocorrências restantes são limites de recuperação/propagação. As capturadas
+    # são registradas pelo logging central; casos previsíveis devem usar tipos específicos.
     # Para ver a dívida: ruff check --select BLE001 --statistics
     "BLE001",
 ]

@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 
+from app_logging import registrar_excecao
+
 
 class ExportUtils:
     @staticmethod
@@ -19,7 +21,11 @@ class ExportUtils:
             else:  # Linux e outros
                 subprocess.run(["xdg-open", filename], check=False)
             return True
-        except Exception:
+        except OSError:
+            registrar_excecao(
+                __name__,
+                "Exception handled in ExportUtils.abrir_arquivo in utils/export_utils.py",
+            )
             return False
 
     @staticmethod

@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from app_logging import registrar_excecao
 from dialogs.cliente_selection_dialog import ClienteSelectionDialog
 from dialogs.observacao_dialog import ObservacaoDialog
 from dialogs.pagamento_dialog import PagamentoDialog
@@ -129,6 +130,10 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     self._finalizar_venda()
                     event.accept()  # Fecha após salvar
                 except Exception as e:
+                    registrar_excecao(
+                        __name__,
+                        "Exception handled in ProdutoVendaDialog.closeEvent in dialogs/venda_dialog.py",
+                    )
                     QMessageBox.warning(
                         self, "Erro ao salvar", f"Não foi possível salvar: {e!s}"
                     )
@@ -580,6 +585,10 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                 self.entry_valor.clear()
         except Exception:
             # Em caso de erro, limpar campo
+            registrar_excecao(
+                __name__,
+                "Exception handled in ProdutoVendaDialog._atualizar_valor_automatico in dialogs/venda_dialog.py",
+            )
             self.entry_valor.clear()
 
     def _limpar_info_produto(self):
@@ -701,6 +710,10 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         except ValueError as e:
             QMessageBox.warning(self, "Aviso", f"Valores inválidos: {e!s}")
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in ProdutoVendaDialog._adicionar_produto_entrada_rapida in dialogs/venda_dialog.py",
+            )
             QMessageBox.warning(self, "Erro", f"Erro ao adicionar produto: {e!s}")
 
     def _limpar_entrada_rapida(self):
@@ -742,6 +755,10 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     self.reject()
                 except Exception as e:
                     # Se houver erro ao salvar, não fecha
+                    registrar_excecao(
+                        __name__,
+                        "Exception handled in ProdutoVendaDialog._cancelar_venda in dialogs/venda_dialog.py",
+                    )
                     QMessageBox.warning(
                         self, "Erro ao salvar", f"Não foi possível salvar: {e!s}"
                     )

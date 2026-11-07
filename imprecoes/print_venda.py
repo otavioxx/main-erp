@@ -19,6 +19,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from app_logging import registrar_excecao
 from database import Database
 from models.empresa import Empresa
 from models.venda import Venda
@@ -145,6 +146,10 @@ class PrintVenda:
             result = cursor.fetchone()
             return result[0] if result else "Cliente não encontrado"
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in PrintVenda._get_nome_cliente in imprecoes/print_venda.py",
+            )
             return f"Erro: {e!s}"
         finally:
             conn.close()
@@ -372,7 +377,11 @@ class PrintVenda:
                                 else:
                                     data_obj = data_vencimento
                                 data_formatada = data_obj.strftime("%d/%m/%Y")
-                            except Exception:
+                            except (AttributeError, TypeError, ValueError):
+                                registrar_excecao(
+                                    __name__,
+                                    "Exception handled in PrintVenda.gerar_comprovante in imprecoes/print_venda.py",
+                                )
                                 data_formatada = str(data_vencimento)
                         else:
                             data_formatada = "N/A"

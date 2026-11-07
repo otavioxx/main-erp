@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from app_logging import registrar_excecao
 from config import obter_config
 from utils.db_utils import DatabaseManager
 from utils.dialog_base import DialogBase
@@ -57,6 +58,10 @@ class VerifyBackupThread(QThread):
             self.verification_complete.emit(info)
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in VerifyBackupThread.run in dialogs/restore_backup_dialog.py",
+            )
             self.verification_error.emit(f"Erro ao verificar backup: {e!s}")
 
     def _get_zip_info(self):
@@ -99,6 +104,10 @@ class VerifyBackupThread(QThread):
                             info["record_counts"] = db_info["record_counts"]
                             info["db_name"] = db_filename
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in VerifyBackupThread._get_zip_info in dialogs/restore_backup_dialog.py",
+            )
             info["error"] = str(e)
 
         return info
@@ -168,6 +177,10 @@ class RestoreBackupThread(QThread):
                 self.restore_error.emit("Falha na restauração do backup")
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in RestoreBackupThread.run in dialogs/restore_backup_dialog.py",
+            )
             self.restore_error.emit(f"Erro durante a restauração: {e!s}")
 
 

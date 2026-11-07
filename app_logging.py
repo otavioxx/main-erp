@@ -31,3 +31,8 @@ def configurar_logging() -> None:
 
     root_logger.setLevel(logging.INFO)
     root_logger.addHandler(handler)
+
+
+def registrar_excecao(modulo: str, contexto: str) -> None:
+    """Registra a exceção ativa com traceback no log central."""
+    logging.getLogger(modulo).exception(contexto)

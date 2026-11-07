@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from app_logging import registrar_excecao
 from config import obter_config
 from paths import caminho_dados
 
@@ -60,6 +61,10 @@ class BackupConfig:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             return True
         except Exception:
+            registrar_excecao(
+                __name__,
+                "Exception handled in BackupConfig.save_last_path in dialogs/backup_dialog.py",
+            )
             return False
 
     @classmethod
@@ -159,6 +164,10 @@ class BackupConfig:
                     if not db_files:
                         return False, "Backup não contém arquivo do banco de dados"
             except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in BackupConfig.validate_last_backup in dialogs/backup_dialog.py",
+                )
                 return False, f"Erro ao ler arquivo de backup: {e!s}"
 
             # Verificar hash se disponível
@@ -174,6 +183,10 @@ class BackupConfig:
             return True, "Backup válido"
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in BackupConfig.validate_last_backup in dialogs/backup_dialog.py",
+            )
             return False, f"Erro na validação: {e!s}"
 
 
@@ -263,6 +276,10 @@ Tamanho original: {os.path.getsize(self.source_db) / (1024 * 1024):.2f} MB
                         self.backup_error.emit("Arquivo zip criado está corrompido")
                         return
             except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in BackupThread.run in dialogs/backup_dialog.py",
+                )
                 self.backup_error.emit(f"Erro ao testar zip: {e!s}")
                 return
 
@@ -272,6 +289,10 @@ Tamanho original: {os.path.getsize(self.source_db) / (1024 * 1024):.2f} MB
                     os.remove(full_backup_path)
                 os.rename(temp_zip, full_backup_path)
             except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in BackupThread.run in dialogs/backup_dialog.py",
+                )
                 self.backup_error.emit(f"Erro ao salvar arquivo final: {e!s}")
                 return
 
@@ -294,6 +315,10 @@ Tamanho original: {os.path.getsize(self.source_db) / (1024 * 1024):.2f} MB
 
         except Exception as e:
             # Limpar arquivo temporário em caso de erro
+            registrar_excecao(
+                __name__,
+                "Exception handled in BackupThread.run in dialogs/backup_dialog.py",
+            )
             if temp_zip and os.path.exists(temp_zip):
                 try:
                     os.remove(temp_zip)
@@ -594,6 +619,10 @@ class BackupDialog(QDialog):
                     self._backup_erro("Arquivo de backup não contém o banco de dados")
                     return
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in BackupDialog._backup_concluido in dialogs/backup_dialog.py",
+            )
             self._backup_erro(f"Erro ao validar arquivo de backup: {e!s}")
             return
 
@@ -664,6 +693,10 @@ class BackupDialog(QDialog):
 
                 subprocess.Popen(["xdg-open", os.path.dirname(backup_path)])
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in BackupDialog._abrir_pasta in dialogs/backup_dialog.py",
+            )
             QMessageBox.warning(
                 self, "Aviso", f"Não foi possível abrir a pasta:\n{e!s}"
             )

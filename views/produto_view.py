@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from app_logging import registrar_excecao
 from dialogs.relatorio_produto_dialog import RelatorioProdutoDialog
 from imprecoes.print_produto import PrintProduto
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
@@ -487,6 +488,10 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             self._filtrar_produtos()
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in ProdutoView._carregar_produtos in views/produto_view.py",
+            )
             self._mostrar_erro("Erro ao carregar produtos", str(e))
 
     def _filtrar_produtos(self):
@@ -810,6 +815,10 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
                 self._carregar_produtos()
                 self._mostrar_sucesso("Produto inativado com sucesso!")
             except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in ProdutoView._inativar_produto in views/produto_view.py",
+                )
                 self._mostrar_erro("Erro ao inativar produto", str(e))
 
     def _reativar_produto(self):
@@ -828,6 +837,10 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             self._carregar_produtos()
             self._mostrar_sucesso("Produto reativado com sucesso!")
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in ProdutoView._reativar_produto in views/produto_view.py",
+            )
             self._mostrar_erro("Erro ao reativar produto", str(e))
 
     def _confirmar_inativacao(self, produto):
@@ -883,6 +896,10 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
                 self._mostrar_aviso("Não foi possível gerar o relatório")
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in ProdutoView._gerar_relatorio_com_filtros in views/produto_view.py",
+            )
             self._mostrar_erro(
                 "Erro na Exportação", f"Erro ao exportar produtos:\n{e!s}"
             )
@@ -898,6 +915,10 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
                     check=False,
                 )
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in ProdutoView._abrir_arquivo in views/produto_view.py",
+            )
             self._mostrar_aviso(f"Não foi possível abrir automaticamente:\n{e}")
 
     def _mostrar_menu_contexto(self, pos):

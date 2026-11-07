@@ -17,7 +17,9 @@ sistema funcionando; não faça duas fases ao mesmo tempo.
 ## Fase 1 — Rede de segurança (1 a 2 semanas)
 
 - [x] **Logging central** (arquivo rotativo em `dados\logs`) no lugar dos ≈ 68 `print()`.
-- [ ] Trocar os ≈ 33 `except:` nus por exceções específicas, sempre registrando o erro.
+- [x] Auditar os 164 `except Exception` amplos: restringir os tipos quando seguro e
+      registrar as falhas com o logging central. Seis casos previsíveis foram estreitados;
+      os demais permanecem amplos em limites de recuperação/propagação.
 - [ ] **Testes com pytest** começando pelo que mais dói se quebrar:
       cálculos de venda/duplicata/estoque (`utils/`), regras dos `models/` e as migrações
       do banco (já testadas manualmente; transformar em testes automáticos).

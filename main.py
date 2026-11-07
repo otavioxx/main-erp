@@ -10,7 +10,7 @@ import paths
 
 paths.preparar_ambiente()  # cria a pasta de dados e usa-a como diretório de trabalho
 
-from app_logging import configurar_logging
+from app_logging import configurar_logging, registrar_excecao
 
 configurar_logging()
 logger = logging.getLogger(__name__)
@@ -245,6 +245,10 @@ def verificar_instancia_unica(nome_aplicacao):
             try:
                 win32api.CloseHandle(mutex_handle)
             except Exception:  # noqa: S110 - limpeza ao encerrar; nada a fazer se falhar
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in verificar_instancia_unica.cleanup_mutex in main.py",
+                )
                 pass
 
         atexit.register(cleanup_mutex)
@@ -338,6 +342,7 @@ def erro_fatal(titulo, detalhe):
             QApplication(sys.argv)
         QMessageBox.critical(None, titulo, detalhe)
     except Exception:  # noqa: S110 - ultimo recurso ao reportar um erro fatal
+        registrar_excecao(__name__, "Exception handled in erro_fatal in main.py")
         pass
 
 

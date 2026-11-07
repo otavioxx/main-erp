@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from app_logging import registrar_excecao
 from database import Database
 from dialogs.cliente_selection_dialog import ClienteSelectionDialog
 from dialogs.condicional_dialog import CondicionalDialog
@@ -334,6 +335,10 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             self._atualizar_label_info()
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in CondicionalView._carregar_condicionais in views/condicional_view.py",
+            )
             self._mostrar_erro("Erro ao carregar condicionais", str(e))
 
     def _filtrar_condicionais(self):
@@ -619,6 +624,10 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
                     self.busca_cliente.clear()
                     self._filtrar_condicionais()
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in CondicionalView._selecionar_cliente in views/condicional_view.py",
+            )
             self._mostrar_erro("Erro ao selecionar cliente", str(e))
 
     def _abrir_nova_condicional(self):
@@ -662,6 +671,10 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             dialog.condicional_salva.connect(self._carregar_condicionais)
             dialog.exec()
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in CondicionalView._editar_condicional in views/condicional_view.py",
+            )
             self._mostrar_erro("Erro ao abrir edição de condicional", str(e))
 
     def _converter_em_venda(self):
@@ -719,6 +732,10 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
                     )
 
             except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in CondicionalView._converter_em_venda in views/condicional_view.py",
+                )
                 self._mostrar_erro("Erro ao converter condicional", str(e))
 
     def _marcar_como_devolvida(self):
@@ -749,6 +766,10 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
                 self._carregar_condicionais()
                 self._mostrar_sucesso("Condicional marcada como devolvida!")
             except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in CondicionalView._marcar_como_devolvida in views/condicional_view.py",
+                )
                 self._mostrar_erro("Erro ao marcar condicional", str(e))
 
     def _excluir_condicional(self):
@@ -799,6 +820,10 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
                 self._mostrar_sucesso("Condicional excluída com sucesso!")
 
             except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in CondicionalView._excluir_condicional in views/condicional_view.py",
+                )
                 self._mostrar_erro("Erro ao excluir condicional", str(e))
 
     def _exportar_condicionais(self):
@@ -829,6 +854,10 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             self._tratar_arquivo_gerado(filename, "Relatório exportado")
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in CondicionalView._gerar_relatorio_com_filtros in views/condicional_view.py",
+            )
             self._mostrar_erro(
                 "Erro na Exportação",
                 f"Ocorreu um erro ao exportar as condicionais:\n{e!s}",
@@ -854,6 +883,10 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             self._tratar_arquivo_gerado(filename, "Comprovante gerado")
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in CondicionalView._imprimir_condicional in views/condicional_view.py",
+            )
             self._mostrar_erro(
                 "Erro na Impressão",
                 f"Ocorreu um erro ao gerar o comprovante:\n{e!s}",
@@ -995,7 +1028,9 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
                     try:
                         if os.path.isfile(caminho_arquivo):
                             os.unlink(caminho_arquivo)
-                        logger.debug("Arquivo de relatório removido: %s", caminho_arquivo)
+                        logger.debug(
+                            "Arquivo de relatório removido: %s", caminho_arquivo
+                        )
                     except Exception:
                         logger.exception(
                             "Erro ao remover arquivo de relatório %s", caminho_arquivo

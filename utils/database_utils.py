@@ -3,14 +3,13 @@ import time
 from collections.abc import Sequence
 from typing import Any
 
+from app_logging import registrar_excecao
 from database import Database
 
 
 class DatabaseUtils:
     @staticmethod
-    def executar_query(
-        query: str, params: Sequence[Any] | None = None
-    ) -> Any:
+    def executar_query(query: str, params: Sequence[Any] | None = None) -> Any:
         """Executa query genérica"""
         conn = Database().get_connection()
         cursor = conn.cursor()
@@ -115,7 +114,11 @@ class DatabaseUtils:
         try:
             DatabaseUtils.executar_query(query, (id,))
             return True
-        except Exception:
+        except sqlite3.Error:
+            registrar_excecao(
+                __name__,
+                "Exception handled in DatabaseUtils.excluir_por_id in utils/database_utils.py",
+            )
             return False
 
     @staticmethod

@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from app_logging import registrar_excecao
 from database import Database
 from dialogs.venda_dialog import ProdutoVendaDialog
 from imprecoes.print_relat_venda import PrintRelatVenda
@@ -355,6 +356,10 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             self._atualizar_label_info()
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in VendaView._carregar_vendas in views/venda_view.py",
+            )
             self._mostrar_erro("Erro ao carregar vendas", str(e))
 
     def _filtrar_vendas(self):
@@ -564,6 +569,10 @@ class VendaView(TableScrollNavigationMixin, QWidget):
                 self.tabela_vendas.clearSelection()
                 self._mostrar_sucesso("Venda excluída com sucesso!")
             except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in VendaView._excluir_venda in views/venda_view.py",
+                )
                 self._mostrar_erro("Erro ao excluir venda", str(e))
 
     def _tem_parcelas_pagas(self, venda_id):
@@ -583,6 +592,10 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             conn.close()
             return parcelas_pagas > 0
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in VendaView._tem_parcelas_pagas in views/venda_view.py",
+            )
             self._mostrar_erro("Erro ao verificar parcelas pagas", str(e))
             return True  # Em caso de erro, assume que tem parcelas para segurança
 
@@ -629,6 +642,10 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             self._tratar_arquivo_gerado(filename, "Relatório exportado")
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in VendaView._gerar_relatorio_com_filtros in views/venda_view.py",
+            )
             self._mostrar_erro(
                 "Erro na Exportação",
                 f"Ocorreu um erro ao exportar as vendas:\n{e!s}",
@@ -654,6 +671,10 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             self._tratar_arquivo_gerado(filename, "Comprovante gerado")
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in VendaView._imprimir_venda in views/venda_view.py",
+            )
             self._mostrar_erro(
                 "Erro na Impressão",
                 f"Ocorreu um erro ao gerar o comprovante:\n{e!s}",

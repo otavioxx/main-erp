@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from app_logging import registrar_excecao
 from dialogs.observacao_dialog import ObservacaoDialog
 from mixins.dialog_size_mixin import DialogSizeMixin
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
@@ -113,6 +114,10 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     self._finalizar_pedido()
                     event.accept()  # Fecha após salvar
                 except Exception as e:
+                    registrar_excecao(
+                        __name__,
+                        "Exception handled in PedidoDialog.closeEvent in dialogs/pedido_dialog.py",
+                    )
                     QMessageBox.warning(
                         self, "Erro ao salvar", f"Não foi possível salvar: {e!s}"
                     )
@@ -427,6 +432,10 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     self.reject()
                 except Exception as e:
                     # Se houver erro ao salvar, não fecha
+                    registrar_excecao(
+                        __name__,
+                        "Exception handled in PedidoDialog._cancelar_pedido in dialogs/pedido_dialog.py",
+                    )
                     QMessageBox.warning(
                         self, "Erro ao salvar", f"Não foi possível salvar: {e!s}"
                     )
@@ -1000,8 +1009,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
             mensagem = "NOVO Pedido\n\n"
 
         mensagem += (
-            f"Fornecedor: {fornecedor.nome}\n"
-            f"Subtotal: {formatar_moeda(subtotal)}\n"
+            f"Fornecedor: {fornecedor.nome}\nSubtotal: {formatar_moeda(subtotal)}\n"
         )
 
         # Incluir desconto apenas se houver

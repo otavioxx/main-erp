@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from app_logging import registrar_excecao
 from dialogs.fornecedor_dialog import FornecedorDialog
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
 from models.fornecedor import Fornecedor
@@ -253,6 +254,10 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
             self._filtrar_fornecedores()
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in FornecedorView._carregar_fornecedores in views/fornecedor_view.py",
+            )
             self._mostrar_erro("Erro ao carregar fornecedores", str(e))
 
     def _filtrar_fornecedores(self):
@@ -399,6 +404,10 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
                 self.tabela_fornecedores.clearSelection()
                 self._mostrar_sucesso("Fornecedor inativado com sucesso!")
             except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in FornecedorView._inativar_fornecedor in views/fornecedor_view.py",
+                )
                 self._mostrar_erro("Erro ao inativar fornecedor", str(e))
 
     def _reativar_fornecedor(self):
@@ -415,6 +424,10 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
             self.tabela_fornecedores.clearSelection()
             self._mostrar_sucesso("Fornecedor reativado com sucesso!")
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in FornecedorView._reativar_fornecedor in views/fornecedor_view.py",
+            )
             self._mostrar_erro("Erro ao reativar fornecedor", str(e))
 
     def _confirmar_inativacao(self, fornecedor):

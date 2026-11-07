@@ -5,6 +5,7 @@ Centraliza toda a lógica de negócio relacionada a vendas
 
 from typing import Any
 
+from app_logging import registrar_excecao
 from exceptions import ErroERP
 from utils.database_utils import DatabaseUtils
 from utils.helpers import converter_data_string
@@ -322,6 +323,10 @@ class VendaEstoqueManager:
 
             return True, ""
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in VendaEstoqueManager.verificar_disponibilidade_produtos in utils/venda_utils.py",
+            )
             return False, f"Erro ao verificar estoque: {e!s}"
 
 

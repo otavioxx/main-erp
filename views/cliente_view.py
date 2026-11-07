@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from app_logging import registrar_excecao
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
 from models.cliente import Cliente
 from utils.helpers import aplicar_maiuscula_formulario
@@ -359,6 +360,10 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
             self._filtrar_clientes()
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in ClienteView._carregar_clientes in views/cliente_view.py",
+            )
             self._mostrar_erro("Erro ao carregar clientes", str(e))
 
     def _filtrar_clientes(self):
@@ -478,6 +483,10 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
                 self._carregar_clientes()
                 self._mostrar_sucesso("Cliente cadastrado com sucesso!")
             except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in ClienteView._novo_cliente in views/cliente_view.py",
+                )
                 self._mostrar_erro("Erro ao salvar cliente", str(e))
 
     def _get_cliente_selecionado(self):
@@ -509,6 +518,10 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
                 self._carregar_clientes()
                 self._mostrar_sucesso("Cliente atualizado com sucesso!")
             except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in ClienteView._editar_cliente in views/cliente_view.py",
+                )
                 self._mostrar_erro("Erro ao salvar cliente", str(e))
 
     def _inativar_cliente(self):
@@ -526,6 +539,10 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
                 self.tabela_clientes.clearSelection()
                 self._mostrar_sucesso("Cliente inativado com sucesso!")
             except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in ClienteView._inativar_cliente in views/cliente_view.py",
+                )
                 self._mostrar_erro("Erro ao inativar cliente", str(e))
 
     def _reativar_cliente(self):
@@ -542,6 +559,10 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
             self.tabela_clientes.clearSelection()
             self._mostrar_sucesso("Cliente reativado com sucesso!")
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in ClienteView._reativar_cliente in views/cliente_view.py",
+            )
             self._mostrar_erro("Erro ao reativar cliente", str(e))
 
     def _confirmar_inativacao(self, cliente):

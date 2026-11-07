@@ -19,6 +19,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from app_logging import registrar_excecao
 from database import Database
 from models.empresa import Empresa
 from models.pedido import Pedido
@@ -505,6 +506,10 @@ class PrintPedido:
             return result[0] if result else "Fornecedor não encontrado"
 
         except Exception as e:
+            registrar_excecao(
+                __name__,
+                "Exception handled in PrintPedido._get_nome_fornecedor in imprecoes/print_pedido.py",
+            )
             return f"Erro: {e!s}"
         finally:
             # Tentar fechar a conexão de forma segura
