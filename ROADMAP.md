@@ -52,6 +52,8 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
             saldo pendente, com vencimento 30 dias após a parcela quitada.
       - [x] Recebimentos usam centavos para consultar e registrar valores pagos;
             a UI continua recebendo os mesmos valores em reais.
+      - [x] Condicionais persistem desconto e preço dos itens em centavos, leem
+            os campos inteiros e calculam o subtotal/total sem aritmética em ponto flutuante.
 - [x] Índices nas colunas mais filtradas (cliente, data, status); `PRAGMA foreign_keys`
       permanece ativo.
 
