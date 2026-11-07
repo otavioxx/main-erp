@@ -65,8 +65,6 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
 
 ## Fase 3 — Reestruturação (2 a 4 semanas)
 
-- [ ] Corrigir os campos de inserção de valores da venda e da condicional. O campo para inserir os valores está ficando oculto. Ou seja, o valor
-      digitado não está aparecendo no visual.
 - [x] Corrigir os campos de inserção de valores da venda e da condicional; aceitar
       valores com vírgula ou ponto decimal, separador de milhar e prefixo `R$`.
 - [x] Criar o pacote `mainerp/` com núcleo, dados, domínio, UI e relatórios; manter `main.py`

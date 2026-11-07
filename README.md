@@ -87,8 +87,10 @@ fechamento do sistema.
 ## Publicar uma nova versão
 
 1. Aumente `APP_VERSION` em `mainerp/core/config.py`.
-2. Execute `distribuicao\publicar_atualizacao.bat`.
-3. Abra o MainERP: a versão nova é instalada e aberta automaticamente.
+2. Atualize também a versão e a data exibidas na linha 54 de
+   `mainerp/ui/views/main_window.py` (barra de status).
+3. Execute `distribuicao\publicar_atualizacao.bat`.
+4. Abra o MainERP: a versão nova é instalada e aberta automaticamente.
 
 Para gerar apenas o pacote: `python distribuicao/criar_release.py` (cria `dist/MainERP-<versão>.zip`
 e `dist/version.json`).

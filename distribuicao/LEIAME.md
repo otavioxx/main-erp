@@ -1,4 +1,15 @@
-# MainERP - distribuição sem PyInstaller
+# MainERP 0.08 - distribuição sem PyInstaller
+
+## Novidades da versão 0.08
+
+- Corrigida a exibição e a edição do valor no diálogo **Preço de Venda**.
+- Valores monetários de vendas, parcelas, recebimentos, produtos, pedidos e
+  condicionais são calculados e persistidos em centavos, reduzindo erros de
+  arredondamento.
+- Ao pagar parcialmente a última parcela, o saldo restante passa a gerar uma
+  nova parcela.
+- A atualização do banco é feita por migrações aditivas, com backup automático
+  antes da alteração do esquema.
 
 ## Como funciona
 
@@ -7,7 +18,7 @@
   sistema\                  <- código e ferramentas (pode ser recriado a qualquer momento)
     runtime\                Python + bibliotecas (venv)
     launcher.pyw            o atalho aponta SEMPRE para ele
-    releases\0.07\ 0.08\    uma pasta por versão (as 3 últimas são mantidas)
+    releases\<versão>\      uma pasta por versão (as 3 últimas são mantidas)
     current.txt             versão ativa
     atualizacoes\           coloque aqui o .zip de uma nova versão
     launcher.json           {"update_url": ""}  (atualização online, opcional)
@@ -18,20 +29,25 @@
 
 ## Primeira instalação
 
-1. Python 3.12 instalado (python.org, com o "py launcher").
+1. Python 3.10 ou superior instalado (recomendado: 3.12), com o "py launcher".
 2. Dê dois cliques em `distribuicao\instalar.bat`.
-3. Abra o MainERP pelo atalho (Área de Trabalho / Menu Iniciar). O banco começa vazio:
-   restaure seu backup pela tela de Configurações; o sistema reinicia sozinho.
-4. Confira os dados antes de apagar a pasta do executável antigo (PyInstaller).
+3. Abra o MainERP pelo atalho (Área de Trabalho / Menu Iniciar).
+4. Em uma instalação nova, restaure seu backup pela tela de Configurações; o sistema
+   reinicia sozinho. Se estiver atualizando uma instalação existente, mantenha a pasta
+   `dados\`: ela contém seu banco e suas configurações e não deve ser substituída.
+5. Confira os dados antes de apagar a pasta do executável antigo (PyInstaller).
 
-O primeiro start com o banco restaurado cria automaticamente um backup em
-`dados\backups\pre_migracao_*.db` e atualiza o esquema.
+Na primeira inicialização com um banco restaurado ou existente que precise de migração,
+o sistema cria um backup em `dados\backups\pre_migracao_*.db` antes de atualizar o esquema.
 
 ## Publicar uma atualização (no mesmo PC)
 
-1. Altere o código e aumente `APP_VERSION` em `mainerp/core/config.py`.
-2. Dê dois cliques em `distribuicao\publicar_atualizacao.bat`.
-3. Abra o MainERP: a versão nova é instalada e aberta. Nada de empacotar.
+1. Altere o código e aumente `APP_VERSION` em `mainerp/core/config.py` (a release atual é
+   `0.08`).
+2. Atualize também a versão e a data exibidas na linha 54 de
+   `mainerp\ui\views\main_window.py` (barra de status).
+3. Dê dois cliques em `distribuicao\publicar_atualizacao.bat`.
+4. Abra o MainERP: a versão nova é instalada e aberta. Nada de empacotar.
 
 Se `requirements.txt` mudou, o launcher roda `pip install` sozinho (precisa de internet).
 Se a versão nova falhar antes de abrir a janela, o launcher volta para a anterior
