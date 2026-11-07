@@ -16,7 +16,7 @@ configurar_logging()
 logger = logging.getLogger(__name__)
 
 import pytz
-from PyQt6.QtCore import QLibraryInfo, Qt, QTimer, QTranslator
+from PyQt6.QtCore import QLibraryInfo, Qt, QTranslator
 from PyQt6.QtGui import QColor, QFont, QIcon, QPainter, QPainterPath, QPixmap
 from PyQt6.QtWidgets import QApplication, QMessageBox, QSplashScreen
 
@@ -347,8 +347,6 @@ def erro_fatal(titulo, detalhe):
 
 
 def main():
-    import time
-
     definir_identidade_windows()
     config = obter_config()
 
@@ -390,56 +388,26 @@ def main():
     # Aplicar tema DARK (única opção agora)
     aplicar_tema_dark(app)
 
-    # SPLASH COM DURAÇÃO ESTENDIDA E MENSAGENS DE PROGRESSO
-    SPLASH_MIN_DURATION = 6.0  # Mínimo de 6 segundos
-
-    # Mostrar splash screen
+    # Mostrar splash enquanto as tarefas reais de inicialização são executadas.
     splash = show_splash(config.APP_NAME)
-    app.processEvents()  # Força a exibição do splash
+    app.processEvents()
 
-    # Função para atualizar mensagem no splash (posicionada no meio)
     def update_splash_message(message):
-        # Usa o método customizado para desenhar a mensagem no meio
         splash.update_message(message)
         app.processEvents()
 
-    # Inicia cronômetro
-    start_time = time.time()
-
     try:
-        # Etapa 1: Configurações
-        update_splash_message("Carregando configurações do sistema...")
-        time.sleep(0.8)  # Delay intencional
-
-        # Etapa 2: Pastas
-        update_splash_message("Criando estrutura de diretórios...")
+        update_splash_message("Preparando diretórios do sistema...")
         config.criar_pastas_necessarias()
-        time.sleep(0.7)
 
-        # Etapa 3: Banco de dados
-        update_splash_message("Conectando ao banco de dados...")
-        time.sleep(0.6)
+        update_splash_message("Verificando banco de dados e migrações...")
         verificar_banco_dados()
-        time.sleep(0.4)
 
-        # Etapa 4: Limpeza
         update_splash_message("Limpando arquivos temporários...")
         limpar_pasta_relatorios()
-        time.sleep(0.5)
 
-        # Etapa 5: Módulos do sistema
-        update_splash_message("Carregando módulos do sistema...")
-        time.sleep(1.0)  # Simula carregamento de módulos
-
-        # Etapa 6: Interface
-        update_splash_message("Inicializando interface gráfica...")
-        time.sleep(0.8)
-        window = MainWindow()
-        time.sleep(0.6)
-
-        # Etapa 7: Finalizando
-        update_splash_message("Finalizando inicialização...")
-        time.sleep(0.6)
+        update_splash_message("Preparando interface...")
+        window = MainWindow(progress_callback=update_splash_message)
 
     except Exception as e:
         logger.exception("Erro durante inicialização")
@@ -451,30 +419,9 @@ def main():
         )
         sys.exit(1)
 
-    # Calcula tempo decorrido
-    elapsed = time.time() - start_time
-
-    # Calcula tempo restante para atingir duração mínima
-    remaining = max(0, (SPLASH_MIN_DURATION - elapsed) * 1000)  # Converte para ms
-
-    # Função para finalizar splash e mostrar janela principal
-    def show_main_window():
-        update_splash_message("Sistema pronto! Abrindo interface...")
-        app.processEvents()
-        time.sleep(0.3)  # Pequeno delay antes de abrir
-        splash.finish(window)
-        window.show()
-        confirmar_abertura()
-
-    if remaining > 0:
-        logger.info(
-            "Aguardando %.1fs adicionais para duração mínima do splash...",
-            remaining / 1000,
-        )
-        update_splash_message("Preparando sistema...")
-        QTimer.singleShot(int(remaining), show_main_window)
-    else:
-        show_main_window()
+    splash.finish(window)
+    window.show()
+    confirmar_abertura()
 
     # Executar aplicação
     try:

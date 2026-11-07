@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
@@ -57,7 +58,9 @@ class MainWindow(QMainWindow):
     # Sinal para quando backup é realizado
     backup_realizado = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(
+        self, progress_callback: Callable[[str], None] | None = None
+    ):
         super().__init__()
         self.setWindowTitle("MainERP")
         self.setGeometry(100, 100, 1200, 800)
@@ -86,7 +89,7 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(content_widget, 1)  # 1 = stretch factor
 
         # Criar todas as views
-        self._criar_views()
+        self._criar_views(progress_callback)
 
         # Criar status bar
         self._criar_status_bar()
@@ -165,18 +168,31 @@ class MainWindow(QMainWindow):
 
         return nav_frame
 
-    def _criar_views(self):
-        """Cria e adiciona todas as views ao stacked widget"""
+    def _criar_views(
+        self, progress_callback: Callable[[str], None] | None = None
+    ):
+        """Cria e adiciona as views, notificando o progresso de cada tela."""
+        def informar_progresso(indice: int, nome: str):
+            if progress_callback:
+                progress_callback(f"Carregando tela {indice}/8: {nome}...")
+
+        informar_progresso(1, "Vendas")
         self.venda_view = VendaView()
+        informar_progresso(2, "Condicionais")
         self.condicional_view = CondicionalView()
+        informar_progresso(3, "Pedidos")
         self.pedido_view = PedidoView()
+        informar_progresso(4, "Recebimentos")
         self.recebimento_view = RecebimentoView()
+        informar_progresso(5, "Clientes")
         self.cliente_view = ClienteView()
+        informar_progresso(6, "Produtos")
         self.produto_view = ProdutoView()
+        informar_progresso(7, "Fornecedores")
         self.fornecedor_view = FornecedorView()
+        informar_progresso(8, "Configurações")
         self.config_view = ConfigView()
 
-        # Adicionar views ao stacked widget
         self.stacked_widget.addWidget(self.venda_view)
         self.stacked_widget.addWidget(self.condicional_view)
         self.stacked_widget.addWidget(self.pedido_view)

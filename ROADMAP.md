@@ -46,7 +46,8 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
       `pedido_dialog`, `recebimento_view`, `condicional_view`) em componentes menores.
 - [ ] Decidir sobre `BaseTableView`: adotar nas 7 telas de listagem (reduz código repetido)
       ou apagar.
-- [ ] Splash: trocar os ≈ 6 s de `time.sleep` artificiais por progresso real.
+- [x] Splash: substituir os atrasos artificiais por progresso das etapas reais de
+      inicialização e informar o carregamento individual das oito telas.
 
 Estrutura alvo:
 
@@ -54,7 +55,7 @@ Estrutura alvo:
 MainERP/
   main.py                 # fino: chama mainerp.app.run()
   mainerp/
-    app.py  config.py  paths.py
+    app.py       config.py  paths.py
     data/        database.py, migracoes, repositórios (hoje models/)
     domain/      regras de negócio e cálculos (hoje utils/*_utils)
     ui/          main_window, views/, dialogs/, widgets/, styles.py, mixins/
