@@ -57,15 +57,19 @@ Antes de distribuir uma versão:
    `mainerp/core/config.py`, o texto da versão/data na linha 54 de
    `mainerp\ui\views\main_window.py` e o histórico em `CHANGELOG.md`.
 2. Execute `verificar.bat` na raiz do projeto. Corrija qualquer falha de Ruff ou pytest
-   antes de continuar.
-3. Gere o pacote com `python distribuicao\criar_release.py`. O ZIP
-   `dist\MainERP-<versão>.zip` e o `dist\version.json` são criados. O manifesto contém a
-   versão, o nome do ZIP e seu SHA256.
-4. Confira que o número da versão está correto e que o ZIP corresponde ao código validado.
-   Se alterar ou recriar o ZIP depois de gerar o manifesto, gere o manifesto novamente.
-5. Teste a instalação/atualização em uma instalação de teste antes de distribuir aos
+   antes de continuar, atualize o commit em `main` e envie-o ao GitHub.
+3. Teste a instalação/atualização em uma instalação de teste antes de distribuir aos
    usuários. Para versões que alteram o banco, use uma cópia dos dados, nunca o único
    banco de produção.
+4. Crie e envie uma tag anotada igual à versão, por exemplo `git tag -a v0.10 -m "MainERP 0.10"`
+   e `git push origin v0.10`. O GitHub Actions confere a tag com `APP_VERSION`,
+   executa Ruff e pytest e, somente se passarem, gera o ZIP e o manifesto com SHA256 e
+   publica os dois assets na GitHub Release mais recente.
+
+Não reutilize uma tag já publicada. Se o workflow falhar, corrija o problema em um novo
+commit e publique uma nova versão/tag; a release não deve ser montada manualmente com
+artefatos de outro commit. O workflow precisa da permissão `contents: write` habilitada nas
+configurações de Actions do repositório.
 
 O nome da versão precisa ser novo e maior que as versões já instaladas. O launcher compara
 as sequências numéricas encontradas no nome (por exemplo, `0.08` e `0.09`); versão igual ou

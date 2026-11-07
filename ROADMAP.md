@@ -111,7 +111,7 @@ MainERP/
       isolada de 0.08 para 0.09; instalações antigas podem precisar do bootstrap do launcher.
 - [x] Gerar manualmente o ZIP e o manifesto `version.json` com SHA256 por
       `distribuicao/criar_release.py`, e executar Ruff/pytest por `verificar.bat`.
-- [ ] Automatizar o pipeline de release no GitHub Actions (Ruff, testes, ZIP e SHA256).
+- [x] Automatizar o pipeline de release no GitHub Actions (Ruff, testes, ZIP e SHA256).
 - [ ] Tela "Sobre / Atualizações" mostrando versão, data e histórico.
 
 ## Fase 5 — Produto (conforme a necessidade)

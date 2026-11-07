@@ -31,6 +31,7 @@ EXCLUIR_PASTAS = {
     "venv",
     ".idea",
     ".vscode",
+    ".github",
     "dist",
     "distribuicao",
     "relatorios",

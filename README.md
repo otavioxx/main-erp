@@ -89,15 +89,17 @@ fechamento do sistema.
 1. Aumente `APP_VERSION` em `mainerp/core/config.py`.
 2. Atualize também a versão e a data exibidas na linha 54 de
    `mainerp/ui/views/main_window.py` (barra de status).
-3. Execute `verificar.bat` e gere `dist\MainERP-<versão>.zip` e
-   `dist\version.json` com `python distribuicao\criar_release.py`.
-4. Publique ambos como assets da nova GitHub Release e marque-a como a versão mais recente.
-   O repositório e os assets precisam estar públicos para o download sem autenticação.
-5. Usuários com o launcher configurado para o manifesto da GitHub Release recebem a versão
+3. Execute `verificar.bat` localmente. Atualize e envie o commit para `main`.
+4. Crie e envie uma tag anotada que corresponda exatamente a `APP_VERSION`, por exemplo:
+   `git tag -a v0.10 -m "MainERP 0.10"` e `git push origin v0.10`.
+5. O GitHub Actions valida a tag, executa Ruff e pytest e, se tudo passar, gera
+   `dist\MainERP-<versão>.zip` e `dist\version.json` e publica ambos na GitHub Release
+   marcada como latest. Não recicle tags já publicadas.
+6. Usuários com o launcher configurado para o manifesto da GitHub Release recebem a versão
    ao fechar e abrir o MainERP pelo atalho.
 
-Para gerar apenas o pacote: `python distribuicao/criar_release.py` (cria `dist/MainERP-<versão>.zip`
-e `dist/version.json`).
+Para gerar e inspecionar o pacote localmente: `python distribuicao/criar_release.py`
+(cria `dist/MainERP-<versão>.zip` e `dist/version.json`; isso não publica a release).
 
 ## Convenções
 
