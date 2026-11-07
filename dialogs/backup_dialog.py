@@ -354,15 +354,6 @@ class BackupDialog(QDialog):
 
         return BackupConfig.should_show_backup_dialog()
 
-    def _get_days_since_last_backup(self):
-        """Retorna quantos dias se passaram desde o último backup"""
-        last_backup_date = BackupConfig.get_last_backup_date()
-
-        if last_backup_date is None:
-            return None  # Nunca foi feito backup
-
-        return (datetime.now() - last_backup_date).days
-
     def _init_ui(self):
         """Inicializa interface do diálogo"""
         self.setWindowTitle("Backup do Sistema - Obrigatório")

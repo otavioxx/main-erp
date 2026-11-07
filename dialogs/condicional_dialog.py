@@ -554,27 +554,6 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         """Enter no campo valor - adiciona produto e volta para código"""
         self._adicionar_produto_entrada_rapida()
 
-    def _preencher_valor_automatico(self):
-        """Preenche valor de venda automaticamente se não estiver preenchido"""
-        if self.entry_valor.text().strip():
-            return  # Já tem valor, não alterar
-
-        codigo_texto = self.entry_codigo.text().strip()
-        if not codigo_texto:
-            return
-
-        try:
-            produto_id = int(codigo_texto)
-            from models.produto import Produto
-
-            produto = Produto.buscar_por_id(produto_id)
-
-            if produto and produto.preco_venda > 0:
-                # Formatar valor sem R$ para facilitar edição
-                self.entry_valor.setText(f"{produto.preco_venda:.2f}".replace(".", ","))
-        except Exception:  # noqa: S110 - o preco e opcional; se falhar o campo fica vazio
-            pass
-
     def _buscar_e_validar_produto(self, codigo_texto):
         """Busca e valida produto pelo código"""
         try:
