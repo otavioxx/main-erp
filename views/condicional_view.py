@@ -272,6 +272,11 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
 
         # Configuração das colunas
         header = self.tabela_condicionais.horizontalHeader()
+        if header is None:
+            raise RuntimeError(
+                "Não foi possível obter o cabeçalho horizontal da tabela"
+            )
+
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Cliente
@@ -372,8 +377,10 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
                 dados_filtrados = [
                     c
                     for c in dados_filtrados
-                    if self._parse_data(c[2])
-                    and data_ini <= self._parse_data(c[2]) <= data_fim
+                    if (data_condicional := self._parse_data(c[2])) is not None
+                    and data_ini is not None
+                    and data_fim is not None
+                    and data_ini <= data_condicional <= data_fim
                 ]
             except ValueError:
                 pass

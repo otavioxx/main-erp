@@ -9,6 +9,7 @@ def fixar_altura_linhas(tabela: QTableWidget, altura: int = 22) -> None:
     Substitui o bloco de ~30 linhas que estava copiado em várias telas.
     """
     vheader = tabela.verticalHeader()
+    assert vheader is not None
     vheader.setDefaultSectionSize(altura)
     vheader.setMinimumSectionSize(altura)
     vheader.setMaximumSectionSize(altura)

@@ -3,8 +3,27 @@
 Mixin para controle de scroll em tabelas - converte scroll em navegação linha por linha
 """
 
-from PyQt6.QtCore import QEvent, QTimer
-from PyQt6.QtWidgets import QTableWidget
+from collections.abc import Callable
+
+from PyQt6.QtCore import QEvent, QObject, QTimer
+from PyQt6.QtGui import QWheelEvent
+from PyQt6.QtWidgets import QTableWidget, QWidget
+
+
+class _TableScrollEventFilter(QObject):
+    def __init__(
+        self,
+        viewport: QWidget,
+        handle_wheel_event: Callable[[QWheelEvent], bool],
+    ):
+        super().__init__()
+        self._viewport = viewport
+        self._handle_wheel_event = handle_wheel_event
+
+    def eventFilter(self, obj, event):
+        if obj == self._viewport and event.type() == QEvent.Type.Wheel:
+            return self._handle_wheel_event(event)
+        return super().eventFilter(obj, event)
 
 
 class TableScrollNavigationMixin:
@@ -39,6 +58,9 @@ class TableScrollNavigationMixin:
         self._scroll_auto_select = auto_select_first
         self._scroll_acumulado = 0
         self._scroll_threshold = 120  # Threshold padrão para um "click" de scroll
+        self._scroll_event_filter = _TableScrollEventFilter(
+            self._get_scroll_viewport(), self._handle_wheel_event
+        )
 
         # Timer para debounce de scrolls rápidos
         self._scroll_timer = QTimer()
@@ -46,31 +68,18 @@ class TableScrollNavigationMixin:
         self._scroll_timer.setInterval(50)  # 50ms de debounce
 
         # Instalar o event filter
-        self._scroll_table.viewport().installEventFilter(self)
+        self._get_scroll_viewport().installEventFilter(self._scroll_event_filter)
 
         # Configurar a tabela para melhor experiência
         self._scroll_table.setVerticalScrollMode(QTableWidget.ScrollMode.ScrollPerItem)
 
-    def eventFilter(self, obj, event):
-        """
-        Filtra eventos para capturar wheel events na tabela.
-        """
-        # Verificar se é evento de wheel na viewport da nossa tabela
-        if (
-            hasattr(self, "_scroll_table")
-            and obj == self._scroll_table.viewport()
-            and event.type() == QEvent.Type.Wheel
-        ):
-            return self._handle_wheel_event(event)
+    def _get_scroll_viewport(self) -> QWidget:
+        viewport = self._scroll_table.viewport()
+        if viewport is None:
+            raise RuntimeError("Não foi possível acessar a área visível da tabela.")
+        return viewport
 
-        # Passar para o handler padrão
-        return (
-            super().eventFilter(obj, event)
-            if hasattr(super(), "eventFilter")
-            else False
-        )
-
-    def _handle_wheel_event(self, event):
+    def _handle_wheel_event(self, event: QWheelEvent) -> bool:
         """
         Processa o evento de scroll do mouse.
 
@@ -148,7 +157,7 @@ class TableScrollNavigationMixin:
             # obter limites visíveis
             primeira_visivel = self._scroll_table.rowAt(0)
             ultima_visivel = self._scroll_table.rowAt(
-                self._scroll_table.viewport().height() - 1
+                self._get_scroll_viewport().height() - 1
             )
 
             if primeira_visivel == -1:
@@ -199,7 +208,7 @@ class TableScrollNavigationMixin:
 
         primeira_visivel = self._scroll_table.rowAt(0)
         ultima_visivel = self._scroll_table.rowAt(
-            self._scroll_table.viewport().height() - 1
+            self._get_scroll_viewport().height() - 1
         )
 
         if primeira_visivel == -1:
@@ -238,11 +247,11 @@ class TableScrollNavigationMixin:
         Desativa a navegação por scroll (útil temporariamente).
         """
         if hasattr(self, "_scroll_table"):
-            self._scroll_table.viewport().removeEventFilter(self)
+            self._get_scroll_viewport().removeEventFilter(self._scroll_event_filter)
 
     def enable_scroll_navigation(self):
         """
         Reativa a navegação por scroll.
         """
         if hasattr(self, "_scroll_table"):
-            self._scroll_table.viewport().installEventFilter(self)
+            self._get_scroll_viewport().installEventFilter(self._scroll_event_filter)

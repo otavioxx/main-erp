@@ -169,7 +169,7 @@ class VendaRepository:
 
         query += " ORDER BY v.data_venda DESC, v.id DESC"
 
-        return DatabaseUtils.executar_query(query, params)
+        return DatabaseUtils.executar_query(query, tuple(params))
 
     @staticmethod
     def salvar_itens_venda(venda_id: int, produtos: list[dict[str, Any]]) -> bool:

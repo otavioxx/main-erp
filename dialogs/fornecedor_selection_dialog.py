@@ -99,6 +99,7 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
 
         # Configurar colunas
         header = self.tabela_fornecedores.horizontalHeader()
+        assert header is not None
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
@@ -121,7 +122,9 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
             QTableWidget.EditTrigger.NoEditTriggers
         )
         self.tabela_fornecedores.setAlternatingRowColors(True)
-        self.tabela_fornecedores.verticalHeader().setVisible(False)
+        vertical_header = self.tabela_fornecedores.verticalHeader()
+        assert vertical_header is not None
+        vertical_header.setVisible(False)
 
         self.tabela_fornecedores.doubleClicked.connect(self._selecionar_e_fechar)
 
@@ -167,7 +170,8 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
     def _selecionar_novo_fornecedor(self, fornecedor_id):
         """Seleciona fornecedor recém-cadastrado"""
         for row in range(self.tabela_fornecedores.rowCount()):
-            if int(self.tabela_fornecedores.item(row, 0).text()) == fornecedor_id:
+            item = self.tabela_fornecedores.item(row, 0)
+            if item is not None and int(item.text()) == fornecedor_id:
                 self.tabela_fornecedores.selectRow(row)
                 self.tabela_fornecedores.setFocus()
                 break
@@ -236,7 +240,13 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
             QMessageBox.warning(self, "Seleção", "Selecione um fornecedor")
             return
 
-        fornecedor_id = int(self.tabela_fornecedores.item(row, 0).text())
+        item = self.tabela_fornecedores.item(row, 0)
+        if item is None:
+            QMessageBox.warning(
+                self, "Seleção", "Não foi possível identificar o fornecedor."
+            )
+            return
+        fornecedor_id = int(item.text())
         self.fornecedor_selecionado = next(
             (f for f in self.fornecedores if f.id == fornecedor_id), None
         )
@@ -247,7 +257,10 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
     def _selecionar_e_fechar(self, index):
         """Seleciona ao duplo clique"""
         row = index.row()
-        fornecedor_id = int(self.tabela_fornecedores.item(row, 0).text())
+        item = self.tabela_fornecedores.item(row, 0)
+        if item is None:
+            return
+        fornecedor_id = int(item.text())
         self.fornecedor_selecionado = next(
             (f for f in self.fornecedores if f.id == fornecedor_id), None
         )

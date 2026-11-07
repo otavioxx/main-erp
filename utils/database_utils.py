@@ -1,5 +1,6 @@
 import sqlite3
 import time
+from collections.abc import Sequence
 from typing import Any
 
 from database import Database
@@ -7,7 +8,9 @@ from database import Database
 
 class DatabaseUtils:
     @staticmethod
-    def executar_query(query: str, params: tuple | None = None) -> Any:
+    def executar_query(
+        query: str, params: Sequence[Any] | None = None
+    ) -> Any:
         """Executa query genérica"""
         conn = Database().get_connection()
         cursor = conn.cursor()
@@ -40,7 +43,9 @@ class DatabaseUtils:
 
     @staticmethod
     def executar_com_retry(
-        query: str, params: tuple | None = None, max_tentativas: int = 3
+        query: str,
+        params: Sequence[Any] | None = None,
+        max_tentativas: int = 3,
     ) -> Any:
         """Executa uma query com retry em caso de database locked"""
         tentativa = 0
@@ -118,20 +123,18 @@ class DatabaseUtils:
         """
         Busca todos os itens de um pedido específico
         """
+        query = """
+            SELECT pi.id, pi.produto_id, p.nome as produto_nome, pi.quantidade,
+                   pi.preco_custo as preco_unitario, pi.subtotal
+            FROM itens_pedido pi
+            INNER JOIN produtos p ON pi.produto_id = p.id
+            WHERE pi.pedido_id = ?
+            ORDER BY p.nome
+        """
+        db = Database()
         try:
-            db = Database()
-            query = """
-                SELECT pi.id, pi.produto_id, p.nome as produto_nome, pi.quantidade,
-                       pi.preco_unitario, pi.subtotal
-                FROM pedido_itens pi
-                INNER JOIN produtos p ON pi.produto_id = p.id
-                WHERE pi.pedido_id = %s
-                ORDER BY p.nome
-            """
-            return db.fetch_all(query, (pedido_id,))
-        except Exception as e:
-            print(f"Erro ao buscar itens do pedido: {e!s}")
-            return []
+            cursor = db.get_connection().cursor()
+            cursor.execute(query, (pedido_id,))
+            return cursor.fetchall()
         finally:
-            if "db" in locals():
-                db.close()
+            db.close_connection()

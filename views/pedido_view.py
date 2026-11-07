@@ -266,15 +266,16 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
 
         # Configuração das colunas
         header = self.tabela_pedidos.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Fornecedor
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Data
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Status
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Recebimento
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Desconto
-        header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Frete
-        header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)  # Total
+        if header is not None:
+            header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Fornecedor
+            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Data
+            header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Status
+            header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Recebimento
+            header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Desconto
+            header.setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)  # Frete
+            header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)  # Total
 
         # LARGURAS AJUSTADAS para incluir desconto
         larguras = [50, 150, 100, 90, 100, 80, 70, 80]
@@ -647,7 +648,10 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
         if row == -1:
             return None
         try:
-            pedido_id = int(self.tabela_pedidos.item(row, 0).text())
+            item = self.tabela_pedidos.item(row, 0)
+            if item is None:
+                return None
+            pedido_id = int(item.text())
             from models.pedido import Pedido
 
             return Pedido.buscar_por_id(pedido_id)
@@ -677,9 +681,14 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             )
             return
 
+        pedido_id = pedido.id
+        if not isinstance(pedido_id, int):
+            QMessageBox.warning(self, "Aviso", "ID do pedido inválido")
+            return
+
         if self._confirmar_recebimento(pedido):
             try:
-                PedidoUtils.receber_pedido(pedido.id)
+                PedidoUtils.receber_pedido(pedido_id)
                 self._carregar_dados()
                 QMessageBox.information(self, "Sucesso", "Pedido recebido!")
             except Exception as e:
@@ -736,7 +745,14 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
 
         if self._confirmar_cancelamento(pedido):
             try:
-                PedidoUtils.cancelar_pedido(pedido.id)
+                pedido_id = pedido.id
+                if not isinstance(pedido_id, int):
+                    QMessageBox.warning(
+                        self, "Aviso", "Pedido inválido para cancelamento"
+                    )
+                    return
+
+                PedidoUtils.cancelar_pedido(pedido_id)
                 self._carregar_dados()
                 QMessageBox.information(self, "Sucesso", "Pedido cancelado!")
             except Exception as e:

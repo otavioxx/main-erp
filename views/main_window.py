@@ -243,7 +243,9 @@ class MainWindow(QMainWindow):
             # Último backup foi recente (menos de 7 dias)
             # Fecha a aplicação SILENCIOSAMENTE
             print("✅ Backup recente detectado, fechando sistema...")
-            QApplication.instance().quit()
+            app = QApplication.instance()
+            if app is not None:
+                app.quit()
             return
 
         # Se backup antigo (7+ dias) ou nunca feito, mostra diálogo
@@ -265,7 +267,9 @@ class MainWindow(QMainWindow):
             # VERIFICAÇÃO EXPLÍCITA: Se o diálogo foi aceito, fecha o sistema
             if result == QDialog.DialogCode.Accepted:
                 print("✅ Backup concluído, fechando sistema...")
-                QApplication.instance().quit()
+                app = QApplication.instance()
+                if app is not None:
+                    app.quit()
 
         except Exception as e:
             print(f"Erro ao mostrar diálogo de backup: {e}")
@@ -299,4 +303,6 @@ class MainWindow(QMainWindow):
         )
 
         if reply == QMessageBox.StandardButton.Yes:
-            QApplication.instance().quit()
+            app = QApplication.instance()
+            if app is not None:
+                app.quit()

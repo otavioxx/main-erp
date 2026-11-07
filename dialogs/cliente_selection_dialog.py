@@ -80,21 +80,13 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
         self.tabela.setColumnCount(4)
         self.tabela.setHorizontalHeaderLabels(["ID", "Nome", "CPF/CNPJ", "Telefone"])
 
-        self.tabela.horizontalHeader().setSectionResizeMode(
-            QHeaderView.ResizeMode.Interactive
-        )
-        self.tabela.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.Fixed
-        )
-        self.tabela.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeMode.Stretch
-        )
-        self.tabela.horizontalHeader().setSectionResizeMode(
-            2, QHeaderView.ResizeMode.Fixed
-        )
-        self.tabela.horizontalHeader().setSectionResizeMode(
-            3, QHeaderView.ResizeMode.Fixed
-        )
+        header = self.tabela.horizontalHeader()
+        if header is not None:
+            header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
+            header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
 
         self.tabela.setColumnWidth(0, 50)
         self.tabela.setColumnWidth(2, 130)
@@ -164,7 +156,8 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
     def selecionar_novo_cliente(self, cliente_id):
         """Seleciona o cliente recém-cadastrado na tabela"""
         for row in range(self.tabela.rowCount()):
-            if int(self.tabela.item(row, 0).text()) == cliente_id:
+            item = self.tabela.item(row, 0)
+            if item is not None and int(item.text()) == cliente_id:
                 self.tabela.selectRow(row)
                 self.tabela.setFocus()
                 break
@@ -219,19 +212,23 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
     def selecionar_cliente(self, index):
         row = index.row()
         if row >= 0 and row < self.tabela.rowCount():
-            cliente_id = int(self.tabela.item(row, 0).text())
-            self.cliente_selecionado = next(
-                (c for c in self.clientes if c.id == cliente_id), None
-            )
-            self.accept()
+            item = self.tabela.item(row, 0)
+            if item is not None:
+                cliente_id = int(item.text())
+                self.cliente_selecionado = next(
+                    (c for c in self.clientes if c.id == cliente_id), None
+                )
+                self.accept()
 
     def accept_selection(self):
         row = self.tabela.currentRow()
         if row != -1 and row < self.tabela.rowCount():
-            cliente_id = int(self.tabela.item(row, 0).text())
-            self.cliente_selecionado = next(
-                (c for c in self.clientes if c.id == cliente_id), None
-            )
+            item = self.tabela.item(row, 0)
+            if item is not None:
+                cliente_id = int(item.text())
+                self.cliente_selecionado = next(
+                    (c for c in self.clientes if c.id == cliente_id), None
+                )
         self.accept()
 
     def get_cliente_selecionado(self):

@@ -63,6 +63,8 @@ class Fornecedor(BaseModel):
 
             result = self.executar_query(query, params)
             if not self.id:
+                if not isinstance(result, int):
+                    raise RuntimeError("A inserção do fornecedor não retornou um ID.")
                 self.id = result
 
         except sqlite3.IntegrityError as e:
@@ -84,6 +86,8 @@ class Fornecedor(BaseModel):
             query = "SELECT * FROM fornecedores ORDER BY nome"
 
         resultados = cls.executar_query(query)
+        if not isinstance(resultados, list):
+            raise TypeError("A consulta de fornecedores não retornou uma lista.")
         fornecedores = []
         for row in resultados:
             cnpj = row[2] if row[2] is not None else ""
@@ -100,6 +104,8 @@ class Fornecedor(BaseModel):
         query = "SELECT * FROM fornecedores WHERE id = ?"
         resultado = cls.executar_query(query, (fornecedor_id,))
 
+        if not isinstance(resultado, list):
+            raise TypeError("A consulta por fornecedor não retornou uma lista.")
         if resultado:
             row = resultado[0]
             cnpj = row[2] if row[2] is not None else ""
@@ -113,6 +119,8 @@ class Fornecedor(BaseModel):
     def buscar_inativos(cls):
         query = "SELECT * FROM fornecedores WHERE ativo = 0 ORDER BY nome"
         resultados = cls.executar_query(query)
+        if not isinstance(resultados, list):
+            raise TypeError("A consulta de fornecedores inativos não retornou uma lista.")
         fornecedores = []
         for row in resultados:
             cnpj = row[2] if row[2] is not None else ""
@@ -128,6 +136,8 @@ class Fornecedor(BaseModel):
         query = "SELECT * FROM fornecedores WHERE cnpj = ?"
         resultado = cls.executar_query(query, (cnpj,))
 
+        if not isinstance(resultado, list):
+            raise TypeError("A consulta por CNPJ não retornou uma lista.")
         if resultado:
             row = resultado[0]
             cnpj_val = row[2] if row[2] is not None else ""

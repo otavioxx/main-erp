@@ -5,7 +5,7 @@ E verificação de modificações não salvas
 """
 
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QKeySequence, QShortcut
+from PyQt6.QtGui import QFocusEvent, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
@@ -324,6 +324,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         # Configurar colunas
         header = self.tabela_produtos.horizontalHeader()
+        assert header is not None
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Cor
@@ -876,10 +877,14 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                         QTimer.singleShot(100, spinbox.selectAll)
 
                         # Conectar ao sinal de foco para sempre selecionar tudo quando ganhar foco
-                        spinbox.focusInEvent = lambda event, sb=spinbox: (
-                            QDoubleSpinBox.focusInEvent(sb, event),
-                            sb.selectAll(),
-                        )
+                        def selecionar_tudo_ao_focar(
+                            event: QFocusEvent | None,
+                            sb: QDoubleSpinBox = spinbox,
+                        ) -> None:
+                            QDoubleSpinBox.focusInEvent(sb, event)
+                            sb.selectAll()
+
+                        spinbox.focusInEvent = selecionar_tudo_ao_focar
 
                         break
 

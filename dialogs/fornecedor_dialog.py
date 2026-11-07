@@ -138,12 +138,12 @@ class FornecedorDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
 
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setToolTip(
-            "Salvar as informações do fornecedor"
-        )
-        buttons.button(QDialogButtonBox.StandardButton.Cancel).setToolTip(
-            "Cancelar e fechar sem salvar"
-        )
+        ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        cancel_button = buttons.button(QDialogButtonBox.StandardButton.Cancel)
+        if ok_button is None or cancel_button is None:
+            raise RuntimeError("Não foi possível criar os botões do diálogo.")
+        ok_button.setToolTip("Salvar as informações do fornecedor")
+        cancel_button.setToolTip("Cancelar e fechar sem salvar")
 
         buttons_layout.addStretch()
         buttons_layout.addWidget(buttons)

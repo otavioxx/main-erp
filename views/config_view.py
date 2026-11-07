@@ -478,4 +478,4 @@ class ConfigView(QWidget):
         # Emite código especial para reinício (100)
         from PyQt6.QtWidgets import QApplication
 
-        QApplication.instance().exit(100)
+        QApplication.exit(100)

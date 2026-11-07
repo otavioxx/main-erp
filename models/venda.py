@@ -92,11 +92,15 @@ class Venda(BaseModel):
             self.valor_financiado,
         )
 
-        self.id = DatabaseUtils.executar_query(query, params)
-        return self.id
+        venda_id = DatabaseUtils.executar_query(query, params)
+        if not isinstance(venda_id, int):
+            raise RuntimeError("A inserção da venda não retornou um ID.")
+        self.id = venda_id
+        return venda_id
 
     def _atualizar(self) -> int:
         """Atualiza venda existente"""
+        venda_id = self._obter_id()
         query = """
             UPDATE vendas
             SET cliente_id=?, data_venda=?, total=?, forma_pagamento=?,
@@ -114,10 +118,15 @@ class Venda(BaseModel):
             self.observacao,
             self.valor_entrada,
             self.valor_financiado,
-            self.id,
+            venda_id,
         )
 
         DatabaseUtils.executar_query(query, params)
+        return venda_id
+
+    def _obter_id(self) -> int:
+        if self.id is None:
+            raise ValueError("A venda ainda não possui ID.")
         return self.id
 
     def excluir(self) -> bool:
@@ -156,7 +165,7 @@ class Venda(BaseModel):
             from utils.venda_utils import VendaUtils
 
             # Devolver estoque
-            VendaUtils.devolver_estoque(self.id)
+            VendaUtils.devolver_estoque(self._obter_id())
 
             # Atualizar status
             self.status = VendaStatus.CANCELADA
@@ -173,7 +182,7 @@ class Venda(BaseModel):
         """Obtém itens da venda"""
         from utils.venda_utils import VendaUtils
 
-        return VendaUtils.buscar_itens_venda_completo(self.id)
+        return VendaUtils.buscar_itens_venda_completo(self._obter_id())
 
     def get_parcelas(self) -> list[tuple]:
         """Obtém parcelas da venda"""
@@ -182,7 +191,7 @@ class Venda(BaseModel):
             WHERE venda_id = ?
             ORDER BY numero_parcela
         """
-        return DatabaseUtils.executar_query(query, (self.id,))
+        return DatabaseUtils.executar_query(query, (self._obter_id(),))
 
     def get_cliente(self):
         """Obtém cliente da venda"""
@@ -203,7 +212,7 @@ class Venda(BaseModel):
         """Verifica se tem parcelas pagas"""
         from utils.venda_utils import VendaUtils
 
-        return VendaUtils.verificar_parcelas_pagas(self.id)
+        return VendaUtils.verificar_parcelas_pagas(self._obter_id())
 
     def pode_ser_excluida(self) -> tuple[bool, str]:
         """Verifica se venda pode ser excluída"""

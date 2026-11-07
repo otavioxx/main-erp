@@ -168,15 +168,19 @@ class PagamentoDialog(QDialog):
 
     def _centralizar_janela(self):
         """Centraliza a janela na tela"""
-        if self.parent():
+        parent = self.parentWidget()
+        if parent is not None:
             # Se tem parent, centraliza em relação ao parent
-            parent_geometry = self.parent().geometry()
+            parent_geometry = parent.geometry()
             x = parent_geometry.x() + (parent_geometry.width() - self.width()) // 2
             y = parent_geometry.y() + (parent_geometry.height() - self.height()) // 2
             self.move(x, y)
         else:
             # Se não tem parent, centraliza na tela
-            screen = QGuiApplication.primaryScreen().geometry()
+            primary_screen = QGuiApplication.primaryScreen()
+            if primary_screen is None:
+                raise RuntimeError("Não foi possível localizar a tela principal.")
+            screen = primary_screen.geometry()
             x = (screen.width() - self.width()) // 2
             y = (screen.height() - self.height()) // 2
             self.move(x, y)

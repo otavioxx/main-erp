@@ -18,6 +18,7 @@ class Produto(BaseModel):
         cor="",
         ea="",
         referencia="",
+        fornecedor_nome="Nenhum",
     ):
         self.id = id
         self.nome = nome
@@ -30,6 +31,7 @@ class Produto(BaseModel):
         self.cor = cor
         self.ea = ea
         self.referencia = referencia
+        self.fornecedor_nome = fornecedor_nome
 
     def salvar(self):
         from utils.produto_utils import ProdutoUtils
@@ -80,6 +82,8 @@ class Produto(BaseModel):
 
         result = self.executar_query(query, params)
         if not self.id:
+            if not isinstance(result, int):
+                raise RuntimeError("A inserção do produto não retornou um ID.")
             self.id = result
         return self.id
 
@@ -122,6 +126,8 @@ class Produto(BaseModel):
                 WHERE ip.produto_id = ? AND p.status IN ('aberto', 'pendente', 'processando')
             """
             result = self.executar_query(query, (self.id,))
+            if not isinstance(result, list):
+                raise TypeError("A consulta de pedidos ativos não retornou uma lista.")
             return result[0][0] if result else 0
         except Exception:
             # Se a tabela não existir ou houver erro, considera 0
@@ -137,6 +143,10 @@ class Produto(BaseModel):
                 WHERE ic.produto_id = ? AND c.status = 'ativa'
             """
             result = self.executar_query(query, (self.id,))
+            if not isinstance(result, list):
+                raise TypeError(
+                    "A consulta de condicionais ativas não retornou uma lista."
+                )
             return result[0][0] if result else 0
         except Exception:
             # Se a tabela não existir ou houver erro, considera 0
@@ -176,6 +186,8 @@ class Produto(BaseModel):
             """
 
         resultados = Produto.executar_query(query)
+        if not isinstance(resultados, list):
+            raise TypeError("A consulta de produtos não retornou uma lista.")
         produtos = []
         for row in resultados:
             # Trata campos que podem não existir em DBs antigos
@@ -191,8 +203,8 @@ class Produto(BaseModel):
                 cor=row[8] if len(row) > 8 else "",
                 ea=row[9] if len(row) > 9 else "",
                 referencia=row[10] if len(row) > 10 else "",
+                fornecedor_nome=row[11] if len(row) > 11 and row[11] else "Nenhum",
             )
-            produto.fornecedor_nome = row[11] if len(row) > 11 and row[11] else "Nenhum"
             produtos.append(produto)
 
         return produtos
@@ -207,6 +219,8 @@ class Produto(BaseModel):
         """
 
         resultados = Produto.executar_query(query, (produto_id,))
+        if not isinstance(resultados, list):
+            raise TypeError("A consulta por produto não retornou uma lista.")
         if resultados:
             row = resultados[0]
             produto = Produto(
@@ -221,7 +235,7 @@ class Produto(BaseModel):
                 cor=row[8] if len(row) > 8 else "",
                 ea=row[9] if len(row) > 9 else "",
                 referencia=row[10] if len(row) > 10 else "",
+                fornecedor_nome=row[11] if len(row) > 11 and row[11] else "Nenhum",
             )
-            produto.fornecedor_nome = row[11] if len(row) > 11 and row[11] else "Nenhum"
             return produto
         return None

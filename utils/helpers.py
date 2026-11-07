@@ -112,7 +112,9 @@ class SelectAllDoubleSpinBox(QDoubleSpinBox):
 
     def focusInEvent(self, event):
         super().focusInEvent(event)
-        self.lineEdit().selectAll()
+        line_edit = self.lineEdit()
+        if line_edit is not None:
+            line_edit.selectAll()
 
 
 class SelectAllLineEdit(QLineEdit):
@@ -204,20 +206,25 @@ class UpperCaseComboBox(QComboBox):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setEditable(True)
-        self.lineEdit().textChanged.connect(self._converter_maiuscula)
+        line_edit = self.lineEdit()
+        if line_edit is not None:
+            line_edit.textChanged.connect(self._converter_maiuscula)
 
     def _converter_maiuscula(self):
-        if self.isEditable():
-            cursor_pos = self.lineEdit().cursorPosition()
-            texto_atual = self.lineEdit().text()
-            # Remove quebras de linha e converte para maiúscula
-            texto_processado = texto_atual.replace("\n", " ").replace("\r", " ").upper()
+        line_edit = self.lineEdit()
+        if not self.isEditable() or line_edit is None:
+            return
 
-            if texto_atual != texto_processado:
-                self.lineEdit().blockSignals(True)
-                self.lineEdit().setText(texto_processado)
-                self.lineEdit().setCursorPosition(cursor_pos)
-                self.lineEdit().blockSignals(False)
+        cursor_pos = line_edit.cursorPosition()
+        texto_atual = line_edit.text()
+        # Remove quebras de linha e converte para maiúscula
+        texto_processado = texto_atual.replace("\n", " ").replace("\r", " ").upper()
+
+        if texto_atual != texto_processado:
+            line_edit.blockSignals(True)
+            line_edit.setText(texto_processado)
+            line_edit.setCursorPosition(cursor_pos)
+            line_edit.blockSignals(False)
 
 
 # ============================================================================
@@ -235,9 +242,11 @@ def aplicar_maiuscula_widget(widget):
     elif isinstance(widget, QTextEdit):
         widget.textChanged.connect(lambda: _converter_texto_maiuscula_textedit(widget))
     elif isinstance(widget, QComboBox) and widget.isEditable():
-        widget.lineEdit().textChanged.connect(
-            lambda: _converter_texto_maiuscula(widget.lineEdit())
-        )
+        line_edit = widget.lineEdit()
+        if line_edit is not None:
+            line_edit.textChanged.connect(
+                lambda: _converter_texto_maiuscula(line_edit)
+            )
 
 
 def _converter_texto_maiuscula(line_edit):

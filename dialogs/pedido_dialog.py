@@ -5,7 +5,7 @@ E verificação de modificações não salvas
 """
 
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QKeySequence, QShortcut
+from PyQt6.QtGui import QFocusEvent, QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
@@ -241,6 +241,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         # Configurar colunas
         header = self.tabela_produtos.horizontalHeader()
+        assert header is not None
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Cor
@@ -572,10 +573,14 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     QTimer.singleShot(100, spinbox.selectAll)
 
                     # Conectar ao sinal de foco para sempre selecionar tudo quando ganhar foco
-                    spinbox.focusInEvent = lambda event, sb=spinbox: (
-                        QDoubleSpinBox.focusInEvent(sb, event),
-                        sb.selectAll(),
-                    )
+                    def selecionar_tudo_ao_focar(
+                        event: QFocusEvent | None,
+                        sb: QDoubleSpinBox = spinbox,
+                    ) -> None:
+                        QDoubleSpinBox.focusInEvent(sb, event)
+                        sb.selectAll()
+
+                    spinbox.focusInEvent = selecionar_tudo_ao_focar
 
                     break
 
@@ -646,10 +651,14 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                         QTimer.singleShot(100, spinbox.selectAll)
 
                         # Conectar ao sinal de foco para sempre selecionar tudo quando ganhar foco
-                        spinbox.focusInEvent = lambda event, sb=spinbox: (
-                            QDoubleSpinBox.focusInEvent(sb, event),
-                            sb.selectAll(),
-                        )
+                        def selecionar_tudo_ao_focar(
+                            event: QFocusEvent | None,
+                            sb: QDoubleSpinBox = spinbox,
+                        ) -> None:
+                            QDoubleSpinBox.focusInEvent(sb, event)
+                            sb.selectAll()
+
+                        spinbox.focusInEvent = selecionar_tudo_ao_focar
 
                         break
 
@@ -978,15 +987,20 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
     def _confirmar_pedido(self, subtotal, total):
         """Confirma finalização do pedido - ATUALIZADO com desconto"""
-        if self.pedido_editando:
+        pedido_editando = self.pedido_editando
+        fornecedor = self.fornecedor_selecionado
+        if fornecedor is None:
+            raise RuntimeError("Não é possível confirmar o pedido sem fornecedor.")
+
+        if pedido_editando is not None:
             titulo = "Confirmar Edição"
-            mensagem = f"EDITAR Pedido #{self.pedido_editando.id}\n\n"
+            mensagem = f"EDITAR Pedido #{pedido_editando.id}\n\n"
         else:
             titulo = "Confirmar Pedido"
             mensagem = "NOVO Pedido\n\n"
 
         mensagem += (
-            f"Fornecedor: {self.fornecedor_selecionado.nome}\n"
+            f"Fornecedor: {fornecedor.nome}\n"
             f"Subtotal: {formatar_moeda(subtotal)}\n"
         )
 
@@ -1000,7 +1014,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         mensagem += (
             f"Total: {formatar_moeda(total)}\n\n"
-            f"Confirmar {'edição' if self.pedido_editando else 'pedido'}?"
+            f"Confirmar {'edição' if pedido_editando is not None else 'pedido'}?"
         )
 
         resposta = QMessageBox.question(
@@ -1013,17 +1027,28 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
     def _atualizar_pedido_existente(self, total, observacao):
         """Atualiza pedido existente - ATUALIZADO com desconto"""
-        self.pedido_editando.fornecedor_id = self.fornecedor_selecionado.id
-        self.pedido_editando.valor_total = total
-        self.pedido_editando.valor_frete = self.valor_frete
-        self.pedido_editando.desconto = self.valor_desconto
-        self.pedido_editando.observacao = observacao
-        return self.pedido_editando.salvar()
+        pedido = self.pedido_editando
+        fornecedor = self.fornecedor_selecionado
+        if pedido is None:
+            raise RuntimeError("Não há pedido em edição para atualizar.")
+        if fornecedor is None:
+            raise RuntimeError("Não é possível atualizar o pedido sem fornecedor.")
+
+        pedido.fornecedor_id = fornecedor.id
+        pedido.valor_total = total
+        pedido.valor_frete = self.valor_frete
+        pedido.desconto = self.valor_desconto
+        pedido.observacao = observacao
+        return pedido.salvar()
 
     def _criar_novo_pedido(self, total, observacao):
         """Cria novo pedido - ATUALIZADO com desconto"""
+        fornecedor = self.fornecedor_selecionado
+        if fornecedor is None:
+            raise RuntimeError("Não é possível criar o pedido sem fornecedor.")
+
         pedido = Pedido(
-            fornecedor_id=self.fornecedor_selecionado.id,
+            fornecedor_id=fornecedor.id,
             valor_total=total,
             valor_frete=self.valor_frete,
             desconto=self.valor_desconto,

@@ -265,9 +265,13 @@ class RecebimentoDialog(QDialog):
 
         # Botões
         btn_confirmar = msg_box.addButton("Confirmar", QMessageBox.ButtonRole.YesRole)
+        if btn_confirmar is None:
+            raise RuntimeError("Não foi possível criar o botão de confirmação.")
         btn_confirmar.setProperty("class", "primary-button")
 
         btn_corrigir = msg_box.addButton("Corrigir", QMessageBox.ButtonRole.NoRole)
+        if btn_corrigir is None:
+            raise RuntimeError("Não foi possível criar o botão de correção.")
         btn_corrigir.setProperty("class", "secondary-button")
 
         # Definir botão padrão

@@ -255,8 +255,12 @@ class ProdutoDialog(QDialog):
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
-        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Salvar")
-        buttons.button(QDialogButtonBox.StandardButton.Cancel).setText("Cancelar")
+        ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
+        if ok_button is not None:
+            ok_button.setText("Salvar")
+        cancel_button = buttons.button(QDialogButtonBox.StandardButton.Cancel)
+        if cancel_button is not None:
+            cancel_button.setText("Cancelar")
         buttons.accepted.connect(self._salvar_produto)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -301,7 +305,10 @@ class ProdutoDialog(QDialog):
                 event.accept()
             else:
                 # Chama o comportamento padrão
-                super(type(spinbox), spinbox).keyPressEvent(event)
+                if isinstance(spinbox, QDoubleSpinBox):
+                    QDoubleSpinBox.keyPressEvent(spinbox, event)
+                else:
+                    QSpinBox.keyPressEvent(spinbox, event)
 
         return keyPressEvent
 

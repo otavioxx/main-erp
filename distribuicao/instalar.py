@@ -37,7 +37,7 @@ def python_do_runtime(runtime: Path, gui: bool = False) -> Path:
     return runtime / "bin" / "python"
 
 
-def ps_quote(texto: str) -> str:
+def ps_quote(texto: str | Path) -> str:
     return "'" + str(texto).replace("'", "''") + "'"
 
 

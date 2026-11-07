@@ -302,6 +302,7 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
 
         # Configuração das colunas
         header = self.tabela_clientes.horizontalHeader()
+        assert header is not None
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
@@ -485,7 +486,10 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
         if row == -1:
             return None
         try:
-            cliente_id = int(self.tabela_clientes.item(row, 0).text())
+            item = self.tabela_clientes.item(row, 0)
+            if item is None:
+                return None
+            cliente_id = int(item.text())
             return Cliente.buscar_por_id(cliente_id)
         except (ValueError, AttributeError):
             return None

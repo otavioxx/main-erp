@@ -156,7 +156,10 @@ class RelatorioCondicionalDialog(QDialog):
     def _centralizar_janela(self):
         """Centraliza a janela na tela (não na janela pai)"""
         # Obter a geometria da tela
-        screen_geometry = QApplication.primaryScreen().availableGeometry()
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            raise RuntimeError("Não foi possível localizar a tela principal.")
+        screen_geometry = screen.availableGeometry()
 
         # Calcular a posição central
         x = (screen_geometry.width() - self.width()) // 2
@@ -175,8 +178,10 @@ class RelatorioCondicionalDialog(QDialog):
             else:
                 self.label_cliente.setText("Nenhum cliente selecionado")
                 self.label_cliente.setProperty("class", "muted")
-            self.label_cliente.style().unpolish(self.label_cliente)
-            self.label_cliente.style().polish(self.label_cliente)
+            style = self.label_cliente.style()
+            if style is not None:
+                style.unpolish(self.label_cliente)
+                style.polish(self.label_cliente)
 
     def _obter_status_selecionado(self):
         """Retorna o status selecionado"""

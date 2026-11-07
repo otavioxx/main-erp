@@ -245,6 +245,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
         # 1. Configurar altura primeiro
         vheader = self.tabela_duplicatas.verticalHeader()
+        assert vheader is not None
         vheader.setDefaultSectionSize(altura_desejada)
         vheader.setMinimumSectionSize(altura_desejada)
         vheader.setMaximumSectionSize(altura_desejada)
@@ -269,6 +270,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         )
 
         header = self.tabela_duplicatas.horizontalHeader()
+        assert header is not None
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
@@ -386,10 +388,10 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             # CONSULTA ÚNICA OTIMIZADA com UNION ALL
             query = """
                 -- Duplicatas abertas
-                SELECT 
-                    d.id, 
-                    d.cliente_id, 
-                    d.venda_id, 
+                SELECT
+                    d.id,
+                    d.cliente_id,
+                    d.venda_id,
                     d.numero_parcela,
                     d.valor_parcela as valor,
                     d.data_vencimento,
@@ -404,11 +406,11 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 LEFT JOIN clientes c ON d.cliente_id = c.id
                 LEFT JOIN vendas v ON d.venda_id = v.id
                 WHERE d.status = 'aberto'
-                
+
                 UNION ALL
-                
+
                 -- Duplicatas pagas
-                SELECT 
+                SELECT
                     dp.id,
                     dp.cliente_id,
                     dp.venda_id,
@@ -767,7 +769,10 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             return None
 
         try:
-            duplicata_id = int(self.tabela_duplicatas.item(row, 0).text())
+            item = self.tabela_duplicatas.item(row, 0)
+            if item is None:
+                return None
+            duplicata_id = int(item.text())
             for dup in self.duplicatas_filtradas:
                 if dup[0] == duplicata_id:
                     return dup
@@ -874,10 +879,9 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
     def _recarregar_dados_apos_recebimento(self):
         """Recarrega dados após recebimento - otimizado"""
         # Atualizar cache localmente primeiro
+        duplicata_selecionada = self._get_duplicata_selecionada()
         venda_id = (
-            self._get_duplicata_selecionada()[2]
-            if self._get_duplicata_selecionada()
-            else None
+            duplicata_selecionada[2] if duplicata_selecionada is not None else None
         )
 
         if venda_id and venda_id in self._parcelas_cache:

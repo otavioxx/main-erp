@@ -138,6 +138,7 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
 
         # Configurar colunas
         header = self.tabela_produtos.horizontalHeader()
+        assert header is not None
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
@@ -220,7 +221,8 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
     def _selecionar_novo_produto(self, produto_id):
         """Seleciona produto recém-cadastrado"""
         for row in range(self.tabela_produtos.rowCount()):
-            if int(self.tabela_produtos.item(row, 0).text()) == produto_id:
+            item = self.tabela_produtos.item(row, 0)
+            if item is not None and int(item.text()) == produto_id:
                 self.tabela_produtos.selectRow(row)
                 self.tabela_produtos.setFocus()
                 break

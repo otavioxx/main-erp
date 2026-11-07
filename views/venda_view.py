@@ -243,16 +243,17 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         # Configuração das colunas (com Stretch na coluna Cliente)
         header = self.tabela_vendas.horizontalHeader()
 
-        # Modo Interactive para permitir redimensionamento manual
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        if header is not None:
+            # Modo Interactive para permitir redimensionamento manual
+            header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
 
-        # Configurações específicas por coluna
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Cliente
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Data
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Pagamento
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Desconto
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Total
+            # Configurações específicas por coluna
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Cliente
+            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Data
+            header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Pagamento
+            header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Desconto
+            header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Total
 
         # Larguras para colunas fixas (a coluna Cliente será stretch)
         larguras_fixas = [50, 0, 100, 120, 80, 100]  # 0 para Cliente pois será stretch
@@ -270,13 +271,14 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         # ALTURA DESEJADA (use o mesmo valor da tabela de produtos)
         altura_desejada = 22
 
-        vheader.setDefaultSectionSize(altura_desejada)
-        vheader.setMinimumSectionSize(altura_desejada)
-        vheader.setMaximumSectionSize(altura_desejada)
-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-        vheader.setCascadingSectionResizes(False)
-        vheader.setStretchLastSection(False)
-        vheader.setVisible(False)  # Opcional: esconder números
+        if vheader is not None:
+            vheader.setDefaultSectionSize(altura_desejada)
+            vheader.setMinimumSectionSize(altura_desejada)
+            vheader.setMaximumSectionSize(altura_desejada)
+            vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+            vheader.setCascadingSectionResizes(False)
+            vheader.setStretchLastSection(False)
+            vheader.setVisible(False)  # Opcional: esconder números
 
         # 3. CSS SIMPLES que FUNCIONA
         css = f"""
@@ -320,6 +322,8 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             return
 
         vheader = self.tabela_vendas.verticalHeader()
+        if vheader is None:
+            return
 
         # Forçar linha por linha (só se necessário)
         for row in range(self.tabela_vendas.rowCount()):
@@ -523,7 +527,10 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         if row == -1:
             return None
         try:
-            venda_id = int(self.tabela_vendas.item(row, 0).text())
+            item = self.tabela_vendas.item(row, 0)
+            if item is None:
+                return None
+            venda_id = int(item.text())
             return Venda.buscar_por_id(venda_id)
         except (ValueError, AttributeError):
             return None
@@ -535,10 +542,15 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             self._mostrar_aviso("Selecione uma venda para excluir")
             return
 
+        venda_id = venda.id
+        if venda_id is None:
+            self._mostrar_erro("Erro ao excluir venda", "ID da venda não encontrado")
+            return
+
         # Verificar parcelas pagas
-        if self._tem_parcelas_pagas(venda.id):
+        if self._tem_parcelas_pagas(venda_id):
             self._mostrar_aviso(
-                f"Não é possível excluir a venda #{venda.id}.\n"
+                f"Não é possível excluir a venda #{venda_id}.\n"
                 "Existem parcelas pagas associadas a esta venda."
             )
             return
@@ -546,7 +558,7 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         # Confirmar exclusão
         if self._confirmar_exclusao(venda):
             try:
-                VendaUtils.devolver_estoque(venda.id)
+                VendaUtils.devolver_estoque(venda_id)
                 venda.excluir()
                 self._carregar_vendas()
                 self.tabela_vendas.clearSelection()

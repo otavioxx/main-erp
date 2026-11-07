@@ -353,6 +353,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         # Configurar colunas
         header = self.tabela_produtos.horizontalHeader()
+        assert header is not None
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # Cor
@@ -920,10 +921,11 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
                     QTimer.singleShot(100, spinbox.selectAll)
 
                     # Conectar ao sinal de foco para sempre selecionar tudo quando ganhar foco
-                    spinbox.focusInEvent = lambda event, sb=spinbox: (
-                        QDoubleSpinBox.focusInEvent(sb, event),
-                        sb.selectAll(),
-                    )
+                    def selecionar_tudo_ao_focar(event, spinbox=spinbox) -> None:
+                        QDoubleSpinBox.focusInEvent(spinbox, event)
+                        spinbox.selectAll()
+
+                    spinbox.focusInEvent = selecionar_tudo_ao_focar
 
                     break
 
@@ -1142,10 +1144,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
         """Carrega dados da condicional para edição"""
         if self.condicional_id:
             try:
-                if hasattr(self.condicional_id, "id"):
-                    condicional_id = self.condicional_id.id
-                else:
-                    condicional_id = self.condicional_id
+                condicional_id = getattr(self.condicional_id, "id", self.condicional_id)
 
                 condicional = Condicional.buscar_por_id(condicional_id)
                 if condicional:

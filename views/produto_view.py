@@ -303,6 +303,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
 
         # Configuração das colunas (com Stretch na coluna Nome)
         header = self.tabela_produtos.horizontalHeader()
+        assert header is not None
 
         # Modo Interactive para permitir redimensionamento manual
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
@@ -348,13 +349,14 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         # ALTURA DESEJADA (use o mesmo valor da tabela de vendas)
         altura_desejada = 22
 
-        vheader.setDefaultSectionSize(altura_desejada)
-        vheader.setMinimumSectionSize(altura_desejada)
-        vheader.setMaximumSectionSize(altura_desejada)
-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-        vheader.setCascadingSectionResizes(False)
-        vheader.setStretchLastSection(False)
-        vheader.setVisible(False)  # Opcional: esconder números
+        if vheader is not None:
+            vheader.setDefaultSectionSize(altura_desejada)
+            vheader.setMinimumSectionSize(altura_desejada)
+            vheader.setMaximumSectionSize(altura_desejada)
+            vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+            vheader.setCascadingSectionResizes(False)
+            vheader.setStretchLastSection(False)
+            vheader.setVisible(False)  # Opcional: esconder números
 
         # 3. CSS SIMPLES que FUNCIONA - IDÊNTICO AO DA TABELA DE VENDAS
         css = f"""
@@ -388,9 +390,9 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         self.tabela_produtos.setSortingEnabled(True)
 
         # Conectar sinal de ordenação para salvar o estado
-        self.tabela_produtos.horizontalHeader().sectionClicked.connect(
-            self._salvar_estado_ordenacao
-        )
+        cabecalho_horizontal = self.tabela_produtos.horizontalHeader()
+        if cabecalho_horizontal is not None:
+            cabecalho_horizontal.sectionClicked.connect(self._salvar_estado_ordenacao)
 
         # Menu e navegação
         self.tabela_produtos.setContextMenuPolicy(
@@ -409,18 +411,8 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             return
 
         vheader = self.tabela_produtos.verticalHeader()
-
-        # Forçar linha por linha (só se necessário)
-        for row in range(self.tabela_produtos.rowCount()):
-            if vheader.sectionSize(row) != altura_desejada:
-                vheader.resizeSection(row, altura_desejada)
-
-    def _forcar_altura_final(self, altura_desejada):
-        """Força a altura após renderização"""
-        if not hasattr(self, "tabela_produtos"):
+        if vheader is None:
             return
-
-        vheader = self.tabela_produtos.verticalHeader()
 
         # Forçar linha por linha (só se necessário)
         for row in range(self.tabela_produtos.rowCount()):
@@ -430,9 +422,9 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
     def _salvar_estado_ordenacao(self, coluna):
         """Salva o estado atual da ordenação da tabela"""
         self.ultima_ordenacao_coluna = coluna
-        self.ultima_ordenacao_ordem = (
-            self.tabela_produtos.horizontalHeader().sortIndicatorOrder()
-        )
+        header = self.tabela_produtos.horizontalHeader()
+        if header is not None:
+            self.ultima_ordenacao_ordem = header.sortIndicatorOrder()
 
     def _salvar_estado_selecao(self):
         """Salva o ID do produto atualmente selecionado"""
@@ -759,7 +751,10 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         if row == -1:
             return None
         try:
-            produto_id = int(self.tabela_produtos.item(row, 0).text())
+            item = self.tabela_produtos.item(row, 0)
+            if item is None:
+                return None
+            produto_id = int(item.text())
             return Produto.buscar_por_id(produto_id)
         except (ValueError, AttributeError):
             return None

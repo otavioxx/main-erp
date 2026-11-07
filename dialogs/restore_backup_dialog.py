@@ -203,7 +203,10 @@ class RestoreBackupDialog(DialogBase):
         self.adjustSize()
 
         # Obtém a geometria da tela
-        screen = QGuiApplication.primaryScreen().geometry()
+        primary_screen = QGuiApplication.primaryScreen()
+        if primary_screen is None:
+            raise RuntimeError("Não foi possível localizar a tela principal.")
+        screen = primary_screen.geometry()
 
         # Calcula a posição central
         x = (screen.width() - self.width()) // 2
@@ -290,9 +293,9 @@ class RestoreBackupDialog(DialogBase):
         self.backups_table.setHorizontalHeaderLabels(
             ["Arquivo", "Tamanho", "Data", "Tipo"]
         )
-        self.backups_table.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.Stretch
-        )
+        header = self.backups_table.horizontalHeader()
+        assert header is not None
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.backups_table.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
         )
@@ -458,7 +461,10 @@ class RestoreBackupDialog(DialogBase):
 
     def _selecionar_backup_tabela(self, row, column):
         """Seleciona backup da tabela"""
-        file_path = self.backups_table.item(row, 0).data(Qt.ItemDataRole.UserRole)
+        item = self.backups_table.item(row, 0)
+        if item is None:
+            return
+        file_path = item.data(Qt.ItemDataRole.UserRole)
         if file_path:
             self._processar_arquivo_selecionado(file_path)
 

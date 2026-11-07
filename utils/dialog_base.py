@@ -23,14 +23,18 @@ class DialogBase(QDialog):
     def _centralizar_janela(self):
         """Centraliza a janela na tela"""
         # Se tiver um parent, centraliza em relação ao parent
-        if self.parent():
-            parent_geometry = self.parent().frameGeometry()
+        parent = self.parentWidget()
+        if parent is not None:
+            parent_geometry = parent.frameGeometry()
             x = parent_geometry.x() + (parent_geometry.width() - self.width()) // 2
             y = parent_geometry.y() + (parent_geometry.height() - self.height()) // 2
             self.move(x, y)
         else:
             # Se não tiver parent, centraliza na tela principal
-            screen = QGuiApplication.primaryScreen().geometry()
+            primary_screen = QGuiApplication.primaryScreen()
+            if primary_screen is None:
+                raise RuntimeError("Não foi possível localizar a tela principal.")
+            screen = primary_screen.geometry()
             x = (screen.width() - self.width()) // 2
             y = (screen.height() - self.height()) // 2
             self.move(x, y)

@@ -8,6 +8,7 @@ class BaseModel:
     """Classe base para todos os modelos"""
 
     TABLE_NAME = None
+    id: int | None
 
     @classmethod
     def get_connection(cls):
@@ -38,6 +39,8 @@ class BaseModel:
 
         query = f"SELECT * FROM {cls.TABLE_NAME} WHERE id = ?"
         result = cls.executar_query(query, (id,))
+        if not isinstance(result, list):
+            raise TypeError("A consulta por ID não retornou uma lista de registros.")
         return cls(*result[0]) if result else None
 
     def salvar(self):

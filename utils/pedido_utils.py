@@ -71,7 +71,7 @@ class PedidoUtils:
 
         query += " ORDER BY p.data_pedido DESC"
 
-        return DatabaseUtils.executar_query(query, params)
+        return DatabaseUtils.executar_query(query, tuple(params))
 
     @staticmethod
     def receber_pedido(pedido_id: int) -> bool:

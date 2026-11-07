@@ -3,8 +3,39 @@ Mixin para dimensionamento inteligente de diálogos
 Adaptado automaticamente ao tamanho da tela e conteúdo
 """
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QApplication
+from typing import Protocol
+
+from PyQt6.QtCore import QRect
+from PyQt6.QtGui import QGuiApplication
+from PyQt6.QtWidgets import QSizePolicy, QWidget
+
+
+class _DialogWidget(Protocol):
+    def parentWidget(self) -> QWidget | None: ...
+
+    def setMinimumSize(self, width: int, height: int) -> None: ...
+
+    def resize(self, width: int, height: int) -> None: ...
+
+    def setFixedSize(self, width: int, height: int) -> None: ...
+
+    def width(self) -> int: ...
+
+    def height(self) -> int: ...
+
+    def move(self, x: int, y: int) -> None: ...
+
+    def setSizePolicy(
+        self, horizontal: QSizePolicy.Policy, vertical: QSizePolicy.Policy
+    ) -> None: ...
+
+    def sizePolicy(self) -> QSizePolicy: ...
+
+    def geometry(self) -> QRect: ...
+
+    def _get_screen_geometry(self) -> QRect: ...
+
+    def _center_on_screen(self) -> None: ...
 
 
 class DialogSizeMixin:
@@ -19,7 +50,7 @@ class DialogSizeMixin:
     - Posicionamento relativo à janela pai
 
     Uso:
-        class MinhaDialog(DialogSizeMixin, QDialog):
+        class MinhaDialog(DialogSizeMixin):
             def __init__(self, parent=None):
                 super().__init__(parent)
                 # ... sua inicialização
@@ -32,7 +63,7 @@ class DialogSizeMixin:
     """
 
     def setup_dialog_size(
-        self,
+        self: _DialogWidget,
         min_width=300,
         min_height=200,
         default_width_percent=0.6,
@@ -75,7 +106,7 @@ class DialogSizeMixin:
         # Centralizar na tela
         self._center_on_screen()
 
-    def setup_dialog_size_fixed(self, width, height):
+    def setup_dialog_size_fixed(self: _DialogWidget, width, height):
         """
         Configura tamanho fixo com segurança (não ultrapassa tela)
 
@@ -92,7 +123,7 @@ class DialogSizeMixin:
         self.setFixedSize(safe_width, safe_height)
         self._center_on_screen()
 
-    def setup_dialog_size_compact(self):
+    def setup_dialog_size_compact(self: _DialogWidget):
         """Configura tamanho compacto (bom para diálogos pequenos)"""
         self.setup_dialog_size(
             min_width=300,
@@ -101,7 +132,7 @@ class DialogSizeMixin:
             default_height_percent=0.4,
         )
 
-    def setup_dialog_size_medium(self):
+    def setup_dialog_size_medium(self: _DialogWidget):
         """Configura tamanho médio (padrão para maioria dos diálogos)"""
         self.setup_dialog_size(
             min_width=400,
@@ -110,7 +141,7 @@ class DialogSizeMixin:
             default_height_percent=0.6,
         )
 
-    def setup_dialog_size_large(self):
+    def setup_dialog_size_large(self: _DialogWidget):
         """Configura tamanho grande (para diálogos com muitas informações)"""
         self.setup_dialog_size(
             min_width=600,
@@ -119,7 +150,7 @@ class DialogSizeMixin:
             default_height_percent=0.8,
         )
 
-    def setup_dialog_size_fullscreen(self):
+    def setup_dialog_size_fullscreen(self: _DialogWidget):
         """Configura tamanho próximo ao fullscreen"""
         self.setup_dialog_size(
             min_width=800,
@@ -128,23 +159,24 @@ class DialogSizeMixin:
             default_height_percent=0.9,
         )
 
-    def _get_screen_geometry(self):
+    def _get_screen_geometry(self: _DialogWidget) -> QRect:
         """Obtém a geometria da tela (considera múltiplos monitores)"""
-        if self.parent():
+        parent = self.parentWidget()
+        if parent is not None:
             # Se tem parent, usa a tela onde o parent está
-            screen = self.parent().screen()
-            if screen:
+            screen = parent.screen()
+            if screen is not None:
                 return screen.geometry()
 
         # Usa a tela primária
-        app = QApplication.instance()
-        if app and app.primaryScreen():
-            return app.primaryScreen().geometry()
+        screen = QGuiApplication.primaryScreen()
+        if screen is not None:
+            return screen.geometry()
 
         # Fallback: retorna um tamanho padrão
-        return Qt.rect(0, 0, 1920, 1080)
+        return QRect(0, 0, 1920, 1080)
 
-    def _center_on_screen(self):
+    def _center_on_screen(self: _DialogWidget):
         """Centraliza o diálogo na tela (ou na janela pai se existir)"""
         screen = self._get_screen_geometry()
 
@@ -154,7 +186,7 @@ class DialogSizeMixin:
 
         self.move(x, y)
 
-    def position_near_parent(self, offset_x=20, offset_y=20):
+    def position_near_parent(self: _DialogWidget, offset_x=20, offset_y=20):
         """
         Posiciona o diálogo próximo à janela pai (sem sobrepor completamente)
 
@@ -162,11 +194,11 @@ class DialogSizeMixin:
             offset_x: Deslocamento horizontal
             offset_y: Deslocamento vertical
         """
-        if not self.parent():
+        parent = self.parentWidget()
+        if parent is None:
             self._center_on_screen()
             return
 
-        parent = self.parent()
         parent_geometry = parent.geometry()
 
         # Posicionar ao lado do pai
@@ -183,14 +215,14 @@ class DialogSizeMixin:
 
         self.move(x, y)
 
-    def make_resizable(self):
+    def make_resizable(self: _DialogWidget):
         """Permite redimensionar o diálogo (não ativa por padrão)"""
         # Remove qualquer flag que impeça redimensionamento
         self.setSizePolicy(
             self.sizePolicy().horizontalPolicy(), self.sizePolicy().verticalPolicy()
         )
 
-    def ensure_visible(self):
+    def ensure_visible(self: _DialogWidget):
         """Garante que o diálogo está totalmente visível na tela"""
         screen = self._get_screen_geometry()
         geometry = self.geometry()

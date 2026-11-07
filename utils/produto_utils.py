@@ -52,6 +52,7 @@ class ProdutoUtils:
 
         return dados, lucro, markup
 
+    @staticmethod
     def validar_produto(nome, preco_custo, preco_venda):
         erros = []
         if not nome.strip():

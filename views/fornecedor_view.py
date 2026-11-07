@@ -195,13 +195,14 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
 
         # Configuração das colunas
         header = self.tabela_fornecedores.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
-        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # CNPJ
-        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Telefone
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Email
-        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Observação
+        if header is not None:
+            header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
+            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
+            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # CNPJ
+            header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Telefone
+            header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Email
+            header.setSectionResizeMode(5, QHeaderView.ResizeMode.Fixed)  # Observação
 
         # Larguras otimizadas
         larguras_colunas = [50, 200, 130, 110, 250, 350]
@@ -363,7 +364,10 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
         if row == -1:
             return None
         try:
-            fornecedor_id = int(self.tabela_fornecedores.item(row, 0).text())
+            item = self.tabela_fornecedores.item(row, 0)
+            if item is None:
+                return None
+            fornecedor_id = int(item.text())
             return Fornecedor.buscar_por_id(fornecedor_id)
         except (ValueError, AttributeError):
             return None

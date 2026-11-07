@@ -16,9 +16,9 @@ class Pedido(BaseModel):
         fornecedor_id=None,
         data_pedido=None,
         data_recebimento=None,
-        valor_total=0,
-        valor_frete=0,
-        desconto=0,
+        valor_total: float = 0.0,
+        valor_frete: float = 0.0,
+        desconto: float = 0.0,
         observacao=None,
         status="pendente",
     ):

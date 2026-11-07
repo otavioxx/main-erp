@@ -74,15 +74,11 @@ class ConfigSelectionDialog(QDialog):
         self.tabela.setColumnCount(3)
         self.tabela.setHorizontalHeaderLabels(["Chave", "Valor", "Categoria"])
 
-        self.tabela.horizontalHeader().setSectionResizeMode(
-            QHeaderView.ResizeMode.Interactive
-        )
-        self.tabela.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.Stretch
-        )
-        self.tabela.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeMode.Stretch
-        )
+        header = self.tabela.horizontalHeader()
+        assert header is not None
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
 
         self.tabela.setColumnWidth(2, 100)
 
@@ -93,7 +89,9 @@ class ConfigSelectionDialog(QDialog):
 
         self.tabela.doubleClicked.connect(self.selecionar_configuracao)
 
-        self.tabela.verticalHeader().setVisible(False)
+        vertical_header = self.tabela.verticalHeader()
+        assert vertical_header is not None
+        vertical_header.setVisible(False)
 
         layout.addWidget(self.tabela)
 
@@ -198,7 +196,10 @@ class ConfigSelectionDialog(QDialog):
     def selecionar_configuracao(self, index):
         row = index.row()
         if row >= 0 and row < self.tabela.rowCount():
-            chave = self.tabela.item(row, 0).text()
+            item = self.tabela.item(row, 0)
+            if item is None:
+                return
+            chave = item.text()
             self.configuracao_selecionada = next(
                 (c for c in self.configuracoes if c["chave"] == chave), None
             )
@@ -207,7 +208,10 @@ class ConfigSelectionDialog(QDialog):
     def accept_selection(self):
         row = self.tabela.currentRow()
         if row != -1 and row < self.tabela.rowCount():
-            chave = self.tabela.item(row, 0).text()
+            item = self.tabela.item(row, 0)
+            if item is None:
+                return
+            chave = item.text()
             self.configuracao_selecionada = next(
                 (c for c in self.configuracoes if c["chave"] == chave), None
             )

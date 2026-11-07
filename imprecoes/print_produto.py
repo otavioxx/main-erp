@@ -20,6 +20,7 @@ from reportlab.platypus import (
 
 from database import Database
 from models.empresa import Empresa
+from models.fornecedor import Fornecedor
 from models.produto import Produto
 
 logging.basicConfig(level=logging.INFO)
@@ -51,7 +52,7 @@ class PrintProduto:
         return preco_custo * estoque
 
     @staticmethod
-    def _get_fornecedor_por_id(fornecedor_id):
+    def _get_fornecedor_por_id(fornecedor_id) -> Fornecedor | None:
         """Obtém o fornecedor pelo ID"""
         try:
             with Database().get_connection() as conn:
@@ -61,7 +62,7 @@ class PrintProduto:
                 )
                 result = cursor.fetchone()
                 if result:
-                    return type("Fornecedor", (), {"id": result[0], "nome": result[1]})
+                    return Fornecedor(id=result[0], nome=result[1])
                 return None
         except Exception as e:
             logger.error(f"Erro ao buscar fornecedor: {e}")

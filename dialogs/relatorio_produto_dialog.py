@@ -156,7 +156,10 @@ class RelatorioProdutoDialog(QDialog):
     def _centralizar_janela(self):
         """Centraliza a janela na tela (não na janela pai)"""
         # Obter a geometria da tela
-        screen_geometry = QApplication.primaryScreen().availableGeometry()
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            raise RuntimeError("Não foi possível localizar a tela principal.")
+        screen_geometry = screen.availableGeometry()
 
         # Calcular a posição central
         x = (screen_geometry.width() - self.width()) // 2
