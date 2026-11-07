@@ -1,3 +1,4 @@
+import ast
 import base64
 import hashlib
 import importlib.machinery
@@ -48,6 +49,89 @@ def criador():
     return _carregar_modulo(
         PROJECT_ROOT / "distribuicao" / "criar_release.py", "criador_test"
     )
+
+
+def test_installer_uses_same_windows_identity_as_application(instalador, monkeypatch):
+    chamadas = []
+    sistema = Path("sistema")
+    launcher = Path("launcher.pyw")
+    icone = Path("icon.ico")
+    with monkeypatch.context() as contexto:
+        contexto.setattr(instalador.os, "name", "nt")
+        contexto.setattr(
+            instalador.subprocess, "run",
+            lambda args, **kwargs: chamadas.append((args, kwargs)),
+        )
+        instalador.criar_atalhos(sistema, launcher, icone)
+
+    comando, opcoes = chamadas[0]
+    app_id = comando[comando.index("-AppId") + 1]
+    tree = ast.parse((PROJECT_ROOT / "mainerp" / "app.py").read_text(encoding="utf-8"))
+    chamadas_appid = [
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "SetCurrentProcessExplicitAppUserModelID"
+    ]
+    assert len(chamadas_appid) == 1
+    assert ast.literal_eval(chamadas_appid[0].args[0]) == app_id
+    assert opcoes["check"] is True
+    assert comando[comando.index("-File") + 1].endswith("criar_atalhos.ps1")
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Requer Windows Shell")
+def test_windows_shortcut_has_identity_icon_and_launcher(tmp_path):
+    pasta = tmp_path / "pasta com espaço e 'aspas'"
+    pasta.mkdir()
+    sistema = tmp_path / "sistema"
+    sistema.mkdir()
+    alvo = sistema / "pythonw.exe"
+    launcher = sistema / "launcher.pyw"
+    icone = sistema / "icon.ico"
+    for arquivo in (alvo, launcher, icone):
+        arquivo.touch()
+    script = PROJECT_ROOT / "distribuicao" / "criar_atalhos.ps1"
+    args = [
+        "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
+        "-Alvo", str(alvo), "-Launcher", str(launcher), "-Sistema", str(sistema),
+        "-Icone", str(icone), "-AppId", "DigitalSolutions.MainERP", "-Destinos", str(pasta),
+    ]
+    for _ in range(2):
+        subprocess.run(args, check=True, capture_output=True, text=True)
+    verificar = (
+        "$ErrorActionPreference='Stop';"
+        "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;"
+        "$p=$env:MAINERP_TEST_SHORTCUT; $w=New-Object -ComObject WScript.Shell;"
+        "$l=$w.CreateShortcut($p); $s=New-Object -ComObject Shell.Application;"
+        "$i=$s.NameSpace((Split-Path $p)).ParseName((Split-Path $p -Leaf));"
+        "@{target=$l.TargetPath; arguments=$l.Arguments; icon=$l.IconLocation;"
+        "directory=$l.WorkingDirectory; id=$i.ExtendedProperty('System.AppUserModel.ID')}"
+        "| ConvertTo-Json -Compress"
+    )
+    resultado = subprocess.run(
+        ["powershell", "-NoProfile", "-Command", verificar],
+        check=True, capture_output=True, encoding="utf-8",
+        env={**os.environ, "MAINERP_TEST_SHORTCUT": str(pasta / "MainERP.lnk")},
+    )
+    propriedades = json.loads(resultado.stdout)
+    assert propriedades["target"] == str(alvo)
+    assert propriedades["arguments"] == f'"{launcher}"'
+    assert propriedades["directory"] == str(sistema)
+    assert propriedades["icon"].rsplit(",", 1)[0] == str(icone)
+    assert propriedades["id"] == "DigitalSolutions.MainERP"
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Requer Windows Shell")
+def test_windows_shortcut_failure_is_reported(tmp_path):
+    script = PROJECT_ROOT / "distribuicao" / "criar_atalhos.ps1"
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
+         "-Alvo", str(tmp_path / "pythonw.exe"), "-Launcher", str(tmp_path / "launcher.pyw"),
+         "-Sistema", str(tmp_path), "-Icone", str(tmp_path / "icon.ico"),
+         "-AppId", "DigitalSolutions.MainERP", "-Destinos", str(tmp_path / "inexistente")],
+        check=False, capture_output=True, text=True,
+    )
+    assert result.returncode != 0
 
 
 @pytest.mark.parametrize("atual", ["0.10.0", "0.10.1", "0.11.0", "1.0.0"])

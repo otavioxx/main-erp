@@ -42,10 +42,6 @@ def python_do_runtime(runtime: Path, gui: bool = False) -> Path:
     return runtime / "bin" / "python"
 
 
-def ps_quote(texto: str | Path) -> str:
-    return "'" + str(texto).replace("'", "''") + "'"
-
-
 def configurar_launcher(config_path: Path) -> None:
     """Define o manifesto padrão sem sobrescrever uma URL já configurada."""
     if config_path.exists():
@@ -70,26 +66,11 @@ def criar_atalhos(sistema: Path, launcher: Path, icone: Path):
         print("(atalhos só são criados no Windows)")
         return
     alvo = python_do_runtime(sistema / "runtime", gui=True)
-    script = f"""
-$ErrorActionPreference = 'Stop'
-$ws = New-Object -ComObject WScript.Shell
-$destinos = @(
-  [Environment]::GetFolderPath('Desktop'),
-  [Environment]::GetFolderPath('Programs')
-)
-foreach ($pasta in $destinos) {{
-  $lnk = $ws.CreateShortcut((Join-Path $pasta 'MainERP.lnk'))
-  $lnk.TargetPath = {ps_quote(alvo)}
-  $lnk.Arguments = {ps_quote('"' + str(launcher) + '"')}
-  $lnk.WorkingDirectory = {ps_quote(sistema)}
-  $lnk.IconLocation = {ps_quote(icone)}
-  $lnk.Description = 'MainERP - Sistema de Gestão Empresarial'
-  $lnk.Save()
-  Write-Output ('Atalho criado: ' + $lnk.FullName)
-}}
-"""
     subprocess.run(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+         str(AQUI / "criar_atalhos.ps1"), "-Alvo", str(alvo),
+         "-Launcher", str(launcher), "-Sistema", str(sistema), "-Icone", str(icone),
+         "-AppId", "DigitalSolutions.MainERP"],
         check=True,
     )
 

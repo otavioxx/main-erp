@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 0.10.1 - 2026-11-07
+
+- O instalador atribui aos atalhos a mesma identidade usada pela janela do MainERP,
+  permitindo ao Windows associar o ícone correto à barra de tarefas.
+
 ## 0.10.0 - 2026-11-07
 
 - Adotado o formato de versão estável MAJOR.MINOR.PATCH para novas releases.

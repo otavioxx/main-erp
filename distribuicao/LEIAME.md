@@ -62,6 +62,12 @@ Use o destino padrão. A opção `--destino` altera a pasta do sistema, mas não
 automaticamente o local de dados usado pelo aplicativo; instalações existentes podem
 depender desse comportamento. Não use essa opção para uma instalação nova do cliente.
 
+Os atalhos novos identificam o MainERP para o Windows e usam o ícone da aplicação.
+Para corrigir atalhos em uma instalação existente, feche o sistema, execute novamente
+o instalador atualizado e desafixe e fixe novamente o MainERP na barra de tarefas.
+O instalador preserva a pasta de dados. Uma atualização automática de código, por si
+só, não substitui o instalador nem recria os atalhos já existentes.
+
 ## Preparar uma nova release
 
 Antes de distribuir uma versão:
