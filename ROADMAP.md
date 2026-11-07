@@ -84,9 +84,9 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
 - [x] Extrair a configuração comum de `QTableWidget` em clientes e fornecedores,
       preservando colunas, cabeçalhos, seleção, sinais e ordem de configuração, com
       testes Qt de ordenação, navegação, seleção, altura e estilos.
-- [ ] Avaliar a extensão às demais telas incrementalmente, após testes Qt específicos
-      para cada uma, preservando as diferenças de vendas, produtos, condicionais,
-      pedidos e recebimentos.
+- [x] Estender a configuração comum de listagens a pedidos e condicionais; compartilhar
+      apenas a interação em vendas, produtos e recebimentos, mantendo estilos, altura,
+      timers, ordenação inicial e sinais próprios. Testes Qt verificam cada tela.
 - [x] Splash: substituir os atrasos artificiais por progresso das etapas reais de
       inicialização e informar o carregamento individual das oito telas.
 

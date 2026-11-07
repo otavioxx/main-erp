@@ -34,6 +34,7 @@ from mainerp.reports.print_relat_venda import PrintRelatVenda
 from mainerp.reports.print_venda import PrintVenda
 from mainerp.ui.dialogs.venda_dialog import ProdutoVendaDialog
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
+from mainerp.ui.tabela import configurar_interacao_listagem
 from mainerp.ui.table_items import NumericTableWidgetItem
 
 
@@ -279,14 +280,7 @@ class VendaView(TableScrollNavigationMixin, QWidget):
 
         # ========== FIM DA CONFIGURAÇÃO ==========
 
-        # Configurações gerais
-        self.tabela_vendas.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-        self.tabela_vendas.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
-        self.tabela_vendas.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.tabela_vendas.setAlternatingRowColors(True)
-        self.tabela_vendas.setSortingEnabled(False)
+        configurar_interacao_listagem(self.tabela_vendas, ordenar=False)
 
         # Navegação
         self.setup_scroll_navigation(

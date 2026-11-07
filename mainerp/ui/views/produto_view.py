@@ -33,6 +33,7 @@ from mainerp.reports.print_produto import PrintProduto
 from mainerp.ui.dialogs.produto_dialog import ProdutoDialog
 from mainerp.ui.dialogs.relatorio_produto_dialog import RelatorioProdutoDialog
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
+from mainerp.ui.tabela import configurar_interacao_listagem
 from mainerp.ui.table_items import NumericTableWidgetItem
 
 logger = logging.getLogger(__name__)
@@ -358,16 +359,7 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
 
         # ========== FIM DA CONFIGURAÇÃO ==========
 
-        # Configurações gerais
-        self.tabela_produtos.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-        self.tabela_produtos.setSelectionMode(
-            QTableWidget.SelectionMode.SingleSelection
-        )
-        self.tabela_produtos.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.tabela_produtos.setAlternatingRowColors(True)
-        self.tabela_produtos.setSortingEnabled(True)
+        configurar_interacao_listagem(self.tabela_produtos, ordenar=True)
 
         # Conectar sinal de ordenação para salvar o estado
         cabecalho_horizontal = self.tabela_produtos.horizontalHeader()

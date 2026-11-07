@@ -16,7 +16,7 @@ from PyQt6.QtWidgets import (
 )
 
 from mainerp.ui.mixins.component_mixin import ComponentMixin
-from mainerp.ui.tabela import fixar_altura_linhas
+from mainerp.ui.tabela import configurar_listagem_padrao
 
 __all__ = ["_CondicionalViewLayout"]
 
@@ -243,23 +243,7 @@ class _CondicionalViewLayout(ComponentMixin):
             if largura > 0:  # Aplica apenas larguras positivas
                 self.tabela_condicionais.setColumnWidth(i, largura)
 
-        # ========== CONFIGURAÇÃO DE ALTURA ==========
-        # Configurar VERTICAL HEADER para altura fixa
-        fixar_altura_linhas(self.tabela_condicionais, 22)
-        # ========== FIM DA CONFIGURAÇÃO ==========
-
-        # Configurações gerais da tabela
-        self.tabela_condicionais.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-        self.tabela_condicionais.setSelectionMode(
-            QTableWidget.SelectionMode.SingleSelection
-        )
-        self.tabela_condicionais.setEditTriggers(
-            QTableWidget.EditTrigger.NoEditTriggers
-        )
-        self.tabela_condicionais.setAlternatingRowColors(True)
-        self.tabela_condicionais.setSortingEnabled(True)
+        configurar_listagem_padrao(self.tabela_condicionais)
 
         self.setup_scroll_navigation(
             tabela=self.tabela_condicionais,

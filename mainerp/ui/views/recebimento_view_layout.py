@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 
 from mainerp.core.app_logging import registrar_excecao
 from mainerp.ui.mixins.component_mixin import ComponentMixin
+from mainerp.ui.tabela import configurar_interacao_listagem
 
 __all__ = ["_RecebimentoViewLayout"]
 
@@ -228,16 +229,7 @@ class _RecebimentoViewLayout(ComponentMixin):
             if largura > 0:
                 self.tabela_duplicatas.setColumnWidth(i, largura)
 
-        # 3. Configurações gerais (OS ESTILOS SERÃO APLICADOS GLOBALMENTE)
-        self.tabela_duplicatas.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-        self.tabela_duplicatas.setSelectionMode(
-            QTableWidget.SelectionMode.SingleSelection
-        )
-        self.tabela_duplicatas.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.tabela_duplicatas.setAlternatingRowColors(True)
-        self.tabela_duplicatas.setSortingEnabled(True)
+        configurar_interacao_listagem(self.tabela_duplicatas, ordenar=True)
 
         # 4. Função para forçar altura COM VERIFICAÇÃO DE SEGURANÇA
         def aplicar_altura_fixa_segura():

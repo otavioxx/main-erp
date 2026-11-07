@@ -4,13 +4,18 @@ from PyQt6.QtWidgets import QHeaderView, QTableWidget
 
 
 def configurar_listagem_padrao(tabela: QTableWidget) -> None:
-    """Configura a apresentação comum das listagens de clientes e fornecedores."""
+    """Configura uma listagem com altura fixa e ordenação ativa."""
     fixar_altura_linhas(tabela, 22)
+    configurar_interacao_listagem(tabela, ordenar=True)
+
+
+def configurar_interacao_listagem(tabela: QTableWidget, *, ordenar: bool) -> None:
+    """Configura seleção, edição, cores e estado inicial da ordenação."""
     tabela.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
     tabela.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
     tabela.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
     tabela.setAlternatingRowColors(True)
-    tabela.setSortingEnabled(True)
+    tabela.setSortingEnabled(ordenar)
 
 
 def fixar_altura_linhas(tabela: QTableWidget, altura: int = 22) -> None:

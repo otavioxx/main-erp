@@ -36,7 +36,7 @@ from mainerp.reports.print_pedido import PrintPedido
 from mainerp.reports.print_relat_pedido import PrintRelatPedido
 from mainerp.ui.dialogs.pedido_dialog import PedidoDialog
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
-from mainerp.ui.tabela import fixar_altura_linhas
+from mainerp.ui.tabela import configurar_listagem_padrao
 from mainerp.ui.table_items import NumericTableWidgetItem
 
 logger = logging.getLogger(__name__)
@@ -262,19 +262,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             if largura > 0:  # Aplica apenas larguras positivas
                 self.tabela_pedidos.setColumnWidth(i, largura)
 
-        # ========== CONFIGURAÇÃO DE ALTURA ==========
-        # Configurar VERTICAL HEADER para altura fixa
-        fixar_altura_linhas(self.tabela_pedidos, 22)
-        # ========== FIM DA CONFIGURAÇÃO ==========
-
-        # Configurações gerais
-        self.tabela_pedidos.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-        self.tabela_pedidos.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
-        self.tabela_pedidos.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.tabela_pedidos.setAlternatingRowColors(True)
-        self.tabela_pedidos.setSortingEnabled(True)
+        configurar_listagem_padrao(self.tabela_pedidos)
 
         self.setup_scroll_navigation(
             tabela=self.tabela_pedidos,
