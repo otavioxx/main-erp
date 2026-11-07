@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 0.10 - 2026-11-07
+
+- Pacotes publicados pelo GitHub Actions agora são assinados com Ed25519.
+- O launcher valida assinatura, SHA256 e versão do pacote antes de instalar uma
+  atualização online.
+
 ## 0.09 - 2026-11-07
 
 - Configurado o launcher e o instalador para consultar atualizações públicas no GitHub

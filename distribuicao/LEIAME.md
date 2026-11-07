@@ -1,4 +1,11 @@
-# MainERP 0.09 - distribuição sem PyInstaller
+# MainERP 0.10 - distribuição sem PyInstaller
+
+## Novidades da versão 0.10
+
+- Releases novas são assinadas com Ed25519 no GitHub Actions. O launcher verifica a
+  assinatura, o SHA256 e a versão antes de instalar atualizações online.
+- O launcher e o instalador configuram o manifesto público do GitHub Releases por padrão,
+  preservando URLs personalizadas e a opção explícita de desativar atualizações.
 
 ## Novidades da versão 0.09
 
