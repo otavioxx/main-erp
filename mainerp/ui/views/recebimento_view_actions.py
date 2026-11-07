@@ -7,7 +7,6 @@ from PyQt6.QtWidgets import (
 )
 
 from mainerp.core.exceptions import ErroERP
-from mainerp.data.database import obter_database
 from mainerp.data.models.duplicata import Duplicata
 from mainerp.domain.utils.export_utils import ExportUtils
 from mainerp.domain.utils.helpers import (
@@ -82,17 +81,7 @@ class _RecebimentoViewActions(ComponentMixin):
             raise ErroERP("Falha ao processar recebimento")
 
         # Buscar dados para comprovante
-        with obter_database().transacao() as cursor:
-            cursor.execute(
-                """
-            SELECT c.nome, c.cpf_cnpj, c.endereco, v.total, v.data_venda
-            FROM clientes c
-            LEFT JOIN vendas v ON v.cliente_id = c.id
-            WHERE c.id = ? AND v.id = ?
-        """,
-                (cliente_id, venda_id),
-            )
-            cliente_venda = cursor.fetchone()
+        cliente_venda = Duplicata.buscar_dados_cliente_venda(cliente_id, venda_id)
 
         if not cliente_venda:
             raise ErroERP("Dados do cliente/venda não encontrados")

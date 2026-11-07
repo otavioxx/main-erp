@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from mainerp.data.models.pedido import Pedido
 from mainerp.domain.utils.export_utils import ExportUtils
 from mainerp.domain.utils.helpers import (
     criar_pasta_se_nao_existir,
@@ -323,67 +324,27 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
     def _buscar_pedidos_com_estrutura_correta(
         self, data_inicio_str=None, data_fim_str=None, fornecedor_id=None, status=None
     ):
-        """NOVO MÉTODO: Busca pedidos com estrutura explícita para evitar problemas de índice"""
+        """Normaliza datas da interface e delega a consulta ao model Pedido."""
         try:
-            from mainerp.data.database import obter_database
-
-            database = obter_database()
-
-            # Query explícita que inclui todos os campos em ordem conhecida
-            query = """
-                SELECT
-                    p.id,                              -- 0
-                    p.fornecedor_id,                   -- 1
-                    p.data_pedido,                     -- 2
-                    p.data_recebimento,                -- 3
-                    p.valor_total,                     -- 4
-                    p.valor_frete,                     -- 5
-                    p.observacao,                      -- 6
-                    p.status,                          -- 7
-                    COALESCE(p.desconto, 0) as desconto,  -- 8 - CAMPO DESCONTO EXPLÍCITO
-                    f.nome as fornecedor_nome          -- 9 - NOME DO FORNECEDOR
-                FROM pedidos p
-                LEFT JOIN fornecedores f ON p.fornecedor_id = f.id
-                WHERE 1=1
-            """
-            params = []
-
-            # Aplicar filtros de data
             if data_inicio_str:
                 try:
-                    data_inicio = datetime.strptime(
+                    data_inicio_str = datetime.strptime(
                         data_inicio_str, "%d/%m/%Y"
                     ).strftime("%Y-%m-%d")
-                    query += " AND p.data_pedido >= ?"
-                    params.append(data_inicio)
                 except ValueError:
-                    pass
+                    data_inicio_str = None
 
             if data_fim_str:
                 try:
-                    data_fim = datetime.strptime(data_fim_str, "%d/%m/%Y").strftime(
+                    data_fim_str = datetime.strptime(data_fim_str, "%d/%m/%Y").strftime(
                         "%Y-%m-%d"
                     )
-                    query += " AND p.data_pedido <= ?"
-                    params.append(data_fim)
                 except ValueError:
-                    pass
+                    data_fim_str = None
 
-            if fornecedor_id:
-                query += " AND p.fornecedor_id = ?"
-                params.append(fornecedor_id)
-
-            if status:
-                query += " AND p.status = ?"
-                params.append(status)
-
-            query += " ORDER BY p.data_pedido DESC, p.id DESC"
-
-            with database.transacao() as cursor:
-                cursor.execute(query, params)
-                resultados = cursor.fetchall()
-
-            return resultados
+            return Pedido.buscar_para_listagem(
+                data_inicio_str, data_fim_str, fornecedor_id, status
+            )
 
         except Exception:
             logger.exception("Erro ao buscar pedidos")

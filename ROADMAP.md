@@ -33,7 +33,7 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
 - [x] Centralizar as conexões SQLite em `obter_database()` (gerenciador por thread) e
       adicionar transações com commit/rollback e savepoints em `mainerp/data/database.py`.
       Models, utilitários, telas e relatórios usam o gerenciador compartilhado.
-- [ ] Tirar o SQL das telas (`mainerp/ui/views/recebimento_view`, `condicional_view`,
+- [x] Tirar o SQL das telas (`mainerp/ui/views/recebimento_view`, `condicional_view`,
       `venda_view`, `pedido_view`) para `mainerp/data/models/` e repositórios.
 - [ ] **Dinheiro**: 23 colunas `REAL` (float) acumulam erro de arredondamento. Migrar para
       centavos inteiros (`INTEGER`) ou `Decimal`, com migração numerada e testes antes.

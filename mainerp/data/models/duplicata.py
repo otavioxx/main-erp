@@ -127,6 +127,84 @@ class Duplicata:
             return cursor.fetchall()
 
     @staticmethod
+    def buscar_para_recebimento():
+        """Busca parcelas abertas e pagas no formato consumido pela tela de recebimentos."""
+        query = """
+            SELECT
+                d.id,
+                d.cliente_id,
+                d.venda_id,
+                d.numero_parcela,
+                d.valor_parcela as valor,
+                d.data_vencimento,
+                NULL as data_pagamento,
+                'aberto' as status,
+                c.nome as cliente_nome,
+                v.total as venda_total,
+                v.data_venda,
+                NULL as forma_pagamento,
+                0 as is_paga
+            FROM duplicatas d
+            LEFT JOIN clientes c ON d.cliente_id = c.id
+            LEFT JOIN vendas v ON d.venda_id = v.id
+            WHERE d.status = 'aberto'
+
+            UNION ALL
+
+            SELECT
+                dp.id,
+                dp.cliente_id,
+                dp.venda_id,
+                dp.numero_parcela,
+                dp.valor_original as valor,
+                dp.data_vencimento,
+                dp.data_pagamento,
+                'pago' as status,
+                c.nome as cliente_nome,
+                v.total as venda_total,
+                v.data_venda,
+                dp.forma_pagamento,
+                1 as is_paga
+            FROM duplicatas_pagas dp
+            LEFT JOIN clientes c ON dp.cliente_id = c.id
+            LEFT JOIN vendas v ON dp.venda_id = v.id
+            ORDER BY status, data_vencimento
+        """
+        with obter_database().transacao() as cursor:
+            cursor.execute(query)
+            return cursor.fetchall()
+
+    @staticmethod
+    def contar_parcelas_por_venda(venda_id):
+        with obter_database().transacao() as cursor:
+            cursor.execute(
+                "SELECT COUNT(*) FROM duplicatas "
+                "WHERE venda_id = ? AND status = 'aberto'",
+                (venda_id,),
+            )
+            abertas = cursor.fetchone()[0] or 0
+            cursor.execute(
+                "SELECT COUNT(*) FROM duplicatas_pagas WHERE venda_id = ?",
+                (venda_id,),
+            )
+            pagas = cursor.fetchone()[0] or 0
+        return abertas + pagas
+
+    @staticmethod
+    def buscar_dados_cliente_venda(cliente_id, venda_id):
+        with obter_database().transacao() as cursor:
+            cursor.execute(
+                """
+                SELECT c.nome, c.cpf_cnpj, c.endereco, v.total, v.data_venda
+                FROM clientes c
+                LEFT JOIN vendas v ON v.cliente_id = c.id
+                WHERE c.id = ? AND v.id = ?
+                """,
+                (cliente_id, venda_id),
+            )
+            return cursor.fetchone()
+
+    @staticmethod
     def buscar_por_status(status):
         """Busca duplicatas por status"""
         with obter_database().transacao() as cursor:

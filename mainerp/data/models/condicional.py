@@ -96,6 +96,22 @@ class Condicional:
             )
 
     @staticmethod
+    def excluir_por_id(condicional_id):
+        with obter_database().transacao() as cursor:
+            cursor.execute(
+                "DELETE FROM itens_condicional WHERE condicional_id = ?",
+                (condicional_id,),
+            )
+            cursor.execute("DELETE FROM condicionais WHERE id = ?", (condicional_id,))
+
+    @staticmethod
+    def buscar_nome_cliente(cliente_id):
+        with obter_database().transacao() as cursor:
+            cursor.execute("SELECT nome FROM clientes WHERE id = ?", (cliente_id,))
+            resultado = cursor.fetchone()
+        return resultado[0] if resultado else None
+
+    @staticmethod
     def buscar_por_id(condicional_id):
         if not isinstance(condicional_id, int):
             try:

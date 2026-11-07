@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 )
 
 from mainerp.core.app_logging import registrar_excecao
-from mainerp.data.database import obter_database
+from mainerp.data.models.condicional import Condicional
 from mainerp.domain.utils.export_utils import ExportUtils
 from mainerp.reports.print_condicional import PrintCondicional
 from mainerp.reports.print_relat_condicional import PrintRelatCondicional
@@ -98,10 +98,8 @@ class _CondicionalViewReports(ComponentMixin):
         if not cliente_id:
             return "Cliente não informado"
 
-        with obter_database().transacao() as cursor:
-            cursor.execute("SELECT nome FROM clientes WHERE id = ?", (cliente_id,))
-            result = cursor.fetchone()
-            return result[0] if result else "Cliente não encontrado"
+        nome_cliente = Condicional.buscar_nome_cliente(cliente_id)
+        return nome_cliente or "Cliente não encontrado"
 
     def _mostrar_erro(self, titulo, mensagem):
         """Mostra mensagem de erro"""

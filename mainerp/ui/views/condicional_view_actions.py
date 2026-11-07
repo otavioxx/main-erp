@@ -5,7 +5,6 @@ from PyQt6.QtWidgets import (
 )
 
 from mainerp.core.app_logging import registrar_excecao
-from mainerp.data.database import obter_database
 from mainerp.data.models.condicional import Condicional
 from mainerp.domain.utils.helpers import (
     formatar_moeda,
@@ -208,14 +207,7 @@ class _CondicionalViewActions(ComponentMixin):
 
         if resposta == QMessageBox.StandardButton.Yes:
             try:
-                with obter_database().transacao() as cursor:
-                    cursor.execute(
-                        "DELETE FROM itens_condicional WHERE condicional_id = ?",
-                        (condicional.id,),
-                    )
-                    cursor.execute(
-                        "DELETE FROM condicionais WHERE id = ?", (condicional.id,)
-                    )
+                Condicional.excluir_por_id(condicional.id)
 
                 self._carregar_condicionais()
                 self.tabela_condicionais.clearSelection()

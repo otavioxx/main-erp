@@ -171,6 +171,55 @@ class Pedido(BaseModel):
             logger.exception("Erro ao buscar todos os pedidos")
             return []
 
+    @classmethod
+    def buscar_para_listagem(
+        cls, data_inicio=None, data_fim=None, fornecedor_id=None, status=None
+    ):
+        """Busca pedidos com fornecedor e filtros usados pela tela de listagem."""
+        query = """
+            SELECT
+                p.id,
+                p.fornecedor_id,
+                p.data_pedido,
+                p.data_recebimento,
+                p.valor_total,
+                p.valor_frete,
+                p.observacao,
+                p.status,
+                COALESCE(p.desconto, 0) as desconto,
+                f.nome as fornecedor_nome
+            FROM pedidos p
+            LEFT JOIN fornecedores f ON p.fornecedor_id = f.id
+            WHERE 1=1
+        """
+        params = []
+
+        if data_inicio:
+            query += " AND p.data_pedido >= ?"
+            params.append(data_inicio)
+
+        if data_fim:
+            query += " AND p.data_pedido <= ?"
+            params.append(data_fim)
+
+        if fornecedor_id:
+            query += " AND p.fornecedor_id = ?"
+            params.append(fornecedor_id)
+
+        if status:
+            query += " AND p.status = ?"
+            params.append(status)
+
+        query += " ORDER BY p.data_pedido DESC, p.id DESC"
+
+        try:
+            with obter_database().transacao() as cursor:
+                cursor.execute(query, params)
+                return cursor.fetchall()
+        except Exception:
+            logger.exception("Erro ao buscar pedidos para listagem")
+            return []
+
     def marcar_como_recebido(self):
         self.status = "recebido"
         self.data_recebimento = datetime.now().date()

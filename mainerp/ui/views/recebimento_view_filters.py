@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 )
 
 from mainerp.core.app_logging import registrar_excecao
-from mainerp.data.database import obter_database
+from mainerp.data.models.duplicata import Duplicata
 from mainerp.domain.utils.helpers import (
     formatar_data,
     formatar_moeda,
@@ -33,54 +33,7 @@ class _RecebimentoViewFilters(ComponentMixin):
             # Mostrar estado de carregamento
             self.label_info.setText("(Carregando...)")
 
-            # CONSULTA ÚNICA OTIMIZADA com UNION ALL
-            query = """
-                -- Duplicatas abertas
-                SELECT
-                    d.id,
-                    d.cliente_id,
-                    d.venda_id,
-                    d.numero_parcela,
-                    d.valor_parcela as valor,
-                    d.data_vencimento,
-                    NULL as data_pagamento,
-                    'aberto' as status,
-                    c.nome as cliente_nome,
-                    v.total as venda_total,
-                    v.data_venda,
-                    NULL as forma_pagamento,
-                    0 as is_paga
-                FROM duplicatas d
-                LEFT JOIN clientes c ON d.cliente_id = c.id
-                LEFT JOIN vendas v ON d.venda_id = v.id
-                WHERE d.status = 'aberto'
-
-                UNION ALL
-
-                -- Duplicatas pagas
-                SELECT
-                    dp.id,
-                    dp.cliente_id,
-                    dp.venda_id,
-                    dp.numero_parcela,
-                    dp.valor_original as valor,
-                    dp.data_vencimento,
-                    dp.data_pagamento,
-                    'pago' as status,
-                    c.nome as cliente_nome,
-                    v.total as venda_total,
-                    v.data_venda,
-                    dp.forma_pagamento,
-                    1 as is_paga
-                FROM duplicatas_pagas dp
-                LEFT JOIN clientes c ON dp.cliente_id = c.id
-                LEFT JOIN vendas v ON dp.venda_id = v.id
-                ORDER BY status, data_vencimento
-            """
-
-            with obter_database().transacao() as cursor:
-                cursor.execute(query)
-                self.todas_duplicatas = cursor.fetchall()
+            self.todas_duplicatas = Duplicata.buscar_para_recebimento()
 
             # Inicializar cache de parcelas
             self._inicializar_cache_parcelas()
@@ -107,27 +60,9 @@ class _RecebimentoViewFilters(ComponentMixin):
             return
 
         try:
-            with obter_database().transacao() as cursor:
-                # Buscar totais para todas as vendas de uma vez
-                for venda_id in venda_ids:
-                    cursor.execute(
-                        """
-                    SELECT COUNT(*) FROM duplicatas WHERE venda_id = ? AND status = 'aberto'
-                """,
-                        (venda_id,),
-                    )
-                    count_abertas = cursor.fetchone()[0] or 0
-
-                    cursor.execute(
-                        """
-                    SELECT COUNT(*) FROM duplicatas_pagas WHERE venda_id = ?
-                """,
-                        (venda_id,),
-                    )
-                    count_pagas = cursor.fetchone()[0] or 0
-
-                    total = count_abertas + count_pagas
-                    self._parcelas_cache[venda_id] = total if total > 0 else 1
+            for venda_id in venda_ids:
+                total = Duplicata.contar_parcelas_por_venda(venda_id)
+                self._parcelas_cache[venda_id] = total if total > 0 else 1
 
         except Exception:
             logger.exception("Erro ao inicializar cache de parcelas")
