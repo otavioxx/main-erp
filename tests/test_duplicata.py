@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 
-from models.duplicata import DatabaseUtils, Duplicata
+from mainerp.data.models.duplicata import DatabaseUtils, Duplicata
 
 
 def test_criar_parcelas_divide_valor_e_incrementa_vencimentos(monkeypatch):

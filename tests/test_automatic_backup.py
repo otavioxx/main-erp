@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from utils.automatic_backup import (
+from mainerp.data.automatic_backup import (
     BACKUP_PREFIX,
     BackupAutomatico,
     aplicar_retencao_backups,

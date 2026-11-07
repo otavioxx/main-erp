@@ -1,6 +1,6 @@
 import sqlite3
 
-from database import Database
+from mainerp.data.database import Database
 
 
 def test_migracao_inicial_cria_esquema_base_e_aplica_apenas_uma_vez(tmp_path):

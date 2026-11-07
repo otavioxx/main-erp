@@ -1,7 +1,7 @@
 import pytest
 
-from models.produto import Produto
-from utils.produto_utils import ProdutoUtils
+from mainerp.data.models.produto import Produto
+from mainerp.domain.utils.produto_utils import ProdutoUtils
 
 
 @pytest.mark.parametrize(

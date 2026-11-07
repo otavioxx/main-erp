@@ -1,5 +1,5 @@
-from utils.database_utils import DatabaseUtils
-from utils.venda_utils import VendaEstoqueManager
+from mainerp.data.database_utils import DatabaseUtils
+from mainerp.domain.utils.venda_utils import VendaEstoqueManager
 
 
 def test_atualizar_estoque_venda_subtrai_quantidade_de_cada_produto(monkeypatch):

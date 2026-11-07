@@ -6,6 +6,6 @@ config.json
 backup_settings.json
 relatorios/
 backups/
-data/
+/data/
 dist/
 .venv/

@@ -11,7 +11,7 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
       `views/base_view.py`, `utils/table_utils.py`, `utils/produto_validation.py`,
       `utils/config_backup.py`, `utils/duplicata_utils.py`, `utils/resources.py`,
       `models/item_pedido.py`, `dialogs/frete_desconto_dialog.py` (≈ 1,5 mil linhas).
-- [x] Remover `PRAGMA timezone` em `database.py` (não existe no SQLite, não faz nada).
+- [x] Remover `PRAGMA timezone` em `mainerp/data/database.py` (não existe no SQLite, não faz nada).
 - [x] Adicionar `ruff` e um `pyproject.toml` com a configuração.
 
 ## Fase 1 — Rede de segurança (1 a 2 semanas)
@@ -22,7 +22,8 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
       os demais permanecem amplos em limites de recuperação/propagação.
 - [x] **Testes com pytest** para os principais cálculos de venda, criação de parcelas,
       operações/verificação de estoque, regras de inativação de produto e exclusão de venda,
-      e migrações do banco novo e legado. Expandir a cobertura conforme novas mudanças.
+      e migrações do banco novo e legado. Expandir a cobertura em `mainerp/domain/utils/`
+      e `mainerp/data/models/` conforme novas mudanças.
 - [x] Script `verificar.bat` que roda Ruff e pytest antes de cada release.
 - [x] Backup automático diário em `dados\backups`, independente do backup manual do usuário,
       com retenção de 30 dias. A opção de backup manual para pasta externa/nuvem foi mantida.
@@ -30,20 +31,22 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
 ## Fase 2 — Camada de dados (2 a 3 semanas)
 
 - [ ] Hoje há 56 `Database()` espalhados (cada um abre sua própria conexão). Criar um
-      gerenciador único (`with db.transacao() as cur:`) e migrar um model por vez.
-- [ ] Tirar o SQL das telas (`recebimento_view`, `condicional_view`, `venda_view`,
-      `pedido_view`) para os models/repositórios.
+      gerenciador único (`with db.transacao() as cur:`) em `mainerp/data/database.py` e
+      migrar um model por vez.
+- [ ] Tirar o SQL das telas (`mainerp/ui/views/recebimento_view`, `condicional_view`,
+      `venda_view`, `pedido_view`) para `mainerp/data/models/` e repositórios.
 - [ ] **Dinheiro**: 23 colunas `REAL` (float) acumulam erro de arredondamento. Migrar para
       centavos inteiros (`INTEGER`) ou `Decimal`, com migração numerada e testes antes.
 - [ ] Índices nas colunas mais filtradas (cliente, data, status) e `PRAGMA foreign_keys` já ativo.
 
 ## Fase 3 — Reestruturação (2 a 4 semanas)
 
-- [ ] Criar o pacote `mainerp/` (estrutura abaixo), movendo com `git mv` uma pasta por vez e
-      rodando os testes a cada passo.
+- [x] Criar o pacote `mainerp/` com núcleo, dados, domínio, UI e relatórios; manter `main.py`
+      na raiz para o launcher.
 - [ ] Unificar as 9 cópias de `NumericTableWidgetItem` e as 2 de `BackupConfig`.
-- [ ] Quebrar os arquivos acima de 900 linhas (`condicional_dialog`, `venda_dialog`,
-      `pedido_dialog`, `recebimento_view`, `condicional_view`) em componentes menores.
+- [ ] Quebrar os arquivos acima de 900 linhas (`mainerp/ui/dialogs/condicional_dialog`,
+      `venda_dialog`, `pedido_dialog`, `mainerp/ui/views/recebimento_view`,
+      `condicional_view`) em componentes menores.
 - [ ] Decidir sobre `BaseTableView`: adotar nas 7 telas de listagem (reduz código repetido)
       ou apagar.
 - [x] Splash: substituir os atrasos artificiais por progresso das etapas reais de
@@ -53,20 +56,21 @@ Estrutura alvo:
 
 ```
 MainERP/
-  main.py                 # fino: chama mainerp.app.run()
+  main.py                 # fino: bootstrap compatível com o launcher
   mainerp/
-    app.py       config.py  paths.py
-    data/        database.py, migracoes, repositórios (hoje models/)
-    domain/      regras de negócio e cálculos (hoje utils/*_utils)
-    ui/          main_window, views/, dialogs/, widgets/, styles.py, mixins/
-    reports/     geração de PDF (hoje imprecoes/)
+    app.py
+    core/        config.py, paths.py, logging, exceções
+    data/        database.py, migrações, models/
+    domain/      regras de negócio e utilitários
+    ui/          views/, dialogs/, mixins/, styles.py
+    reports/     geração de PDF
   tests/
   distribuicao/
   docs/
   pyproject.toml
 ```
 
-> O launcher abre `main.py` na raiz do release; mantenha esse arquivo fino durante a mudança.
+> O launcher abre `main.py` na raiz do release; mantenha esse arquivo fino.
 
 ## Fase 4 — Operação e atualização online
 

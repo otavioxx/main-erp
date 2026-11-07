@@ -3,7 +3,7 @@
 Sistema de gestão desktop (Windows) para vendas, condicionais, pedidos de compra,
 recebimentos, estoque e relatórios/etiquetas em PDF. Feito em Python com PyQt6 e SQLite.
 
-> Versão atual: veja `APP_VERSION` em `config.py`.
+> Versão atual: veja `APP_VERSION` em `mainerp/core/config.py`.
 
 ## Requisitos
 
@@ -55,18 +55,14 @@ Antes de gerar uma release, execute `verificar.bat` na raiz do projeto. O script
 ### Estrutura
 
 ```
-main.py            ponto de entrada (splash, instância única, tema, janela principal)
-paths.py           caminhos: código (CODE_DIR) x dados (DATA_DIR)
-config.py          configurações (config.json) e APP_VERSION
-app_logging.py     logging rotativo em dados/logs/sistema.log
-database.py        conexão SQLite e migrações numeradas
-styles.py          tema escuro
-models/            entidades e acesso a dados (cliente, produto, venda, ...)
-views/             telas principais (listagens, janela principal)
-dialogs/           janelas de cadastro, seleção, backup e restauração
-imprecoes/         geração de PDFs (vendas, pedidos, condicionais, etiquetas)
-utils/             funções de apoio (cálculos, validações, exportação)
-mixins/            comportamentos reutilizáveis de janelas
+main.py            ponto de entrada compatível com o launcher
+mainerp/app.py     inicialização, splash e ciclo principal do app
+mainerp/core/      configuração, caminhos, logging e erros
+mainerp/data/      conexão SQLite, migrações e modelos
+mainerp/domain/    regras de negócio e utilitários
+mainerp/ui/        janela principal, telas, diálogos, mixins e tema
+mainerp/reports/   geração de PDFs (vendas, pedidos, condicionais, etiquetas)
+tests/             testes automatizados
 distribuicao/      launcher, instalador e geração de releases
 ```
 
@@ -74,7 +70,7 @@ distribuicao/      launcher, instalador e geração de releases
 
 O esquema é versionado por `PRAGMA user_version`. Para alterar o banco:
 
-1. crie `_migracao_NNN_descricao` em `database.py`;
+1. crie `_migracao_NNN_descricao` em `mainerp/data/database.py`;
 2. registre-a em `Database.MIGRACOES` com o próximo número;
 3. mantenha a mudança **aditiva** (nova tabela/coluna), para que uma versão anterior do
    sistema continue funcionando com o banco já migrado.
@@ -89,7 +85,7 @@ fechamento do sistema.
 
 ## Publicar uma nova versão
 
-1. Aumente `APP_VERSION` em `config.py`.
+1. Aumente `APP_VERSION` em `mainerp/core/config.py`.
 2. Execute `distribuicao\publicar_atualizacao.bat`.
 3. Abra o MainERP: a versão nova é instalada e aberta automaticamente.
 

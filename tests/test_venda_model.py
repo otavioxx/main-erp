@@ -1,6 +1,6 @@
 import pytest
 
-from models.venda import Venda, VendaStatus
+from mainerp.data.models.venda import Venda, VendaStatus
 
 
 @pytest.mark.parametrize(

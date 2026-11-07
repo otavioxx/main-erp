@@ -29,7 +29,7 @@ O primeiro start com o banco restaurado cria automaticamente um backup em
 
 ## Publicar uma atualização (no mesmo PC)
 
-1. Altere o código e aumente `APP_VERSION` em `config.py`.
+1. Altere o código e aumente `APP_VERSION` em `mainerp/core/config.py`.
 2. Dê dois cliques em `distribuicao\publicar_atualizacao.bat`.
 3. Abra o MainERP: a versão nova é instalada e aberta. Nada de empacotar.
 
@@ -39,7 +39,7 @@ e marca a nova com um arquivo `.ruim` (apague-o para tentar de novo).
 
 ## Mudanças no banco (migrações)
 
-Em `database.py`: crie `_migracao_NNN_descricao`, registre em `MIGRACOES` com o
+Em `mainerp/data/database.py`: crie `_migracao_NNN_descricao`, registre em `MIGRACOES` com o
 próximo número e mantenha a mudança ADITIVA (nova tabela/coluna). Cada migração roda
 uma vez, em transação, depois de um backup automático. Exemplo: `_garantir_coluna`.
 

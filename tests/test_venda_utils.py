@@ -1,6 +1,6 @@
 import pytest
 
-from utils.venda_utils import VendaCalculator, VendaValidator
+from mainerp.domain.utils.venda_utils import VendaCalculator, VendaValidator
 
 
 @pytest.mark.parametrize(

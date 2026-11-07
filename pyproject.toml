@@ -24,7 +24,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # main.py precisa chamar paths.preparar_ambiente() ANTES de importar o resto
 # (os módulos leem a pasta de dados na importação); instalar.py ajusta o sys.path.
-"main.py" = ["E402"]
+"main.py" = ["E402", "I001"]
 "distribuicao/instalar.py" = ["E402"]
 
 [tool.pytest.ini_options]

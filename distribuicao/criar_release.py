@@ -5,7 +5,7 @@ Uso (na pasta do projeto):
     python distribuicao/criar_release.py --instalar   # idem + coloca o zip em atualizacoes\\
                                                       # (aplicado na próxima abertura do sistema)
 
-A versão vem de APP_VERSION em config.py: aumente-a antes de cada release.
+A versão vem de APP_VERSION em mainerp/core/config.py: aumente-a antes de cada release.
 Também é gerado dist/version.json (versão, nome do zip e SHA256), que serve de
 manifesto quando as atualizações passarem a vir de um servidor.
 """
@@ -33,10 +33,10 @@ EXCLUIR_PASTAS = {
     ".vscode",
     "dist",
     "distribuicao",
-    "data",
     "relatorios",
     "backups",
 }
+EXCLUIR_PASTAS_RAIZ = EXCLUIR_PASTAS | {"data", "tests"}
 EXCLUIR_NOMES = {
     ".gitignore",
     "config.json",
@@ -47,16 +47,19 @@ EXCLUIR_EXTENSOES = {".pyc", ".pyo", ".db", ".db-journal", ".zip", ".log"}
 
 
 def ler_versao() -> str:
-    texto = (PROJETO / "config.py").read_text(encoding="utf-8")
+    arquivo_config = PROJETO / "mainerp" / "core" / "config.py"
+    texto = arquivo_config.read_text(encoding="utf-8")
     m = re.search(r'APP_VERSION\s*=\s*["\']([^"\']+)["\']', texto)
     if not m:
-        sys.exit("APP_VERSION não encontrada em config.py")
+        sys.exit(f"APP_VERSION não encontrada em {arquivo_config.relative_to(PROJETO)}")
     return m.group(1)
 
 
 def arquivos_do_release():
     for pasta, subpastas, arquivos in os.walk(PROJETO):
-        subpastas[:] = sorted(d for d in subpastas if d not in EXCLUIR_PASTAS)
+        relativa = Path(pasta).relative_to(PROJETO)
+        exclusoes = EXCLUIR_PASTAS_RAIZ if not relativa.parts else EXCLUIR_PASTAS
+        subpastas[:] = sorted(d for d in subpastas if d not in exclusoes)
         for nome in sorted(arquivos):
             caminho = Path(pasta) / nome
             if nome in EXCLUIR_NOMES or caminho.suffix.lower() in EXCLUIR_EXTENSOES:
