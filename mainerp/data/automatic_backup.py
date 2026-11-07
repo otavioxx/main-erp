@@ -13,6 +13,20 @@ BACKUP_INTERVAL = timedelta(days=1)
 BACKUP_RETENTION = timedelta(days=30)
 
 
+def criar_snapshot_conexao(origem: sqlite3.Connection, destino: str | Path) -> None:
+    """Cria e verifica um snapshot a partir de uma conexão existente."""
+    copia = sqlite3.connect(destino, timeout=30)
+    try:
+        origem.backup(copia)
+        resultado = copia.execute("PRAGMA integrity_check").fetchone()
+        if not resultado or resultado[0] != "ok":
+            raise sqlite3.DatabaseError(
+                f"Verificação de integridade do backup falhou: {resultado}"
+            )
+    finally:
+        copia.close()
+
+
 def criar_snapshot_sqlite(caminho_banco: str | Path, destino: str | Path) -> None:
     """Copia o banco ativo, incluindo WAL, e verifica a integridade da cópia."""
     caminho_banco = Path(caminho_banco)
@@ -21,16 +35,7 @@ def criar_snapshot_sqlite(caminho_banco: str | Path, destino: str | Path) -> Non
 
     origem = sqlite3.connect(caminho_banco, timeout=30)
     try:
-        copia = sqlite3.connect(destino, timeout=30)
-        try:
-            origem.backup(copia)
-            resultado = copia.execute("PRAGMA integrity_check").fetchone()
-            if not resultado or resultado[0] != "ok":
-                raise sqlite3.DatabaseError(
-                    f"Verificação de integridade do backup falhou: {resultado}"
-                )
-        finally:
-            copia.close()
+        criar_snapshot_conexao(origem, destino)
     finally:
         origem.close()
 

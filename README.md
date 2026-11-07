@@ -91,6 +91,11 @@ fechamento do sistema. O ZIP manual contém um snapshot SQLite verificado, inclu
 confirmados em WAL; mantenha cópias externas e verifique periodicamente sua recuperação.
 Uma restauração é preparada enquanto o sistema está aberto e aplicada na próxima
 inicialização, antes de abrir o banco; um snapshot anterior é mantido em `dados\backups`.
+Durante a aplicação, uma trava SQLite exclusiva impede gravações de outros processos
+até a validação; feche os demais programas que usam o banco antes de restaurar.
+Se a trava não puder ser adquirida, o sistema bloqueia a abertura e preserva a
+restauração pendente. A publicação da pendência exige suporte a hard links no volume
+de dados; se não houver suporte, a preparação falha sem substituir uma pendência.
 O launcher precisa ser atualizado pelo instalador para usar esse fluxo. Em execução direta
 de `main.py`, abra o sistema novamente após solicitar a restauração. Se ocorrer falha na
 restauração, o sistema não abre; preserve o backup anterior e os arquivos pendentes para

@@ -8,7 +8,7 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
-from mainerp.data.automatic_backup import criar_snapshot_sqlite
+from mainerp.data.automatic_backup import criar_snapshot_conexao, criar_snapshot_sqlite
 from mainerp.data.db_utils import DatabaseManager
 
 
@@ -48,7 +48,12 @@ def preparar_restauracao(backup_file: str | Path, target_db: str | Path) -> Path
             raise ValueError("Arquivo de backup corrompido ou inválido")
         with temporario.open("r+b") as arquivo:
             os.fsync(arquivo.fileno())
-        os.replace(temporario, destino)
+        try:
+            os.link(temporario, destino)
+        except FileExistsError as erro:
+            raise FileExistsError(
+                f"Já existe uma restauração pendente: {destino}"
+            ) from erro
     return destino
 
 
@@ -67,26 +72,37 @@ def aplicar_restauracao_pendente(target_db: str | Path) -> Path | None:
     pasta.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     anterior = pasta / f"pre_restore_{timestamp}.db"
+    destino = sqlite3.connect(target, timeout=30)
     try:
-        criar_snapshot_sqlite(target, anterior)
-    except Exception:
-        anterior.unlink(missing_ok=True)
-        raise
+        modo = destino.execute("PRAGMA locking_mode=EXCLUSIVE").fetchone()
+        if not modo or modo[0].lower() != "exclusive":
+            raise RuntimeError("Não foi possível obter bloqueio exclusivo do banco")
+        destino.execute("BEGIN EXCLUSIVE")
+        destino.commit()
+        if not pendente.exists():
+            return None
 
-    origem = sqlite3.connect(pendente.resolve().as_uri() + "?mode=ro", uri=True)
-    try:
-        destino = sqlite3.connect(target, timeout=30)
+        try:
+            criar_snapshot_conexao(destino, anterior)
+        except Exception:
+            anterior.unlink(missing_ok=True)
+            raise
+
+        origem = sqlite3.connect(pendente.resolve().as_uri() + "?mode=ro", uri=True)
         try:
             _copiar_banco(origem, destino)
         finally:
-            destino.close()
-    finally:
-        origem.close()
+            origem.close()
 
-    if not DatabaseManager._verify_database(target):
-        raise RuntimeError(
-            f"Banco restaurado não passou na validação. Backup anterior: {anterior}. "
-            f"Restauração pendente preservada: {pendente}"
-        )
-    pendente.unlink()
-    return anterior
+        with tempfile.TemporaryDirectory() as pasta_validacao:
+            copia_validacao = Path(pasta_validacao) / "restaurado.db"
+            criar_snapshot_conexao(destino, copia_validacao)
+            if not DatabaseManager._verify_database(copia_validacao):
+                raise RuntimeError(
+                    f"Banco restaurado não passou na validação. Backup anterior: {anterior}. "
+                    f"Restauração pendente preservada: {pendente}"
+                )
+        pendente.unlink()
+        return anterior
+    finally:
+        destino.close()

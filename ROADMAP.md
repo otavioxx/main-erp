@@ -148,7 +148,14 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
       tabelas e nomes de colunas após migrar uma cópia, mas não confere todos os dados,
       tipos e restrições. Testes terminam
       o processo durante cópia em WAL e journal padrão e verificam a recuperação.
-      Testar falhas de disco e concorrência de outros processos.
+      Falhas simuladas em fsync, publicação e cópia preservam a pendência e permitem
+      repetição; testes em WAL e journal padrão verificam a integridade. Preparações e
+      aplicações concorrentes não substituem nem aplicam duas vezes a pendência. A
+      restauração mantém bloqueio SQLite exclusivo entre o snapshot e a validação;
+      testes verificam escritores externos ativos e bloqueados antes e depois da cópia.
+      Ainda é necessário validar tipos, restrições e regras de negócio dos backups;
+      falhas reais de hardware e processos que alterem arquivos fora do SQLite não são
+      cobertos pelos testes.
 - [ ] Não prometer reversão bem-sucedida quando a recuperação também falhar:
       a nova restauração preserva snapshot anterior e pendência caso a aplicação falhe;
       o sistema bloqueia a abertura. Validar recuperação e mensagens em falhas e

@@ -2,6 +2,9 @@
 
 ## Não publicado
 
+- Preparações simultâneas de restauração deixam de sobrescrever a pendência existente.
+- A restauração mantém um bloqueio SQLite exclusivo desde o snapshot anterior até a
+  validação, impedindo escritas concorrentes nesse intervalo.
 - Backups manuais criados no mesmo segundo usam nomes distintos, evitando sobrescrita.
 
 ## 0.10.2 - 2026-11-07
