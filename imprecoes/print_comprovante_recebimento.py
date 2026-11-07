@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 from datetime import datetime
 
@@ -20,6 +21,8 @@ from reportlab.platypus import (
 from exceptions import ErroERP
 from models.empresa import Empresa
 from utils.helpers import formatar_data, formatar_moeda
+
+logger = logging.getLogger(__name__)
 
 
 class PrintComprovanteRecebimento:
@@ -121,8 +124,8 @@ class PrintComprovanteRecebimento:
                     logo.hAlign = "CENTER"
                     elements.append(logo)
                     elements.append(Spacer(1, 5 * mm))
-                except Exception as e:
-                    print(f"Erro ao processar logo: {e}")
+                except Exception:
+                    logger.exception("Erro ao processar logo do comprovante")
 
             # Informações da empresa
             if hasattr(empresa, "nome") and empresa.nome:

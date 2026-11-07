@@ -1,7 +1,10 @@
 # \erp\model\condicional.py
+import logging
 from datetime import datetime
 
 from database import Database
+
+logger = logging.getLogger(__name__)
 
 
 class Condicional:
@@ -175,8 +178,8 @@ class Condicional:
 
             return condicional
 
-        except Exception as e:
-            print(f"Erro ao buscar condicional: {e}")
+        except Exception:
+            logger.exception("Erro ao buscar condicional")
             return None
         finally:
             conn.close()
@@ -201,8 +204,8 @@ class Condicional:
             condicionais = cursor.fetchall()
             return condicionais
 
-        except Exception as e:
-            print(f"Erro ao buscar condicionais: {e}")
+        except Exception:
+            logger.exception("Erro ao buscar todas as condicionais")
             return []
         finally:
             conn.close()
@@ -268,10 +271,10 @@ class Condicional:
             """)
 
             conn.commit()
-            print("Tabelas de condicionais criadas/verificadas com sucesso!")
+            logger.debug("Tabelas de condicionais criadas/verificadas com sucesso")
 
-        except Exception as e:
-            print(f"Erro ao criar tabelas de condicionais: {e}")
+        except Exception:
+            logger.exception("Erro ao criar tabelas de condicionais")
             raise
         finally:
             pass

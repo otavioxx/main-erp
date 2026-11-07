@@ -2,6 +2,7 @@
 View de Pedidos - Otimizada com correções de ordenação e layout reorganizado - CORRIGIDO para nova estrutura
 """
 
+import logging
 import sqlite3
 from datetime import datetime, timedelta
 
@@ -36,6 +37,8 @@ from utils.helpers import (
 )
 from utils.pedido_utils import PedidoUtils
 from utils.tabela import fixar_altura_linhas
+
+logger = logging.getLogger(__name__)
 
 
 # ========== CORREÇÃO: Classe para ordenação numérica ==========
@@ -384,8 +387,8 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
 
             return resultados
 
-        except Exception as e:
-            print(f"Erro ao buscar pedidos: {e}")
+        except Exception:
+            logger.exception("Erro ao buscar pedidos")
             return []
         finally:
             try:

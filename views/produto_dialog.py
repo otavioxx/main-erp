@@ -2,6 +2,8 @@
 Dialog de Produto - Otimizado para novo sistema de estilos com Cadastro em Lote
 """
 
+import logging
+
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -28,6 +30,8 @@ from utils.helpers import (
     SelectAllSpinBox,
     aplicar_maiuscula_formulario,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ProdutoDialog(QDialog):
@@ -412,8 +416,8 @@ class ProdutoDialog(QDialog):
             self.nome_edit.setFocus()
             self.nome_edit.selectAll()
 
-        except Exception as e:
-            print(f"Erro ao preparar próximo produto: {e}")
+        except Exception:
+            logger.exception("Erro ao preparar próximo produto")
             # Em caso de erro, apenas coloca foco no nome
             self.nome_edit.setFocus()
             self.nome_edit.selectAll()

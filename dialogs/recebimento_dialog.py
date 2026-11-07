@@ -2,6 +2,7 @@
 Dialog de Recebimento - Otimizado para novo sistema de estilos
 """
 
+import logging
 from datetime import datetime
 
 from PyQt6.QtCore import Qt
@@ -26,6 +27,8 @@ from utils.helpers import (
     formatar_moeda,
     validar_data,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class RecebimentoDialog(QDialog):
@@ -318,9 +321,8 @@ class RecebimentoDialog(QDialog):
                     cliente = Cliente.buscar_por_id(cliente_id)
                     return cliente.nome if cliente else "Cliente não encontrado"
 
-        except Exception as e:
-            print(f"Erro ao obter nome do cliente: {e}")
-            print(f"Estrutura da duplicata: {self.duplicata}")
+        except Exception:
+            logger.exception("Erro ao obter nome do cliente da duplicata")
             return "Cliente não encontrado"
 
     def get_dados(self):

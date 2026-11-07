@@ -2,6 +2,7 @@
 View de Recebimentos - Otimizada para performance
 """
 
+import logging
 from datetime import datetime
 
 from PyQt6.QtCore import Qt
@@ -37,6 +38,8 @@ from utils.helpers import (
     formatar_moeda,
     validar_data,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class NumericTableWidgetItem(QTableWidgetItem):
@@ -331,7 +334,6 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                 return
             except Exception:
                 # Qualquer outro erro, ignorar silenciosamente
-                # print(f"Erro ao aplicar altura: {e}")  # Para debug
                 return
 
         # 5. Timer SEGURO para aplicar após renderização
@@ -487,8 +489,8 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
 
             conn.close()
 
-        except Exception as e:
-            print(f"Erro ao inicializar cache de parcelas: {e}")
+        except Exception:
+            logger.exception("Erro ao inicializar cache de parcelas")
             # Se houver erro, usa fallback
             for venda_id in venda_ids:
                 self._parcelas_cache[venda_id] = 1
@@ -899,7 +901,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             )
             if filename:
                 if ExportUtils.abrir_arquivo(filename):
-                    print(f"Comprovante gerado: {filename}")
+                    logger.info("Comprovante de recebimento gerado")
                 else:
                     QMessageBox.information(
                         self,

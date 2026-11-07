@@ -23,7 +23,6 @@ from database import Database
 from models.condicional import Condicional
 from models.empresa import Empresa
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -433,9 +432,6 @@ class PrintCondicional:
             logger.info(f"Comprovante de condicional gerado: {filename}")
             return filename
 
-        except Exception as e:
-            logger.error(f"Erro ao gerar comprovante de condicional PDF: {e}")
-            import traceback
-
-            traceback.print_exc()
+        except Exception:
+            logger.exception("Erro ao gerar comprovante de condicional PDF")
             return None

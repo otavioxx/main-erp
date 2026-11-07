@@ -1,9 +1,12 @@
 # \erp\config.py
 import json
+import logging
 import os
 from typing import Any
 
 from paths import caminho_dados
+
+logger = logging.getLogger(__name__)
 
 
 class Config:
@@ -77,8 +80,8 @@ class Config:
         for pasta in pastas:
             try:
                 os.makedirs(pasta, exist_ok=True)
-            except OSError as e:
-                print(f"Erro ao criar pasta '{pasta}': {e}")
+            except OSError:
+                logger.exception("Erro ao criar pasta %s", pasta)
 
     # ------------------------------------------------------------------
     # Métodos de persistência
@@ -92,8 +95,8 @@ class Config:
                     return json.load(f)
             else:
                 return self.default_config.copy()
-        except (OSError, json.JSONDecodeError) as e:
-            print(f"Erro ao carregar configurações: {e}")
+        except (OSError, json.JSONDecodeError):
+            logger.exception("Erro ao carregar configurações")
             return self.default_config.copy()
 
     def save_config(self) -> bool:
@@ -105,8 +108,8 @@ class Config:
             with open(self.config_file, "w", encoding="utf-8") as f:
                 json.dump(self.config, f, indent=4, ensure_ascii=False)
             return True
-        except OSError as e:
-            print(f"Erro ao salvar configurações: {e}")
+        except OSError:
+            logger.exception("Erro ao salvar configurações")
             return False
 
     # ------------------------------------------------------------------

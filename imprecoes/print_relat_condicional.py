@@ -21,7 +21,6 @@ from reportlab.platypus import (
 from database import Database
 from models.empresa import Empresa
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -446,11 +445,8 @@ class PrintRelatCondicional:
             logger.info(f"Relatório de condicionais gerado: {filename}")
             return filename
 
-        except Exception as e:
-            logger.error(f"Erro ao gerar relatório de condicionais PDF: {e}")
-            import traceback
-
-            traceback.print_exc()
+        except Exception:
+            logger.exception("Erro ao gerar relatório de condicionais PDF")
             return None
 
     @staticmethod
@@ -564,9 +560,6 @@ class PrintRelatCondicional:
                 condicionais_filtradas, filtros, pasta_destino
             )
 
-        except Exception as e:
-            logger.error(f"Erro ao gerar relatório por período: {e}")
-            import traceback
-
-            traceback.print_exc()
+        except Exception:
+            logger.exception("Erro ao gerar relatório de condicionais por período")
             return None

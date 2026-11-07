@@ -6,6 +6,7 @@ COM VALIDAÇÃO DE INTEGRIDADE DO BACKUP
 
 import hashlib
 import json
+import logging
 import os
 import zipfile
 from datetime import datetime
@@ -25,6 +26,8 @@ from PyQt6.QtWidgets import (
 
 from config import obter_config
 from paths import caminho_dados
+
+logger = logging.getLogger(__name__)
 
 
 class BackupConfig:
@@ -99,8 +102,8 @@ class BackupConfig:
             with open(cls.CONFIG_FILE, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             return True
-        except Exception as e:
-            print(f"Erro ao salvar configurações: {e}")
+        except Exception:
+            logger.exception("Erro ao salvar configurações de backup")
             return False
 
     @classmethod
@@ -221,8 +224,8 @@ class BackupThread(QThread):
                         f"Necessário: {(db_size * 1.5) / (1024 * 1024 * 1024):.2f} GB"
                     )
                     return
-            except Exception as e:
-                print(f"Erro ao verificar espaço em disco: {e}")
+            except Exception:
+                logger.exception("Erro ao verificar espaço em disco para backup")
 
             self.progress_changed.emit(10)
 

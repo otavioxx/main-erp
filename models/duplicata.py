@@ -1,10 +1,13 @@
 # \erp\model\duplicata.py
+import logging
 import sqlite3
 from datetime import timedelta
 
 from database import Database
 from exceptions import ErroERP
 from utils.database_utils import DatabaseUtils
+
+logger = logging.getLogger(__name__)
 
 
 class Duplicata:
@@ -403,7 +406,7 @@ class Duplicata:
                 # Nada a ajustar
                 return
 
-            print(f"=== Redistribuindo diferença (diferença = {diferenca:.2f}) ===")
+            logger.debug("Redistribuindo diferença de pagamento: %.2f", diferenca)
 
             # Buscar parcelas restantes abertas
             cursor.execute(
@@ -418,7 +421,7 @@ class Duplicata:
             parcelas_restantes = cursor.fetchall()
 
             if not parcelas_restantes:
-                print("Nenhuma parcela restante para redistribuir")
+                logger.debug("Nenhuma parcela restante para redistribuir")
                 return
 
             qtd = len(parcelas_restantes)
@@ -456,8 +459,10 @@ class Duplicata:
                         ),
                     )
                     cursor.execute("DELETE FROM duplicatas WHERE id = ?", (parcela_id,))
-                    print(
-                        f"  Parcela {numero_parcela} quitada automaticamente (id {parcela_id})"
+                    logger.debug(
+                        "Parcela %s quitada automaticamente (id %s)",
+                        numero_parcela,
+                        parcela_id,
                     )
                 else:
                     cursor.execute(
@@ -468,20 +473,19 @@ class Duplicata:
                     """,
                         (novo_valor, parcela_id),
                     )
-                    print(
-                        f"  Parcela {numero_parcela} ajustada para R$ {novo_valor:.2f}"
+                    logger.debug(
+                        "Parcela %s ajustada para R$ %.2f",
+                        numero_parcela,
+                        novo_valor,
                     )
 
             conn.commit()
-            print("Redistribuição concluída e commitada")
+            logger.debug("Redistribuição concluída e commitada")
 
-        except Exception as e:
+        except Exception:
             if conn:
                 conn.rollback()
-            print(f"Erro ao redistribuir diferença: {e}")
-            import traceback
-
-            traceback.print_exc()
+            logger.exception("Erro ao redistribuir diferença de pagamento")
             raise
         finally:
             conn.close()

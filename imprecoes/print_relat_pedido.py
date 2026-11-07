@@ -22,7 +22,6 @@ from reportlab.platypus import (
 from database import Database
 from models.empresa import Empresa
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -532,11 +531,8 @@ class PrintRelatPedido:
             logger.info(f"Relatório de pedidos gerado: {filename}")
             return filename
 
-        except Exception as e:
-            logger.error(f"Erro ao gerar relatório de pedidos PDF: {e}")
-            import traceback
-
-            traceback.print_exc()
+        except Exception:
+            logger.exception("Erro ao gerar relatório de pedidos PDF")
             return None
 
     @staticmethod

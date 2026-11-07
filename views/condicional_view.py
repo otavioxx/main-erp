@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 
 from PyQt6.QtCore import Qt
@@ -34,6 +35,8 @@ from utils.helpers import (
     validar_data,
 )
 from utils.tabela import fixar_altura_linhas
+
+logger = logging.getLogger(__name__)
 
 
 # ========== CORREÇÃO: Classe para ordenação numérica ==========
@@ -992,11 +995,13 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
                     try:
                         if os.path.isfile(caminho_arquivo):
                             os.unlink(caminho_arquivo)
-                        print(f"Arquivo removido: {caminho_arquivo}")
-                    except Exception as e:
-                        print(f"Erro ao deletar {caminho_arquivo}: {e}")
-        except Exception as e:
-            print(f"Erro ao limpar pasta de relatórios: {e}")
+                        logger.debug("Arquivo de relatório removido: %s", caminho_arquivo)
+                    except Exception:
+                        logger.exception(
+                            "Erro ao remover arquivo de relatório %s", caminho_arquivo
+                        )
+        except Exception:
+            logger.exception("Erro ao limpar pasta de relatórios")
 
     # ========== PROPRIEDADES PARA COMPATIBILIDADE ==========
 

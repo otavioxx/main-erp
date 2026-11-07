@@ -23,7 +23,6 @@ from exceptions import ErroERP
 from models.empresa import Empresa
 from utils.helpers import formatar_moeda, validar_data
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -518,8 +517,5 @@ class PrintRelatRecebimento:
             return filename
 
         except Exception as e:
-            logger.error(f"Erro ao gerar relatório de recebimentos: {e!s}")
-            import traceback
-
-            traceback.print_exc()
+            logger.exception("Erro ao gerar relatório de recebimentos")
             raise ErroERP(f"Erro ao gerar relatório: {e!s}") from e

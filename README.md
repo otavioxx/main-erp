@@ -26,7 +26,8 @@ Detalhes, atualizações e rollback: [`distribuicao/LEIAME.md`](distribuicao/LEI
 |---|---|
 | Código instalado e versões | `%LOCALAPPDATA%\MainERP\sistema\releases\<versão>\` |
 | Banco, config, backups e relatórios | `%LOCALAPPDATA%\MainERP\dados\` |
-| Logs | `%LOCALAPPDATA%\MainERP\sistema\logs\` (`sistema.log`, `launcher.log`) |
+| Logs da aplicação | `%LOCALAPPDATA%\MainERP\dados\logs\sistema.log` (rotativo) |
+| Logs do launcher | `%LOCALAPPDATA%\MainERP\sistema\logs\launcher.log` |
 
 Nenhuma atualização altera a pasta `dados\`. Para usar outra pasta de dados, defina a
 variável de ambiente `MAINERP_DATA`.
@@ -51,6 +52,7 @@ python main.py
 main.py            ponto de entrada (splash, instância única, tema, janela principal)
 paths.py           caminhos: código (CODE_DIR) x dados (DATA_DIR)
 config.py          configurações (config.json) e APP_VERSION
+app_logging.py     logging rotativo em dados/logs/sistema.log
 database.py        conexão SQLite e migrações numeradas
 styles.py          tema escuro
 models/            entidades e acesso a dados (cliente, produto, venda, ...)
@@ -86,7 +88,8 @@ e `dist/version.json`).
 
 - Mensagens de commit no formato `tipo: descrição` (`feat`, `fix`, `refactor`, `chore`, `docs`).
 - Dados do usuário nunca entram no Git (`*.db`, `config.json`, `backups/`, `relatorios/`).
-- Erros do sistema vão para `logs\sistema.log`.
+- Logs da aplicação vão para `dados\logs\sistema.log` (arquivo de 5 MB e até 5 cópias).
+- O launcher mantém seu próprio log em `sistema\logs\launcher.log`.
 
 ## Roadmap
 

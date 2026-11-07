@@ -23,7 +23,6 @@ from models.empresa import Empresa
 from models.fornecedor import Fornecedor
 from models.produto import Produto
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -523,11 +522,8 @@ class PrintProduto:
             logger.info(f"Relatório de produtos gerado: {filename}")
             return filename
 
-        except Exception as e:
-            logger.error(f"Erro ao gerar relatório de produtos PDF: {e}")
-            import traceback
-
-            traceback.print_exc()
+        except Exception:
+            logger.exception("Erro ao gerar relatório de produtos PDF")
             return None
 
     @staticmethod

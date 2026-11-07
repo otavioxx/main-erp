@@ -1,8 +1,11 @@
 # \erp\utils\pedido_utils.py
+import logging
 from typing import Any
 
 from utils.database_utils import DatabaseUtils
 from utils.helpers import converter_data_string
+
+logger = logging.getLogger(__name__)
 
 
 class PedidoUtils:
@@ -89,7 +92,7 @@ class PedidoUtils:
             itens = DatabaseUtils.executar_query(query_itens, (pedido_id,))
 
             if not itens:
-                print(f"Aviso: Nenhum item encontrado para o pedido {pedido_id}")
+                logger.warning("Nenhum item encontrado para o pedido %s", pedido_id)
                 return False
 
             # Atualizar cada produto individualmente
@@ -98,8 +101,10 @@ class PedidoUtils:
                 # Verificar se preco_venda existe, senão usar fallback
                 if preco_venda is None or preco_venda <= 0:
                     preco_venda = preco_custo * 1.3  # Margem padrão de 30%
-                    print(
-                        f"Produto {produto_id}: usando preço venda calculado (R$ {preco_venda:.2f})"
+                    logger.debug(
+                        "Produto %s: usando preço de venda calculado (R$ %.2f)",
+                        produto_id,
+                        preco_venda,
                     )
 
                 # Atualizar produto: preço de custo, preço de venda e estoque
@@ -113,8 +118,12 @@ class PedidoUtils:
                 )
 
                 produtos_atualizados += 1
-                print(
-                    f"Produto {produto_id} atualizado: custo=R${preco_custo:.2f}, venda=R${preco_venda:.2f}, +{quantidade} estoque"
+                logger.debug(
+                    "Produto %s atualizado: custo=R$%.2f, venda=R$%.2f, +%s estoque",
+                    produto_id,
+                    preco_custo,
+                    preco_venda,
+                    quantidade,
                 )
 
             # Marcar pedido como recebido
@@ -125,13 +134,15 @@ class PedidoUtils:
             """
             DatabaseUtils.executar_query(query_pedido, (pedido_id,))
 
-            print(
-                f"Pedido #{pedido_id} marcado como recebido. {produtos_atualizados} produtos atualizados."
+            logger.info(
+                "Pedido %s marcado como recebido; %s produtos atualizados",
+                pedido_id,
+                produtos_atualizados,
             )
             return True
 
-        except Exception as e:
-            print(f"Erro ao receber pedido {pedido_id}: {e!s}")
+        except Exception:
+            logger.exception("Erro ao receber pedido %s", pedido_id)
             raise
 
     @staticmethod
@@ -245,5 +256,5 @@ class PedidoUtils:
             return resumo
 
         except Exception as e:
-            print(f"Erro ao obter resumo: {e}")
+            logger.exception("Erro ao obter resumo do pedido")
             return {"error": str(e)}

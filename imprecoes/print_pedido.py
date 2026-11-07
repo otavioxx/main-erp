@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import sqlite3
 from datetime import datetime
@@ -21,6 +22,8 @@ from reportlab.platypus import (
 from database import Database
 from models.empresa import Empresa
 from models.pedido import Pedido
+
+logger = logging.getLogger(__name__)
 
 
 class PrintPedido:
@@ -57,8 +60,8 @@ class PrintPedido:
             result = cursor.fetchall()
             return result
 
-        except Exception as e:
-            print(f"Erro ao buscar itens do pedido: {e!s}")
+        except Exception:
+            logger.exception("Erro ao buscar itens do pedido %s", pedido_id)
             return []
         finally:
             # Tentar fechar a conexão de forma segura
@@ -164,8 +167,8 @@ class PrintPedido:
                     logo.hAlign = "CENTER"
                     elements.append(logo)
                     elements.append(Spacer(1, 5 * mm))
-                except Exception as e:
-                    print(f"Erro ao processar logo: {e}")
+                except Exception:
+                    logger.exception("Erro ao processar logo do pedido")
 
             if empresa and hasattr(empresa, "nome") and empresa.nome:
                 elements.append(Paragraph(empresa.nome.upper(), estilo_empresa))
@@ -480,11 +483,8 @@ class PrintPedido:
             doc.build(elements)
             return filename
 
-        except Exception as e:
-            print(f"Erro ao gerar comprovante PDF: {e}")
-            import traceback
-
-            traceback.print_exc()
+        except Exception:
+            logger.exception("Erro ao gerar comprovante PDF do pedido")
             return None
 
     @staticmethod

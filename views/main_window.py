@@ -1,3 +1,5 @@
+import logging
+
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication,
@@ -25,6 +27,8 @@ from views.pedido_view import PedidoView
 from views.produto_view import ProdutoView
 from views.recebimento_view import RecebimentoView
 from views.venda_view import VendaView
+
+logger = logging.getLogger(__name__)
 
 
 class StatusBarWidget(QWidget):
@@ -215,8 +219,8 @@ class MainWindow(QMainWindow):
         """Aplica conversão automática para maiúscula em toda a aplicação"""
         try:
             aplicar_maiuscula_formulario(self)
-        except Exception as e:
-            print(f"Erro ao configurar maiúscula global: {e}")
+        except Exception:
+            logger.exception("Erro ao configurar maiúscula global")
 
     def closeEvent(self, event):
         """Fecha o sistema, mostrando diálogo de backup apenas se necessário"""
@@ -242,7 +246,7 @@ class MainWindow(QMainWindow):
         if not BackupDialog.should_show_dialog():
             # Último backup foi recente (menos de 7 dias)
             # Fecha a aplicação SILENCIOSAMENTE
-            print("✅ Backup recente detectado, fechando sistema...")
+            logger.info("Backup recente detectado; fechando sistema")
             app = QApplication.instance()
             if app is not None:
                 app.quit()
@@ -266,13 +270,13 @@ class MainWindow(QMainWindow):
 
             # VERIFICAÇÃO EXPLÍCITA: Se o diálogo foi aceito, fecha o sistema
             if result == QDialog.DialogCode.Accepted:
-                print("✅ Backup concluído, fechando sistema...")
+                logger.info("Backup concluído; fechando sistema")
                 app = QApplication.instance()
                 if app is not None:
                     app.quit()
 
-        except Exception as e:
-            print(f"Erro ao mostrar diálogo de backup: {e}")
+        except Exception:
+            logger.exception("Erro ao mostrar diálogo de backup")
             self._perguntar_fechamento_emergencial()
 
     def _backup_concluido(self, backup_path):

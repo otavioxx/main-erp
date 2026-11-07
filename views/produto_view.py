@@ -2,6 +2,7 @@
 View de Produtos - Padronizada com sistema de estilos e correções de ordenação
 """
 
+import logging
 import os
 import subprocess
 import sys
@@ -31,6 +32,8 @@ from mixins.table_scroll_mixin import TableScrollNavigationMixin
 from models.produto import Produto
 from utils.produto_utils import ProdutoUtils
 from views.produto_dialog import ProdutoDialog
+
+logger = logging.getLogger(__name__)
 
 
 # ========== CORREÇÃO: Classe para ordenação numérica ==========
@@ -445,8 +448,8 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
             # Restaurar seleção se houver um produto para selecionar
             if self.ultimo_produto_selecionado_id:
                 self._selecionar_produto_por_id(self.ultimo_produto_selecionado_id)
-        except Exception as e:
-            print(f"Erro ao restaurar estado da tabela: {e}")
+        except Exception:
+            logger.exception("Erro ao restaurar estado da tabela")
 
     def _selecionar_produto_por_id(self, produto_id):
         """Seleciona um produto na tabela pelo ID"""

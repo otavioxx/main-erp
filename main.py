@@ -1,5 +1,6 @@
 # \erp\main.py
 import atexit
+import logging
 import os
 import sqlite3
 import sys
@@ -8,6 +9,11 @@ from datetime import datetime
 import paths
 
 paths.preparar_ambiente()  # cria a pasta de dados e usa-a como diretório de trabalho
+
+from app_logging import configurar_logging
+
+configurar_logging()
+logger = logging.getLogger(__name__)
 
 import pytz
 from PyQt6.QtCore import QLibraryInfo, Qt, QTimer, QTranslator
@@ -77,8 +83,8 @@ def limpar_pasta_relatorios():
                 caminho_arquivo = os.path.join(caminho_relatorios, arquivo)
                 if os.path.isfile(caminho_arquivo):
                     os.unlink(caminho_arquivo)
-    except OSError as e:
-        print(f"Erro ao limpar pasta de relatórios: {e}")
+    except OSError:
+        logger.exception("Erro ao limpar pasta de relatórios")
 
 
 def verificar_banco_dados():
@@ -97,8 +103,8 @@ def verificar_banco_dados():
         else:
             pass
 
-    except sqlite3.Error as e:
-        print(f"Erro ao verificar banco: {e}")
+    except sqlite3.Error:
+        logger.exception("Erro ao verificar banco")
     finally:
         conn.close()
 
@@ -246,10 +252,10 @@ def verificar_instancia_unica(nome_aplicacao):
 
     except ImportError:
         # Fallback se pywin32 não estiver instalado
-        print("Aviso: pywin32 não instalado. Usando verificação simplificada.")
+        logger.warning("pywin32 não instalado. Usando verificação simplificada.")
         return verificar_instancia_unica_simples(nome_aplicacao)
-    except Exception as e:
-        print(f"Erro ao verificar instância única: {e}")
+    except Exception:
+        logger.exception("Erro ao verificar instância única")
         # Em caso de erro, permite a execução mas mostra aviso
         return True
 
@@ -291,8 +297,8 @@ def verificar_instancia_unica_simples(nome_aplicacao):
         atexit.register(cleanup_lock)
         return True
 
-    except Exception as e:
-        print(f"Erro no método simples de verificação: {e}")
+    except Exception:
+        logger.exception("Erro no método simples de verificação")
         return True
 
 
@@ -309,13 +315,13 @@ def reiniciar_aplicacao():
     import subprocess
     import time
 
-    print("🔄 Reiniciando aplicação...")
+    logger.info("Reiniciando aplicação")
     time.sleep(1)  # garante que tudo foi fechado (mutex, banco)
 
     try:
         subprocess.Popen([sys.executable, os.path.abspath(__file__)], cwd=os.getcwd())
-    except Exception as e:
-        print(f"❌ Erro ao reiniciar aplicação: {e}")
+    except Exception:
+        logger.exception("Erro ao reiniciar aplicação")
         QMessageBox.information(
             None,
             "Reinício Necessário",
@@ -325,10 +331,8 @@ def reiniciar_aplicacao():
 
 
 def erro_fatal(titulo, detalhe):
-    """Registra o erro no log (stderr) e avisa o usuário sem exigir console."""
-    import traceback
-
-    traceback.print_exc()
+    """Registra o erro e avisa o usuário sem exigir console."""
+    logger.exception("%s: %s", titulo, detalhe)
     try:
         if QApplication.instance() is None:
             QApplication(sys.argv)
@@ -357,12 +361,12 @@ def main():
         )
         sys.exit(EXIT_JA_EM_EXECUCAO)
 
-    print(f"App: {config.APP_NAME} v{config.APP_VERSION}")
-    print(f"Código: {obter_caminho_base()}")
-    print(f"Dados: {paths.DATA_DIR}")
-    print(f"Banco: {config.obter_caminho_banco()}")
-    print(f"Relatórios: {config.obter_caminho_relatorios()}")
-    print(f"Debug: {config.DEBUG_MODE}")
+    logger.info("App: %s v%s", config.APP_NAME, config.APP_VERSION)
+    logger.info("Código: %s", obter_caminho_base())
+    logger.info("Dados: %s", paths.DATA_DIR)
+    logger.info("Banco: %s", config.obter_caminho_banco())
+    logger.info("Relatórios: %s", config.obter_caminho_relatorios())
+    logger.info("Debug: %s", config.DEBUG_MODE)
 
     # Criar aplicação
     app = QApplication(sys.argv)
@@ -433,7 +437,7 @@ def main():
         time.sleep(0.6)
 
     except Exception as e:
-        print(f"Erro durante inicialização: {e}")
+        logger.exception("Erro durante inicialização")
         splash.close()
         QMessageBox.critical(
             None,
@@ -458,8 +462,9 @@ def main():
         confirmar_abertura()
 
     if remaining > 0:
-        print(
-            f"Aguardando {remaining / 1000:.1f}s adicionais para duração mínima do splash..."
+        logger.info(
+            "Aguardando %.1fs adicionais para duração mínima do splash...",
+            remaining / 1000,
         )
         update_splash_message("Preparando sistema...")
         QTimer.singleShot(int(remaining), show_main_window)
@@ -487,6 +492,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
-        print(f"Erro fatal: {e}")
         erro_fatal("Erro fatal", f"O sistema não conseguiu iniciar:\n{e}")
         sys.exit(1)

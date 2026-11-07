@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import sqlite3
 from datetime import datetime
@@ -21,6 +22,8 @@ from reportlab.platypus import (
 from database import Database
 from models.empresa import Empresa
 from models.venda import Venda
+
+logger = logging.getLogger(__name__)
 
 
 class PrintVenda:
@@ -60,8 +63,8 @@ class PrintVenda:
             result = cursor.fetchall()
             return result
 
-        except Exception as e:
-            print(f"Erro ao buscar itens da venda: {e!s}")
+        except Exception:
+            logger.exception("Erro ao buscar itens da venda %s", venda_id)
             return []
         finally:
             try:
@@ -109,8 +112,8 @@ class PrintVenda:
 
             return todas_parcelas
 
-        except Exception as e:
-            print(f"Erro ao buscar parcelas da venda: {e!s}")
+        except Exception:
+            logger.exception("Erro ao buscar parcelas da venda %s", venda_id)
             return []
         finally:
             try:
@@ -251,8 +254,8 @@ class PrintVenda:
                     logo.hAlign = "CENTER"
                     elements.append(logo)
                     elements.append(Spacer(1, 5 * mm))
-                except Exception as e:
-                    print(f"Erro ao processar logo: {e}")
+                except Exception:
+                    logger.exception("Erro ao processar logo da venda")
 
             if empresa and hasattr(empresa, "nome") and empresa.nome:
                 elements.append(Paragraph(empresa.nome.upper(), estilo_empresa))
@@ -652,11 +655,8 @@ class PrintVenda:
             doc.build(elements)
             return filename
 
-        except Exception as e:
-            print(f"Erro ao gerar comprovante PDF: {e}")
-            import traceback
-
-            traceback.print_exc()
+        except Exception:
+            logger.exception("Erro ao gerar comprovante PDF da venda")
             return None
 
     @staticmethod
@@ -827,9 +827,6 @@ class PrintVenda:
             doc.build(elements)
             return filename
 
-        except Exception as e:
-            print(f"Erro ao gerar relatório de vendas: {e}")
-            import traceback
-
-            traceback.print_exc()
+        except Exception:
+            logger.exception("Erro ao gerar relatório de vendas")
             return None

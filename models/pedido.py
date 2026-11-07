@@ -1,10 +1,13 @@
 # \erp\models\pedido.py
+import logging
 import sqlite3
 from datetime import datetime
 
 from database import Database
 
 from .base_model import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class Pedido(BaseModel):
@@ -123,8 +126,8 @@ class Pedido(BaseModel):
                     status=result[8],  # status
                 )
             return None
-        except Exception as e:
-            print(f"Erro ao buscar pedido por ID: {e}")
+        except Exception:
+            logger.exception("Erro ao buscar pedido por ID")
             return None
         finally:
             try:
@@ -181,8 +184,8 @@ class Pedido(BaseModel):
 
             return pedidos
 
-        except Exception as e:
-            print(f"Erro ao buscar todos os pedidos: {e}")
+        except Exception:
+            logger.exception("Erro ao buscar todos os pedidos")
             return []
         finally:
             try:
@@ -230,8 +233,8 @@ class Pedido(BaseModel):
             cursor.execute(query, (self.id,))
             results = cursor.fetchall()
             return results if results else []
-        except Exception as e:
-            print(f"Erro ao obter itens do pedido: {e}")
+        except Exception:
+            logger.exception("Erro ao obter itens do pedido %s", self.id)
             return []
         finally:
             try:

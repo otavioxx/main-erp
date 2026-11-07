@@ -2,12 +2,15 @@
 Utilitários para manipulação do banco de dados e backups
 """
 
+import logging
 import os
 import shutil
 import sqlite3
 import tempfile
 import zipfile
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 class DatabaseManager:
@@ -177,8 +180,8 @@ class DatabaseManager:
             conn.close()
             return info
 
-        except Exception as e:
-            print(f"Erro ao obter informações do banco: {e}")
+        except Exception:
+            logger.exception("Erro ao obter informações do banco")
             return None
 
     @staticmethod
