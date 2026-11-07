@@ -102,7 +102,8 @@ MainERP/
 
 - [x] Manter o `CHANGELOG.md` com o histórico das versões 0.07 e 0.08.
 - [ ] Adotar versionamento semântico estrito (MAJOR.MINOR.PATCH).
-- [ ] Assinar os pacotes de release (ed25519) e validar a assinatura no launcher.
+- [ ] Assinar releases e validar Ed25519 no launcher (aguarda cadastrar o secret do Actions
+      e confirmar a primeira atualização com assinatura publicada).
 - [x] Implementar no launcher a consulta opcional do manifesto, o download e a validação
       SHA256 dos pacotes de atualização.
 - [x] Publicar `MainERP-0.09.zip` e `version.json` no GitHub público e validar o endpoint

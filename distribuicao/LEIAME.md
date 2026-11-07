@@ -61,15 +61,29 @@ Antes de distribuir uma versão:
 3. Teste a instalação/atualização em uma instalação de teste antes de distribuir aos
    usuários. Para versões que alteram o banco, use uma cópia dos dados, nunca o único
    banco de produção.
-4. Crie e envie uma tag anotada igual à versão, por exemplo `git tag -a v0.10 -m "MainERP 0.10"`
+4. Antes da primeira publicação automatizada, configure em **Settings > Secrets and variables
+   > Actions** o secret `MAINERP_ED25519_PRIVATE_KEY`. Gere a chave uma única vez com
+   `python distribuicao\gerar_chave_assinatura.py`; o PEM privado fica fora do repositório em
+   `%LOCALAPPDATA%\MainERP\signing\ed25519-private.pem`. Cadastre o conteúdo do arquivo como
+   secret sem incluí-lo em commits, logs ou mensagens. O launcher contém somente a chave
+   pública correspondente.
+5. Crie e envie uma tag anotada igual à versão, por exemplo `git tag -a v0.10 -m "MainERP 0.10"`
    e `git push origin v0.10`. O GitHub Actions confere a tag com `APP_VERSION`,
-   executa Ruff e pytest e, somente se passarem, gera o ZIP e o manifesto com SHA256 e
-   publica os dois assets na GitHub Release mais recente.
+   executa Ruff e pytest, gera ZIP e manifesto SHA256, assina o ZIP com Ed25519 e publica
+   os três assets (`.zip`, `.zip.sig` e `version.json`) na GitHub Release mais recente.
 
 Não reutilize uma tag já publicada. Se o workflow falhar, corrija o problema em um novo
 commit e publique uma nova versão/tag; a release não deve ser montada manualmente com
 artefatos de outro commit. O workflow precisa da permissão `contents: write` habilitada nas
-configurações de Actions do repositório.
+configurações de Actions do repositório. O launcher exige assinatura válida para
+atualizações online e também confere o hash SHA256 e a versão dentro do pacote. Pacotes
+locais continuam sendo aceitos como transferência manual confiável.
+
+Instalações anteriores ao launcher com suporte a Ed25519 precisam atualizar o launcher uma
+vez (por exemplo, executando o instalador atualizado); releases de código não substituem o
+launcher fixo instalado. A release 0.09 e anteriores não têm assinatura Ed25519. Proteja a
+chave privada com acesso restrito e faça cópia segura; para rotacioná-la, atualize a chave
+pública embutida no launcher e o secret do Actions antes de publicar a próxima release.
 
 O nome da versão precisa ser novo e maior que as versões já instaladas. O launcher compara
 as sequências numéricas encontradas no nome (por exemplo, `0.08` e `0.09`); versão igual ou
@@ -150,9 +164,10 @@ da release precisam estar públicos. Enquanto o repositório estiver privado, os
 sem acesso não conseguem baixar os arquivos; o aplicativo instalado continua abrindo e o
 launcher registra a falha em `sistema\logs\launcher.log`.
 
-Em cada release, publique **os dois assets** na mesma GitHub Release:
+Em cada release, publique os três assets na mesma GitHub Release:
 
 - `MainERP-<versão>.zip`
+- `MainERP-<versão>.zip.sig`, assinatura Ed25519 em Base64 do ZIP
 - `version.json` gerado junto com esse ZIP.
 
 Marque como **Latest** a release mais nova. O manifesto contém a versão, o nome do ZIP e
@@ -164,30 +179,32 @@ publique também o manifesto correspondente.
 
 Fluxo de publicação:
 
-1. Prepare, valide e gere os artefatos conforme **Preparar uma nova release**.
-2. Na página **Releases** do GitHub, crie uma release para a nova versão/tag e anexe o ZIP
-   e o `version.json`. Publique-a como a versão mais recente (não como pre-release).
-3. Verifique em uma janela anônima que os dois assets podem ser baixados sem login.
+1. Prepare e valide a versão conforme **Preparar uma nova release**; o GitHub Actions gera
+   o ZIP, manifesto e assinatura ao receber a tag.
+2. O workflow publica o ZIP, `.zip.sig` e `version.json` na release marcada como latest.
+3. Verifique em uma janela anônima que os três assets podem ser baixados sem login.
 4. Em uma instalação de teste, abra o MainERP pelo atalho. Instalações novas usam o
-   endpoint padrão; confirme a versão instalada, o SHA256 e o log do launcher antes de
-   anunciar a atualização.
+   endpoint padrão; confirme a versão instalada, a assinatura, o SHA256 e o log do launcher
+   antes de anunciar a atualização.
 5. Os usuários atualizam ao fechar e abrir o MainERP pelo atalho com conexão à internet.
    O launcher consulta o manifesto antes de iniciar o aplicativo; se encontrar versão
    superior, baixa o ZIP, confere o SHA256 e instala. Se a consulta/download falhar, mantém
    a versão já instalada e registra o erro no log.
 
-Para instalações antigas cujo launcher não tenha o endpoint padrão, atualize uma vez o
-launcher e o `%LOCALAPPDATA%\MainERP\sistema\launcher.json` (por exemplo, executando o
-instalador atual ou colocando o endereço acima em `update_url`). Publicar uma release do
-código do aplicativo não substitui o launcher instalado. Depois desse bootstrap, futuras
-releases são detectadas automaticamente. Para desativar atualizações online, defina
+Para instalações antigas cujo launcher não tenha o endpoint padrão ou suporte a Ed25519,
+atualize-o uma vez (por exemplo, executando o instalador atual) e confirme a configuração
+em `%LOCALAPPDATA%\MainERP\sistema\launcher.json`. Publicar uma release do código do
+aplicativo não substitui o launcher fixo instalado. Releases anteriores ao bootstrap não
+validam assinatura; depois dele, futuras atualizações online sem assinatura válida são
+recusadas. Para desativar atualizações online, defina
 `"disable_online_updates": true` no `launcher.json`; pacotes locais continuarão sendo
 processados.
 
-O SHA256 detecta pacote diferente ou corrompido, mas não substitui assinatura digital:
-quem controla o manifesto também pode publicar outro hash. Assinatura dos pacotes ainda
-não está implementada. Proteja a conta GitHub com autenticação multifator e limite quem
-pode publicar releases. O instalador padrão é público e não usa tokens de acesso.
+A assinatura Ed25519 valida a autenticidade do ZIP contra a chave pública embutida no
+launcher; o SHA256 do manifesto também é verificado. O manifesto não é assinado, mas não
+pode substituir um pacote assinado válido. Proteja a conta GitHub com autenticação
+multifator e limite quem pode publicar releases. O instalador padrão é público e não usa
+tokens de acesso.
 
 ## Diagnóstico de atualização
 

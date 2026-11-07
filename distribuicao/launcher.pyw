@@ -14,6 +14,7 @@
 #
 # Parâmetro opcional: --somente-atualizar (aplica atualizações e não abre o sistema).
 
+import base64
 import contextlib
 import hashlib
 import json
@@ -40,6 +41,7 @@ HASH_REQUISITOS = ROOT / ".requirements.sha256"
 UPDATE_MANIFEST_URL = (
     "https://github.com/otavioxx/main-erp/releases/latest/download/version.json"
 )
+CHAVE_PUBLICA_ED25519_B64 = "H9gLoB9JOf7ca1NHIfbGeuCOh71sG/h5CjhoivGz8KA="
 
 EXIT_REINICIAR = 100  # o sistema pediu reinício
 CODIGOS_NORMAIS = {0, 3}  # 0 = saiu normal, 3 = já havia outra instância aberta
@@ -394,6 +396,36 @@ def baixar(origem, destino):
     os.replace(parcial, destino)
 
 
+def verificar_pacote_assinado(caminho, assinatura_path, sha256, versao):
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", str(sha256)):
+        raise ValueError("SHA256 inválido no manifesto")
+    if sha256_arquivo(caminho).lower() != str(sha256).lower():
+        raise ValueError("o SHA256 do pacote não confere; atualização recusada")
+
+    with zipfile.ZipFile(caminho) as zf:
+        versao_pacote = ler_versao_do_zip(zf)
+    if versao_pacote != versao:
+        raise ValueError(
+            f"versão do manifesto ({versao}) não corresponde ao pacote "
+            f"({versao_pacote})"
+        )
+
+    try:
+        chave_publica = Ed25519PublicKey.from_public_bytes(
+            base64.b64decode(CHAVE_PUBLICA_ED25519_B64, validate=True)
+        )
+        assinatura_texto = assinatura_path.read_text(encoding="ascii").strip()
+        assinatura = base64.b64decode(assinatura_texto, validate=True)
+        if len(assinatura) != 64:
+            raise ValueError("assinatura Ed25519 inválida")
+        chave_publica.verify(assinatura, caminho.read_bytes())
+    except InvalidSignature as error:
+        raise ValueError("assinatura Ed25519 inválida; atualização recusada") from error
+
+
 def atualizar_online(aviso):
     try:
         cfg = json.loads(CONFIG.read_text(encoding="utf-8")) if CONFIG.exists() else {}
@@ -410,19 +442,30 @@ def atualizar_online(aviso):
     try:
         manifesto = ler_manifesto(origem)
         versao = str(manifesto["version"])
+        if not re.fullmatch(r"[0-9A-Za-z._-]+", versao):
+            raise ValueError(f"versão inválida no manifesto: {versao!r}")
         conhecidas = releases_conhecidas()
         if conhecidas and chave_versao(versao) <= chave_versao(conhecidas[-1]):
             return
         sha = manifesto["sha256"]  # obrigatório
+        url_zip = resolver_url(origem, manifesto["url"])
+        url_assinatura = f"{url_zip}.sig"
         aviso.mostrar(f"Baixando atualização {versao} do MainERP...\nAguarde.")
         ATUALIZACOES.mkdir(parents=True, exist_ok=True)
         zip_path = ATUALIZACOES / f"MainERP-{versao}.zip"
-        baixar(resolver_url(origem, manifesto["url"]), zip_path)
+        assinatura_path = ATUALIZACOES / f"MainERP-{versao}.zip.sig"
         try:
+            baixar(url_zip, zip_path)
+            baixar(url_assinatura, assinatura_path)
+            verificar_pacote_assinado(zip_path, assinatura_path, sha, versao)
             instalar_zip(zip_path, sha256=sha)
             mover_zip(zip_path, "aplicadas")
+            mover_zip(assinatura_path, "aplicadas")
         except Exception:
-            mover_zip(zip_path, "invalidas")
+            if zip_path.exists():
+                mover_zip(zip_path, "invalidas")
+            if assinatura_path.exists():
+                mover_zip(assinatura_path, "invalidas")
             raise
     except Exception as e:
         # sem rede ou servidor fora do ar é normal: segue com a versão instalada

@@ -89,13 +89,18 @@ fechamento do sistema.
 1. Aumente `APP_VERSION` em `mainerp/core/config.py`.
 2. Atualize também a versão e a data exibidas na linha 54 de
    `mainerp/ui/views/main_window.py` (barra de status).
-3. Execute `verificar.bat` localmente. Atualize e envie o commit para `main`.
-4. Crie e envie uma tag anotada que corresponda exatamente a `APP_VERSION`, por exemplo:
+3. Configure no repositório, em **Settings > Secrets and variables > Actions**, o secret
+   `MAINERP_ED25519_PRIVATE_KEY` com o conteúdo PEM da chave privada. Gere essa chave uma
+   única vez com `python distribuicao\gerar_chave_assinatura.py`; ela fica fora do repositório
+   em `%LOCALAPPDATA%\MainERP\signing\ed25519-private.pem`. Nunca a versione nem a envie por
+   chat. O launcher contém somente a chave pública.
+4. Execute `verificar.bat` localmente. Atualize e envie o commit para `main`.
+5. Crie e envie uma tag anotada que corresponda exatamente a `APP_VERSION`, por exemplo:
    `git tag -a v0.10 -m "MainERP 0.10"` e `git push origin v0.10`.
-5. O GitHub Actions valida a tag, executa Ruff e pytest e, se tudo passar, gera
-   `dist\MainERP-<versão>.zip` e `dist\version.json` e publica ambos na GitHub Release
-   marcada como latest. Não recicle tags já publicadas.
-6. Usuários com o launcher configurado para o manifesto da GitHub Release recebem a versão
+6. O GitHub Actions valida a tag, executa Ruff e pytest, gera o ZIP e o manifesto, assina o
+   ZIP com Ed25519 e publica os três assets (`.zip`, `.zip.sig` e `version.json`) como latest.
+   Não recicle tags já publicadas.
+7. Usuários com o launcher configurado para o manifesto da GitHub Release recebem a versão
    ao fechar e abrir o MainERP pelo atalho.
 
 Para gerar e inspecionar o pacote localmente: `python distribuicao/criar_release.py`
