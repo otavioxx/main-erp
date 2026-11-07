@@ -105,10 +105,10 @@ MainERP/
 - [ ] Assinar os pacotes de release (ed25519) e validar a assinatura no launcher.
 - [x] Implementar no launcher a consulta opcional do manifesto, o download e a validação
       SHA256 dos pacotes de atualização.
-- [x] Publicar `MainERP-0.08.zip` e `version.json` no GitHub, tornar o repositório público
-      e validar o endpoint latest; o ZIP baixado confere com o SHA256 do manifesto.
-- [ ] Publicar no GitHub o padrão do endpoint no launcher/instalador e validar a atualização
-      automática de ponta a ponta; instalações existentes podem precisar do bootstrap do launcher.
+- [x] Publicar `MainERP-0.09.zip` e `version.json` no GitHub público e validar o endpoint
+      latest; o ZIP baixado confere com o SHA256 do manifesto.
+- [x] Publicar o padrão do endpoint no launcher/instalador e validar a atualização online
+      isolada de 0.08 para 0.09; instalações antigas podem precisar do bootstrap do launcher.
 - [x] Gerar manualmente o ZIP e o manifesto `version.json` com SHA256 por
       `distribuicao/criar_release.py`, e executar Ruff/pytest por `verificar.bat`.
 - [ ] Automatizar o pipeline de release no GitHub Actions (Ruff, testes, ZIP e SHA256).
