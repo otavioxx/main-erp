@@ -1,4 +1,11 @@
-# MainERP 0.08 - distribuição sem PyInstaller
+# MainERP 0.09 - distribuição sem PyInstaller
+
+## Novidades da versão 0.09
+
+- O launcher e o instalador usam o manifesto público do GitHub Releases como padrão para
+  verificar atualizações online.
+- URLs personalizadas existentes e a opção explícita de desativar as atualizações são
+  preservadas.
 
 ## Novidades da versão 0.08
 
@@ -132,8 +139,9 @@ O launcher usa por padrão o manifesto:
 `https://github.com/otavioxx/main-erp/releases/latest/download/version.json`
 
 O instalador grava esse endereço em
-`%LOCALAPPDATA%\MainERP\sistema\launcher.json`. Se o arquivo já tiver uma URL própria,
-ela é preservada. Para as atualizações anônimas funcionarem, o repositório e os assets
+`%LOCALAPPDATA%\MainERP\sistema\launcher.json` em instalações novas ou quando a URL está
+vazia. Se o arquivo já tiver uma URL própria, ela é preservada. Para as atualizações
+anônimas funcionarem, o repositório e os assets
 da release precisam estar públicos. Enquanto o repositório estiver privado, os usuários
 sem acesso não conseguem baixar os arquivos; o aplicativo instalado continua abrindo e o
 launcher registra a falha em `sistema\logs\launcher.log`.
@@ -156,18 +164,19 @@ Fluxo de publicação:
 2. Na página **Releases** do GitHub, crie uma release para a nova versão/tag e anexe o ZIP
    e o `version.json`. Publique-a como a versão mais recente (não como pre-release).
 3. Verifique em uma janela anônima que os dois assets podem ser baixados sem login.
-4. Em uma instalação de teste, configure `launcher.json` para o endpoint acima e abra o
-   MainERP pelo atalho. Confirme a versão instalada, o SHA256 e o log do launcher antes de
+4. Em uma instalação de teste, abra o MainERP pelo atalho. Instalações novas usam o
+   endpoint padrão; confirme a versão instalada, o SHA256 e o log do launcher antes de
    anunciar a atualização.
 5. Os usuários atualizam ao fechar e abrir o MainERP pelo atalho com conexão à internet.
    O launcher consulta o manifesto antes de iniciar o aplicativo; se encontrar versão
    superior, baixa o ZIP, confere o SHA256 e instala. Se a consulta/download falhar, mantém
    a versão já instalada e registra o erro no log.
 
-Para instalações antigas, atualize uma vez o launcher e o
-`%LOCALAPPDATA%\MainERP\sistema\launcher.json` (por exemplo, executando o instalador atual
-ou colocando o endereço acima em `update_url`). Depois disso, futuras releases são
-detectadas automaticamente. Para desativar atualizações online, defina
+Para instalações antigas cujo launcher não tenha o endpoint padrão, atualize uma vez o
+launcher e o `%LOCALAPPDATA%\MainERP\sistema\launcher.json` (por exemplo, executando o
+instalador atual ou colocando o endereço acima em `update_url`). Publicar uma release do
+código do aplicativo não substitui o launcher instalado. Depois desse bootstrap, futuras
+releases são detectadas automaticamente. Para desativar atualizações online, defina
 `"disable_online_updates": true` no `launcher.json`; pacotes locais continuarão sendo
 processados.
 
