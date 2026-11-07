@@ -150,3 +150,64 @@ def test_ajuste_de_ultima_parcela_cria_parcela_para_o_saldo(database):
         .fetchone()
     )
     assert parcela == (3, 2000, "2026-03-31")
+
+
+def test_buscar_para_recebimento_le_valores_em_centavos(database):
+    with database.transacao() as cursor:
+        cursor.execute("INSERT INTO clientes (id, nome) VALUES (7, 'Cliente')")
+        cursor.execute("INSERT INTO vendas (id, cliente_id, total) VALUES (42, 7, 25)")
+        cursor.execute(
+            """
+            INSERT INTO duplicatas
+            (id, venda_id, cliente_id, numero_parcela, valor_parcela, data_vencimento)
+            VALUES (5, 42, 7, 1, 10, '2026-01-15')
+            """
+        )
+        cursor.execute(
+            """
+            INSERT INTO duplicatas_pagas
+            (id, venda_id, cliente_id, numero_parcela, valor_original,
+             valor_recebido, data_vencimento, data_pagamento, forma_pagamento)
+            VALUES (6, 42, 7, 2, 8, 7, '2026-02-15', '2026-02-15', 'Dinheiro')
+            """
+        )
+        cursor.execute("UPDATE vendas SET total_centavos = 2600 WHERE id = 42")
+        cursor.execute(
+            "UPDATE duplicatas SET valor_parcela_centavos = 1100 WHERE id = 5"
+        )
+        cursor.execute(
+            """
+            UPDATE duplicatas_pagas
+            SET valor_original_centavos = 900, valor_recebido_centavos = 800
+            WHERE id = 6
+            """
+        )
+
+    registros = duplicata_model.Duplicata.buscar_para_recebimento()
+
+    aberta = next(registro for registro in registros if registro[7] == "aberto")
+    paga = next(registro for registro in registros if registro[7] == "pago")
+    assert (aberta[4], aberta[9]) == (11.0, 26.0)
+    assert (paga[4], paga[9]) == (9.0, 26.0)
+
+
+def test_ajustar_parcelas_persiste_novo_valor_em_centavos(database):
+    with database.transacao() as cursor:
+        cursor.execute("INSERT INTO clientes (id, nome) VALUES (7, 'Cliente')")
+        cursor.execute("INSERT INTO vendas (id, cliente_id) VALUES (42, 7)")
+        cursor.execute(
+            """
+            INSERT INTO duplicatas
+            (id, venda_id, cliente_id, numero_parcela, valor_parcela,
+             valor_parcela_centavos, data_vencimento, status)
+            VALUES
+                (5, 42, 7, 1, 100, 10000, '2026-03-01', 'aberto'),
+                (6, 42, 7, 2, 100, 10000, '2026-03-31', 'aberto')
+            """
+        )
+
+    duplicata_model.Duplicata.ajustar_parcelas_restantes(42, 5, 80)
+
+    assert database.get_connection().execute(
+        "SELECT valor_parcela_centavos FROM duplicatas WHERE id = 6"
+    ).fetchone() == (12000,)

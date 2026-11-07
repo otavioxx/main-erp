@@ -182,6 +182,40 @@ class Duplicata:
             return cursor.fetchall()
 
     @staticmethod
+    def _registrar_pagamento(
+        cursor,
+        venda_id,
+        cliente_id,
+        numero_parcela,
+        valor_original_centavos,
+        valor_recebido_centavos,
+        data_vencimento,
+        data_pagamento,
+        forma_pagamento,
+    ):
+        cursor.execute(
+            """
+            INSERT INTO duplicatas_pagas
+            (venda_id, cliente_id, numero_parcela, valor_original, valor_recebido,
+             valor_original_centavos, valor_recebido_centavos, data_vencimento,
+             data_pagamento, forma_pagamento)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                venda_id,
+                cliente_id,
+                numero_parcela,
+                float(de_centavos(valor_original_centavos)),
+                float(de_centavos(valor_recebido_centavos)),
+                valor_original_centavos,
+                valor_recebido_centavos,
+                data_vencimento,
+                data_pagamento,
+                forma_pagamento,
+            ),
+        )
+
+    @staticmethod
     def buscar_para_recebimento():
         """Busca parcelas abertas e pagas no formato consumido pela tela de recebimentos."""
         query = """
@@ -190,12 +224,12 @@ class Duplicata:
                 d.cliente_id,
                 d.venda_id,
                 d.numero_parcela,
-                d.valor_parcela as valor,
+                d.valor_parcela_centavos as valor,
                 d.data_vencimento,
                 NULL as data_pagamento,
                 'aberto' as status,
                 c.nome as cliente_nome,
-                v.total as venda_total,
+                v.total_centavos as venda_total,
                 v.data_venda,
                 NULL as forma_pagamento,
                 0 as is_paga
@@ -211,12 +245,12 @@ class Duplicata:
                 dp.cliente_id,
                 dp.venda_id,
                 dp.numero_parcela,
-                dp.valor_original as valor,
+                dp.valor_original_centavos as valor,
                 dp.data_vencimento,
                 dp.data_pagamento,
                 'pago' as status,
                 c.nome as cliente_nome,
-                v.total as venda_total,
+                v.total_centavos as venda_total,
                 v.data_venda,
                 dp.forma_pagamento,
                 1 as is_paga
@@ -227,7 +261,16 @@ class Duplicata:
         """
         with obter_database().transacao() as cursor:
             cursor.execute(query)
-            return cursor.fetchall()
+            return [
+                (
+                    *dados[:4],
+                    float(de_centavos(dados[4])),
+                    *dados[5:9],
+                    float(de_centavos(dados[9])) if dados[9] is not None else 0.0,
+                    *dados[10:],
+                )
+                for dados in cursor.fetchall()
+            ]
 
     @staticmethod
     def contar_parcelas_por_venda(venda_id):
@@ -250,14 +293,17 @@ class Duplicata:
         with obter_database().transacao() as cursor:
             cursor.execute(
                 """
-                SELECT c.nome, c.cpf_cnpj, c.endereco, v.total, v.data_venda
+                SELECT c.nome, c.cpf_cnpj, c.endereco, v.total_centavos, v.data_venda
                 FROM clientes c
                 LEFT JOIN vendas v ON v.cliente_id = c.id
                 WHERE c.id = ? AND v.id = ?
                 """,
                 (cliente_id, venda_id),
             )
-            return cursor.fetchone()
+            dados = cursor.fetchone()
+            if not dados:
+                return None
+            return (*dados[:3], float(de_centavos(dados[3])), *dados[4:])
 
     @staticmethod
     def buscar_por_status(status):
@@ -317,29 +363,32 @@ class Duplicata:
         with obter_database().transacao() as cursor:
             # Buscar duplicata
             cursor.execute(
-                "SELECT id, venda_id, cliente_id, numero_parcela, valor_parcela, data_vencimento FROM duplicatas WHERE id = ?",
+                """
+                SELECT id, venda_id, cliente_id, numero_parcela,
+                       valor_parcela_centavos, data_vencimento
+                FROM duplicatas WHERE id = ?
+                """,
                 (duplicata_id,),
             )
             duplicata = cursor.fetchone()
             if not duplicata:
                 raise ErroERP("Duplicata não encontrada")
 
-            valor_original = float(duplicata[4])
+            valor_original_centavos = duplicata[4]
             venda_id = duplicata[1]
             cliente_id = duplicata[2]
             numero_parcela = duplicata[3]
             data_vencimento = duplicata[5]
 
             # Calcular diferença
-            diferenca = float(valor_recebido) - valor_original
-            diferenca_centavos = para_centavos(valor_recebido) - para_centavos(
-                valor_original
-            )
+            valor_recebido_centavos = para_centavos(valor_recebido)
+            diferenca_centavos = valor_recebido_centavos - valor_original_centavos
+            diferenca = float(de_centavos(diferenca_centavos))
 
             # Buscar parcelas restantes
             cursor.execute(
                 """
-                SELECT id, numero_parcela, valor_parcela FROM duplicatas
+                SELECT id, numero_parcela, valor_parcela_centavos FROM duplicatas
                 WHERE venda_id = ? AND id != ? AND status = 'aberto'
                 ORDER BY numero_parcela
             """,
@@ -367,7 +416,7 @@ class Duplicata:
                 if diferenca > 0:  # Pagou a mais
                     # Calcular o total das parcelas restantes
                     total_parcelas_restantes = sum(
-                        float(p[2]) for p in parcelas_restantes
+                        float(de_centavos(p[2])) for p in parcelas_restantes
                     )
 
                     if diferenca >= total_parcelas_restantes:
@@ -378,23 +427,16 @@ class Duplicata:
                             valor_parcela,
                         ) in parcelas_restantes:
                             # Inserir na tabela de pagas
-                            cursor.execute(
-                                """
-                                INSERT INTO duplicatas_pagas
-                                (venda_id, cliente_id, numero_parcela, valor_original, valor_recebido,
-                                data_vencimento, data_pagamento, forma_pagamento)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                            """,
-                                (
-                                    venda_id,
-                                    cliente_id,
-                                    num_parcela,
-                                    float(valor_parcela),
-                                    float(valor_parcela),
-                                    data_vencimento,
-                                    data_pagamento,
-                                    forma_pagamento,
-                                ),
+                            Duplicata._registrar_pagamento(
+                                cursor,
+                                venda_id,
+                                cliente_id,
+                                num_parcela,
+                                valor_parcela,
+                                valor_parcela,
+                                data_vencimento,
+                                data_pagamento,
+                                forma_pagamento,
                             )
 
                             # Remover da tabela duplicatas
@@ -408,27 +450,21 @@ class Duplicata:
                             num_parcela,
                             valor_parcela,
                         ) in parcelas_restantes:
-                            novo_valor = float(valor_parcela) - ajuste_por_parcela
+                            valor_parcela_reais = float(de_centavos(valor_parcela))
+                            novo_valor = valor_parcela_reais - ajuste_por_parcela
 
                             if novo_valor <= 0:
                                 # Parcela quitada automaticamente
-                                cursor.execute(
-                                    """
-                                    INSERT INTO duplicatas_pagas
-                                    (venda_id, cliente_id, numero_parcela, valor_original, valor_recebido,
-                                    data_vencimento, data_pagamento, forma_pagamento)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                                """,
-                                    (
-                                        venda_id,
-                                        cliente_id,
-                                        num_parcela,
-                                        float(valor_parcela),
-                                        float(valor_parcela),
-                                        data_vencimento,
-                                        data_pagamento,
-                                        forma_pagamento,
-                                    ),
+                                Duplicata._registrar_pagamento(
+                                    cursor,
+                                    venda_id,
+                                    cliente_id,
+                                    num_parcela,
+                                    valor_parcela,
+                                    valor_parcela,
+                                    data_vencimento,
+                                    data_pagamento,
+                                    forma_pagamento,
                                 )
 
                                 cursor.execute(
@@ -437,36 +473,43 @@ class Duplicata:
                             else:
                                 # Atualizar valor da parcela
                                 cursor.execute(
-                                    "UPDATE duplicatas SET valor_parcela = ? WHERE id = ?",
-                                    (novo_valor, parcela_id),
+                                    """
+                                    UPDATE duplicatas
+                                    SET valor_parcela = ?, valor_parcela_centavos = ?
+                                    WHERE id = ?
+                                    """,
+                                    (
+                                        novo_valor,
+                                        para_centavos(novo_valor),
+                                        parcela_id,
+                                    ),
                                 )
                 else:
                     # Pagou a menos - aumentar o valor das parcelas restantes
                     for parcela_id, _num_parcela, valor_parcela in parcelas_restantes:
-                        novo_valor = float(valor_parcela) + abs(ajuste_por_parcela)
+                        novo_valor = float(de_centavos(valor_parcela)) + abs(
+                            ajuste_por_parcela
+                        )
                         cursor.execute(
-                            "UPDATE duplicatas SET valor_parcela = ? WHERE id = ?",
-                            (novo_valor, parcela_id),
+                            """
+                            UPDATE duplicatas
+                            SET valor_parcela = ?, valor_parcela_centavos = ?
+                            WHERE id = ?
+                            """,
+                            (novo_valor, para_centavos(novo_valor), parcela_id),
                         )
 
             # Inserir a parcela atual em duplicatas_pagas
-            cursor.execute(
-                """
-                INSERT INTO duplicatas_pagas
-                (venda_id, cliente_id, numero_parcela, valor_original, valor_recebido,
-                data_vencimento, data_pagamento, forma_pagamento)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    venda_id,
-                    cliente_id,
-                    numero_parcela,
-                    valor_original,
-                    valor_recebido,
-                    data_vencimento,
-                    data_pagamento,
-                    forma_pagamento,
-                ),
+            Duplicata._registrar_pagamento(
+                cursor,
+                venda_id,
+                cliente_id,
+                numero_parcela,
+                valor_original_centavos,
+                valor_recebido_centavos,
+                data_vencimento,
+                data_pagamento,
+                forma_pagamento,
             )
 
             # Remover da tabela duplicatas
@@ -502,7 +545,8 @@ class Duplicata:
             if valor_original is None:
                 cursor.execute(
                     """
-                    SELECT valor_parcela, cliente_id, numero_parcela, data_vencimento
+                    SELECT valor_parcela_centavos, cliente_id, numero_parcela,
+                           data_vencimento
                     FROM duplicatas WHERE id = ?
                     """,
                     (duplicata_id,),
@@ -512,7 +556,8 @@ class Duplicata:
                     raise ErroERP(
                         "Não foi possível obter o valor da duplicata original para ajuste."
                     )
-                valor_original = float(row[0])
+                valor_original_centavos = row[0]
+                valor_original = float(de_centavos(valor_original_centavos))
                 cliente_id, numero_parcela, data_vencimento = row[1:]
             else:
                 cursor.execute(
@@ -527,12 +572,13 @@ class Duplicata:
                     cliente_id, numero_parcela, data_vencimento = row
                 else:
                     cliente_id = numero_parcela = data_vencimento = None
+                valor_original_centavos = para_centavos(valor_original)
 
             diferenca = float(valor_pago) - float(valor_original)
             diferenca_centavos = para_centavos(valor_pago) - para_centavos(
                 valor_original
             )
-            if abs(diferenca) < 1e-9:
+            if diferenca_centavos == 0:
                 # Nada a ajustar
                 return
 
@@ -541,7 +587,8 @@ class Duplicata:
             # Buscar parcelas restantes abertas
             cursor.execute(
                 """
-                SELECT id, numero_parcela, valor_parcela, cliente_id, data_vencimento
+                SELECT id, numero_parcela, valor_parcela_centavos,
+                       cliente_id, data_vencimento
                 FROM duplicatas
                 WHERE venda_id = ? AND id != ? AND status = 'aberto'
                 ORDER BY numero_parcela
@@ -573,10 +620,14 @@ class Duplicata:
             hoje = datetime.now().date()
 
             for parcela in parcelas_restantes:
-                parcela_id, numero_parcela, valor_parcela, cliente_id, data_venc = (
-                    parcela
-                )
-                valor_parcela = float(valor_parcela)
+                (
+                    parcela_id,
+                    numero_parcela,
+                    valor_parcela_centavos,
+                    cliente_id,
+                    data_venc,
+                ) = parcela
+                valor_parcela = float(de_centavos(valor_parcela_centavos))
 
                 novo_valor = (
                     round(valor_parcela - ajuste, 2)
@@ -586,21 +637,16 @@ class Duplicata:
 
                 if novo_valor <= 0:
                     # Parcela quitada automaticamente
-                    cursor.execute(
-                        """
-                        INSERT INTO duplicatas_pagas
-                        (venda_id, cliente_id, numero_parcela, valor_original, valor_recebido, data_vencimento, data_pagamento)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """,
-                        (
-                            venda_id,
-                            cliente_id,
-                            numero_parcela,
-                            valor_parcela,
-                            valor_parcela,
-                            data_venc,
-                            hoje,
-                        ),
+                    Duplicata._registrar_pagamento(
+                        cursor,
+                        venda_id,
+                        cliente_id,
+                        numero_parcela,
+                        valor_parcela_centavos,
+                        valor_parcela_centavos,
+                        data_venc,
+                        hoje,
+                        None,
                     )
                     cursor.execute("DELETE FROM duplicatas WHERE id = ?", (parcela_id,))
                     logger.debug(
@@ -612,10 +658,10 @@ class Duplicata:
                     cursor.execute(
                         """
                         UPDATE duplicatas
-                        SET valor_parcela = ?
+                        SET valor_parcela = ?, valor_parcela_centavos = ?
                         WHERE id = ? AND status = 'aberto'
                     """,
-                        (novo_valor, parcela_id),
+                        (novo_valor, para_centavos(novo_valor), parcela_id),
                     )
                     logger.debug(
                         "Parcela %s ajustada para R$ %.2f",
