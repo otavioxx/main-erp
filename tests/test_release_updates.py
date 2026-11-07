@@ -18,7 +18,7 @@ UPDATE_MANIFEST_URL = (
 
 def _carregar_modulo(caminho: Path, nome: str):
     loader = importlib.machinery.SourceFileLoader(nome, str(caminho))
-    spec = importlib.util.spec_from_file_location(nome, caminho)
+    spec = importlib.util.spec_from_loader(nome, loader)
     if spec is None:
         raise ImportError(f"Não foi possível carregar {caminho}")
     modulo = importlib.util.module_from_spec(spec)
