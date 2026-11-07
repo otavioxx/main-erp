@@ -44,9 +44,8 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
 - [x] Criar o pacote `mainerp/` com núcleo, dados, domínio, UI e relatórios; manter `main.py`
       na raiz para o launcher.
 - [ ] Unificar as 9 cópias de `NumericTableWidgetItem` e as 2 de `BackupConfig`.
-- [ ] Quebrar os arquivos acima de 900 linhas (`mainerp/ui/dialogs/condicional_dialog`,
-      `venda_dialog`, `pedido_dialog`, `mainerp/ui/views/recebimento_view`,
-      `condicional_view`) em componentes menores.
+- [x] Quebrar os arquivos grandes de diálogos e telas em componentes separados de
+      layout, entrada, operações, filtros, ações e persistência.
 - [ ] Decidir sobre `BaseTableView`: adotar nas 7 telas de listagem (reduz código repetido)
       ou apagar.
 - [x] Splash: substituir os atrasos artificiais por progresso das etapas reais de
