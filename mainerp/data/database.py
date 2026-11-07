@@ -30,7 +30,7 @@ class Database:
     # (versão, nome do método). Nunca renumere nem apague entradas antigas.
     MIGRACOES: ClassVar[list[tuple[int, str]]] = [
         (1, "_migracao_001_esquema_base"),
-        # (2, "_migracao_002_exemplo"),
+        (2, "_migracao_002_indices_consultas_frequentes"),
     ]
 
     MANTER_BACKUPS_MIGRACAO = 10
@@ -198,6 +198,69 @@ class Database:
             """)
 
         self._garantir_coluna(cursor, "pedidos", "desconto", "REAL DEFAULT 0")
+
+    def _migracao_002_indices_consultas_frequentes(self):
+        cursor = self.get_connection().cursor()
+        indices = (
+            ("idx_vendas_status_data", "vendas", ("status", "data_venda")),
+            (
+                "idx_vendas_cliente_status_data",
+                "vendas",
+                ("cliente_id", "status", "data_venda"),
+            ),
+            ("idx_pedidos_status_data", "pedidos", ("status", "data_pedido")),
+            (
+                "idx_pedidos_fornecedor_status_data",
+                "pedidos",
+                ("fornecedor_id", "status", "data_pedido"),
+            ),
+            (
+                "idx_condicionais_status_data",
+                "condicionais",
+                ("status", "data_condicional"),
+            ),
+            (
+                "idx_condicionais_cliente_status_data",
+                "condicionais",
+                ("cliente_id", "status", "data_condicional"),
+            ),
+            (
+                "idx_duplicatas_status_vencimento",
+                "duplicatas",
+                ("status", "data_vencimento"),
+            ),
+            (
+                "idx_duplicatas_cliente_status_vencimento",
+                "duplicatas",
+                ("cliente_id", "status", "data_vencimento"),
+            ),
+            ("idx_duplicatas_venda_status", "duplicatas", ("venda_id", "status")),
+            (
+                "idx_duplicatas_pagas_cliente_data",
+                "duplicatas_pagas",
+                ("cliente_id", "data_pagamento"),
+            ),
+            (
+                "idx_duplicatas_pagas_venda",
+                "duplicatas_pagas",
+                ("venda_id",),
+            ),
+            ("idx_itens_venda_venda", "itens_venda", ("venda_id",)),
+            (
+                "idx_itens_condicional_condicional",
+                "itens_condicional",
+                ("condicional_id",),
+            ),
+            ("idx_itens_pedido_pedido", "itens_pedido", ("pedido_id",)),
+        )
+
+        for nome, tabela, colunas in indices:
+            if not set(colunas).issubset(self._colunas(cursor, tabela)):
+                continue
+            colunas_sql = ", ".join(colunas)
+            cursor.execute(
+                f"CREATE INDEX IF NOT EXISTS {nome} ON {tabela} ({colunas_sql})"
+            )
 
     def init_database(self):
         conn = self.get_connection()

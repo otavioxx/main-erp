@@ -37,7 +37,8 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
       `venda_view`, `pedido_view`) para `mainerp/data/models/` e repositórios.
 - [ ] **Dinheiro**: 23 colunas `REAL` (float) acumulam erro de arredondamento. Migrar para
       centavos inteiros (`INTEGER`) ou `Decimal`, com migração numerada e testes antes.
-- [ ] Índices nas colunas mais filtradas (cliente, data, status) e `PRAGMA foreign_keys` já ativo.
+- [x] Índices nas colunas mais filtradas (cliente, data, status); `PRAGMA foreign_keys`
+      permanece ativo.
 
 ## Fase 3 — Reestruturação (2 a 4 semanas)
 
