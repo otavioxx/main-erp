@@ -74,9 +74,9 @@ class Cliente:
 
             conn.commit()
 
-        except sqlite3.IntegrityError:
+        except sqlite3.IntegrityError as e:
             conn.rollback()
-            raise ValueError("Já existe um cliente cadastrado com este CPF/CNPJ")
+            raise ValueError("Já existe um cliente cadastrado com este CPF/CNPJ") from e
 
         finally:
             conn.close()

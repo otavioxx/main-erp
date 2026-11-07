@@ -6,6 +6,7 @@ Simplificado e integrado com VendaUtils refatorado
 from datetime import datetime
 from typing import Any, Optional
 
+from exceptions import ErroERP
 from models.base_model import BaseModel
 from utils.database_utils import DatabaseUtils
 
@@ -69,7 +70,7 @@ class Venda(BaseModel):
             else:
                 return self._inserir()
         except Exception as e:
-            raise Exception(f"Erro ao salvar venda: {e!s}")
+            raise ErroERP(f"Erro ao salvar venda: {e!s}") from e
 
     def _inserir(self) -> int:
         """Insere nova venda"""
@@ -146,7 +147,7 @@ class Venda(BaseModel):
             return True
 
         except Exception as e:
-            raise Exception(f"Erro ao excluir venda: {e!s}")
+            raise ErroERP(f"Erro ao excluir venda: {e!s}") from e
 
     def cancelar(self) -> bool:
         """Cancela venda e devolve estoque"""
@@ -164,7 +165,7 @@ class Venda(BaseModel):
             return True
 
         except Exception as e:
-            raise Exception(f"Erro ao cancelar venda: {e!s}")
+            raise ErroERP(f"Erro ao cancelar venda: {e!s}") from e
 
     # ========== MÉTODOS DE CONSULTA ==========
 
@@ -253,7 +254,7 @@ class Venda(BaseModel):
 
     @classmethod
     def buscar_todas(
-        cls, limite: int = None, apenas_ativas: bool = True
+        cls, limite: int | None = None, apenas_ativas: bool = True
     ) -> list["Venda"]:
         """Busca todas as vendas"""
         query = "SELECT * FROM vendas"
@@ -367,7 +368,7 @@ class Venda(BaseModel):
                 raise ValueError(erro_estoque)
 
             # Calcular totais
-            subtotal, total = VendaUtils.calcular_totais_venda(produtos, desconto)
+            _subtotal, total = VendaUtils.calcular_totais_venda(produtos, desconto)
 
             # Determinar status
             status = VendaStatus.CONCLUIDA
@@ -397,7 +398,7 @@ class Venda(BaseModel):
             return venda
 
         except Exception as e:
-            raise Exception(f"Erro ao criar venda: {e!s}")
+            raise ErroERP(f"Erro ao criar venda: {e!s}") from e
 
     # ========== MÉTODOS AUXILIARES ==========
 

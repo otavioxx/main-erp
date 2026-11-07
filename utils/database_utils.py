@@ -17,9 +17,9 @@ class DatabaseUtils:
                 return cursor.fetchall()
             conn.commit()
             return cursor.lastrowid
-        except Exception as e:
+        except Exception:
             conn.rollback()
-            raise e
+            raise
         finally:
             pass
 
@@ -65,7 +65,7 @@ class DatabaseUtils:
                     time.sleep(0.1 * tentativa)
                     continue
                 else:
-                    raise e
+                    raise
             finally:
                 pass
 

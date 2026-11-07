@@ -1,5 +1,6 @@
 import io
 import os
+import sqlite3
 from datetime import datetime
 
 from PIL import Image as PILImage
@@ -66,7 +67,7 @@ class PrintPedido:
                     db.close_connection()
                 elif hasattr(db, "connection") and db.connection:
                     db.connection.close()
-            except Exception:
+            except sqlite3.Error:
                 pass
 
     @staticmethod
@@ -512,5 +513,5 @@ class PrintPedido:
                     db.close_connection()
                 elif hasattr(db, "connection") and db.connection:
                     db.connection.close()
-            except Exception:
+            except sqlite3.Error:
                 pass

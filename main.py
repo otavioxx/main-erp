@@ -238,7 +238,7 @@ def verificar_instancia_unica(nome_aplicacao):
         def cleanup_mutex():
             try:
                 win32api.CloseHandle(mutex_handle)
-            except:
+            except Exception:  # noqa: S110 - limpeza ao encerrar; nada a fazer se falhar
                 pass
 
         atexit.register(cleanup_mutex)
@@ -285,7 +285,7 @@ def verificar_instancia_unica_simples(nome_aplicacao):
             try:
                 if os.path.exists(lock_file):
                     os.unlink(lock_file)
-            except:
+            except OSError:
                 pass
 
         atexit.register(cleanup_lock)
@@ -333,7 +333,7 @@ def erro_fatal(titulo, detalhe):
         if QApplication.instance() is None:
             QApplication(sys.argv)
         QMessageBox.critical(None, titulo, detalhe)
-    except Exception:
+    except Exception:  # noqa: S110 - ultimo recurso ao reportar um erro fatal
         pass
 
 

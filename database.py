@@ -2,6 +2,7 @@
 import sqlite3
 from datetime import datetime
 from pathlib import Path
+from typing import ClassVar
 
 from config import config, get_config
 
@@ -25,7 +26,7 @@ class Database:
     """
 
     # (versão, nome do método). Nunca renumere nem apague entradas antigas.
-    MIGRACOES = [
+    MIGRACOES: ClassVar[list[tuple[int, str]]] = [
         (1, "_migracao_001_esquema_base"),
         # (2, "_migracao_002_exemplo"),
     ]

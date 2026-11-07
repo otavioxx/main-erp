@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
 from database import Database
 from dialogs.cliente_selection_dialog import ClienteSelectionDialog
 from dialogs.recebimento_dialog import RecebimentoDialog
+from exceptions import ErroERP
 from imprecoes.print_comprovante_recebimento import PrintComprovanteRecebimento
 from imprecoes.print_relat_recebimento import PrintRelatRecebimento
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
@@ -356,7 +357,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                             lambda parent, first, last: aplicar_altura_fixa_segura()
                         )
                         model.modelReset.connect(lambda: aplicar_altura_fixa_segura())
-            except:
+            except RuntimeError:
                 pass
 
         # Conectar sinais após um pequeno delay
@@ -523,13 +524,13 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         if data_inicio_str:
             try:
                 data_inicio = datetime.strptime(data_inicio_str, "%d/%m/%Y").date()
-            except:
+            except (ValueError, TypeError):
                 pass
 
         if data_fim_str:
             try:
                 data_fim = datetime.strptime(data_fim_str, "%d/%m/%Y").date()
-            except:
+            except (ValueError, TypeError):
                 pass
 
         duplicatas_filtradas = []
@@ -578,7 +579,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             try:
                 data_venc = datetime.strptime(data_vencimento, "%Y-%m-%d").date()
                 return data_venc < hoje
-            except:
+            except (ValueError, TypeError):
                 return False
         elif status_filtro == "Pagas":
             return status == "pago"
@@ -601,11 +602,8 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
             if data_inicio and data_ref < data_inicio:
                 return False
 
-            if data_fim and data_ref > data_fim:
-                return False
-
-            return True
-        except:
+            return not (data_fim and data_ref > data_fim)
+        except (ValueError, TypeError):
             return False
 
     def _exibir_duplicatas_otimizado(self, duplicatas):
@@ -704,7 +702,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
                     font = venc_item.font()
                     font.setBold(True)
                     venc_item.setFont(font)
-            except:
+            except (ValueError, TypeError):
                 pass
 
         self.tabela_duplicatas.setItem(row, 6, venc_item)
@@ -818,64 +816,60 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
         self, duplicata, valor_recebido, data_recebimento, forma_pagamento
     ):
         """Processa recebimento e retorna dados da duplicata paga"""
-        try:
-            duplicata_id = duplicata[0]
-            venda_id = duplicata[2]
-            cliente_id = duplicata[1]
-            numero_parcela = duplicata[3]
-            valor_original = duplicata[4]
-            data_vencimento = duplicata[5]
+        duplicata_id = duplicata[0]
+        venda_id = duplicata[2]
+        cliente_id = duplicata[1]
+        numero_parcela = duplicata[3]
+        valor_original = duplicata[4]
+        data_vencimento = duplicata[5]
 
-            # Processar o recebimento
-            success = Duplicata.marcar_como_paga(
-                duplicata_id, valor_recebido, data_recebimento, forma_pagamento
-            )
+        # Processar o recebimento
+        success = Duplicata.marcar_como_paga(
+            duplicata_id, valor_recebido, data_recebimento, forma_pagamento
+        )
 
-            if not success:
-                raise Exception("Falha ao processar recebimento")
+        if not success:
+            raise ErroERP("Falha ao processar recebimento")
 
-            # Buscar dados para comprovante
-            conn = Database().get_connection()
-            cursor = conn.cursor()
+        # Buscar dados para comprovante
+        conn = Database().get_connection()
+        cursor = conn.cursor()
 
-            cursor.execute(
-                """
-                SELECT c.nome, c.cpf_cnpj, c.endereco, v.total, v.data_venda
-                FROM clientes c
-                LEFT JOIN vendas v ON v.cliente_id = c.id
-                WHERE c.id = ? AND v.id = ?
-            """,
-                (cliente_id, venda_id),
-            )
+        cursor.execute(
+            """
+            SELECT c.nome, c.cpf_cnpj, c.endereco, v.total, v.data_venda
+            FROM clientes c
+            LEFT JOIN vendas v ON v.cliente_id = c.id
+            WHERE c.id = ? AND v.id = ?
+        """,
+            (cliente_id, venda_id),
+        )
 
-            cliente_venda = cursor.fetchone()
-            conn.close()
+        cliente_venda = cursor.fetchone()
+        conn.close()
 
-            if not cliente_venda:
-                raise Exception("Dados do cliente/venda não encontrados")
+        if not cliente_venda:
+            raise ErroERP("Dados do cliente/venda não encontrados")
 
-            # Montar dados para comprovante
-            dados_comprovante = {
-                "id": duplicata_id,
-                "venda_id": venda_id,
-                "cliente_id": cliente_id,
-                "numero_parcela": numero_parcela,
-                "valor_original": float(valor_original),
-                "valor_recebido": float(valor_recebido),
-                "data_vencimento": data_vencimento,
-                "data_pagamento": data_recebimento,
-                "forma_pagamento": forma_pagamento,
-                "cliente_nome": cliente_venda[0],
-                "cpf_cnpj": cliente_venda[1],
-                "endereco": cliente_venda[2],
-                "venda_total": float(cliente_venda[3]) if cliente_venda[3] else 0,
-                "data_venda": cliente_venda[4],
-            }
+        # Montar dados para comprovante
+        dados_comprovante = {
+            "id": duplicata_id,
+            "venda_id": venda_id,
+            "cliente_id": cliente_id,
+            "numero_parcela": numero_parcela,
+            "valor_original": float(valor_original),
+            "valor_recebido": float(valor_recebido),
+            "data_vencimento": data_vencimento,
+            "data_pagamento": data_recebimento,
+            "forma_pagamento": forma_pagamento,
+            "cliente_nome": cliente_venda[0],
+            "cpf_cnpj": cliente_venda[1],
+            "endereco": cliente_venda[2],
+            "venda_total": float(cliente_venda[3]) if cliente_venda[3] else 0,
+            "data_venda": cliente_venda[4],
+        }
 
-            return dados_comprovante
-
-        except Exception as e:
-            raise e
+        return dados_comprovante
 
     def _recarregar_dados_apos_recebimento(self):
         """Recarrega dados após recebimento - otimizado"""

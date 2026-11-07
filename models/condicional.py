@@ -76,9 +76,9 @@ class Condicional:
             conn.commit()
             return self.id
 
-        except Exception as e:
+        except Exception:
             conn.rollback()
-            raise e
+            raise
         finally:
             conn.close()
 
@@ -272,6 +272,6 @@ class Condicional:
 
         except Exception as e:
             print(f"Erro ao criar tabelas de condicionais: {e}")
-            raise e
+            raise
         finally:
             pass

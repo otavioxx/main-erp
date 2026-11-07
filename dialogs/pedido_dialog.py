@@ -32,6 +32,7 @@ from utils.helpers import (
     formatar_moeda,
 )
 from utils.pedido_utils import PedidoUtils
+from utils.tabela import fixar_altura_linhas
 
 
 class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
@@ -262,35 +263,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
 
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
-        vheader = self.tabela_produtos.verticalHeader()
-        altura_desejada = 22
-
-        vheader.setDefaultSectionSize(altura_desejada)
-        vheader.setMinimumSectionSize(altura_desejada)
-        vheader.setMaximumSectionSize(altura_desejada)
-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-        vheader.setCascadingSectionResizes(False)
-        vheader.setStretchLastSection(False)
-        vheader.setVisible(False)
-
-        # Função para aplicar altura quando dados forem carregados
-        def aplicar_altura_quando_necessario():
-            try:
-                if hasattr(self, "tabela_produtos") and self.tabela_produtos:
-                    for row in range(self.tabela_produtos.rowCount()):
-                        self.tabela_produtos.setRowHeight(row, altura_desejada)
-            except Exception:
-                pass
-
-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
-        try:
-            if hasattr(self.tabela_produtos, "model"):
-                model = self.tabela_produtos.model()
-                model.rowsInserted.connect(
-                    lambda parent, first, last: aplicar_altura_quando_necessario()
-                )
-        except Exception:
-            pass
+        fixar_altura_linhas(self.tabela_produtos, 22)
         # ========== FIM DA CONFIGURAÇÃO ==========
 
         # Configurações gerais

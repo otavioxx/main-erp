@@ -1,6 +1,7 @@
 import io
 import logging
 import os
+import sqlite3
 from datetime import datetime
 
 from PIL import Image as PILImage
@@ -106,7 +107,7 @@ class PrintCondicional:
         finally:
             try:
                 conn.close()
-            except Exception:
+            except sqlite3.Error:
                 pass
 
     @staticmethod

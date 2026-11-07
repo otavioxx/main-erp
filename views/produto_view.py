@@ -896,7 +896,8 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
                 os.startfile(filename)
             elif os.name == "posix":
                 subprocess.run(
-                    ["open" if sys.platform == "darwin" else "xdg-open", filename]
+                    ["open" if sys.platform == "darwin" else "xdg-open", filename],
+                    check=False,
                 )
         except Exception as e:
             self._mostrar_aviso(f"Não foi possível abrir automaticamente:\n{e}")

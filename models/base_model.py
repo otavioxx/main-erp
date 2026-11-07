@@ -24,9 +24,9 @@ class BaseModel:
                 return cursor.fetchall()
             conn.commit()
             return cursor.lastrowid
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             conn.rollback()
-            raise e
+            raise
         finally:
             conn.close()
 

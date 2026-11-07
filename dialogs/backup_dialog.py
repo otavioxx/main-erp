@@ -69,7 +69,7 @@ class BackupConfig:
                     last_date_str = data.get("last_backup_date", "")
                     if last_date_str:
                         return datetime.fromisoformat(last_date_str)
-            except Exception:
+            except (OSError, ValueError):
                 pass
         return None
 
@@ -211,7 +211,7 @@ class BackupThread(QThread):
                 import shutil
 
                 db_size = os.path.getsize(self.source_db)
-                total, used, free = shutil.disk_usage(self.destination_path)
+                _total, _used, free = shutil.disk_usage(self.destination_path)
                 if (
                     free < db_size * 1.5
                 ):  # Precisa de pelo menos 1.5x o tamanho do banco
@@ -294,7 +294,7 @@ Tamanho original: {os.path.getsize(self.source_db) / (1024 * 1024):.2f} MB
             if temp_zip and os.path.exists(temp_zip):
                 try:
                     os.remove(temp_zip)
-                except Exception:
+                except OSError:
                     pass
             self.backup_error.emit(f"Erro ao criar backup: {e!s}")
 

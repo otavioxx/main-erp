@@ -1,4 +1,5 @@
 # \erp\models\pedido.py
+import sqlite3
 from datetime import datetime
 
 from database import Database
@@ -79,9 +80,9 @@ class Pedido(BaseModel):
                 self.id = cursor.lastrowid
 
             return self.id
-        except Exception as e:
+        except Exception:
             conn.rollback()
-            raise e
+            raise
 
     @classmethod
     def buscar_por_id(cls, id):
@@ -128,7 +129,7 @@ class Pedido(BaseModel):
         finally:
             try:
                 conn.close()
-            except:
+            except sqlite3.Error:
                 pass
 
     @classmethod
@@ -186,7 +187,7 @@ class Pedido(BaseModel):
         finally:
             try:
                 conn.close()
-            except:
+            except sqlite3.Error:
                 pass
 
     def marcar_como_recebido(self):
@@ -235,7 +236,7 @@ class Pedido(BaseModel):
         finally:
             try:
                 conn.close()
-            except:
+            except sqlite3.Error:
                 pass
 
     def calcular_subtotal_produtos(self):

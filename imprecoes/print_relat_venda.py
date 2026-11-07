@@ -369,7 +369,7 @@ class PrintRelatVenda:
                 if isinstance(venda_data, str):
                     try:
                         venda_data = datetime.strptime(venda_data, "%Y-%m-%d").date()
-                    except Exception:
+                    except (ValueError, TypeError):
                         continue
 
                 # Filtro por data

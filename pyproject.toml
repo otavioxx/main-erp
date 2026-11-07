@@ -1,0 +1,28 @@
+[tool.ruff]
+target-version = "py310"
+extend-exclude = ["main.spec"]
+
+[tool.ruff.lint]
+# Regras ligadas: erros reais (F, B, E4/E7/E9), imports ordenados (I) e as
+# famílias de "exceção" que já foram zeradas (não deixe voltar).
+select = [
+    "E4", "E7", "E9", "F", "B", "I",
+    "S110", "S112",              # try/except/pass e try/except/continue
+    "TRY002", "TRY201", "TRY203",  # raise Exception(...), raise e, handler inútil
+    "RUF012", "RUF013", "RUF059",  # tipos e variáveis não usadas
+    "PLW1510",                   # subprocess.run sem check=
+    "SIM102", "SIM103", "SIM117",  # if/with desnecessariamente aninhados
+    "UP036",                     # bloco de versão obsoleto
+]
+ignore = [
+    # TODO (Fase 1 do ROADMAP): 147 ocorrências de "except Exception". Nas telas é
+    # intencional (mostrar QMessageBox). O que falta é registrar o erro em log.
+    # Para ver a dívida: ruff check --select BLE001 --statistics
+    "BLE001",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# main.py precisa chamar paths.preparar_ambiente() ANTES de importar o resto
+# (os módulos leem a pasta de dados na importação); instalar.py ajusta o sys.path.
+"main.py" = ["E402"]
+"distribuicao/instalar.py" = ["E402"]

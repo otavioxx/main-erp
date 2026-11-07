@@ -1,6 +1,7 @@
 import io
 import logging
 import os
+import sqlite3
 from datetime import datetime
 
 from PIL import Image as PILImage
@@ -90,7 +91,7 @@ class PrintRelatPedido:
                         data_inicio = datetime.strptime(
                             data_inicio, "%d/%m/%Y"
                         ).strftime("%Y-%m-%d")
-                    except Exception:
+                    except (ValueError, TypeError):
                         pass
                 params.append(data_inicio)
 
@@ -101,7 +102,7 @@ class PrintRelatPedido:
                         data_fim = datetime.strptime(data_fim, "%d/%m/%Y").strftime(
                             "%Y-%m-%d"
                         )
-                    except Exception:
+                    except (ValueError, TypeError):
                         pass
                 params.append(data_fim)
 
@@ -125,7 +126,7 @@ class PrintRelatPedido:
             try:
                 if conn:
                     conn.close()
-            except Exception:
+            except sqlite3.Error:
                 pass
 
     @staticmethod
@@ -491,7 +492,7 @@ class PrintRelatPedido:
 
                 # Adicionar observações se houver
                 tem_observacoes = False
-                for i, pedido in enumerate(pedidos_data):
+                for pedido in pedidos_data:
                     observacao = pedido[6] if len(pedido) > 6 and pedido[6] else None
                     if observacao:
                         if not tem_observacoes:

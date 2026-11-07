@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Gera o pacote de release do MainERP (um .zip com o código-fonte).
 
 Uso (na pasta do projeto):

@@ -15,9 +15,9 @@ class ExportUtils:
             if os.name == "nt":  # Windows
                 os.startfile(filename)
             elif sys.platform == "darwin":  # macOS
-                subprocess.run(["open", filename])
+                subprocess.run(["open", filename], check=False)
             else:  # Linux e outros
-                subprocess.run(["xdg-open", filename])
+                subprocess.run(["xdg-open", filename], check=False)
             return True
         except Exception:
             return False

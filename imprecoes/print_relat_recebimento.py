@@ -19,6 +19,7 @@ from reportlab.platypus import (
 )
 
 from database import Database
+from exceptions import ErroERP
 from models.empresa import Empresa
 from utils.helpers import formatar_moeda, validar_data
 
@@ -521,4 +522,4 @@ class PrintRelatRecebimento:
             import traceback
 
             traceback.print_exc()
-            raise Exception(f"Erro ao gerar relatório: {e!s}")
+            raise ErroERP(f"Erro ao gerar relatório: {e!s}") from e

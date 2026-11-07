@@ -269,7 +269,7 @@ class ProdutoDialog(QDialog):
                 # Remove conexões existentes de returnPressed
                 try:
                     campo.returnPressed.disconnect()
-                except:
+                except TypeError:
                     pass
                 # Conecta para navegar para próximo campo
                 campo.returnPressed.connect(

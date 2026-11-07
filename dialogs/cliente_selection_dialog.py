@@ -20,6 +20,7 @@ from mixins.dialog_size_mixin import DialogSizeMixin
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
 from models.cliente import Cliente
 from utils.helpers import aplicar_maiuscula_formulario
+from utils.tabela import fixar_altura_linhas
 from views.cliente_view import ClienteDialog
 
 
@@ -101,35 +102,7 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
 
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
-        vheader = self.tabela.verticalHeader()
-        altura_desejada = 22
-
-        vheader.setDefaultSectionSize(altura_desejada)
-        vheader.setMinimumSectionSize(altura_desejada)
-        vheader.setMaximumSectionSize(altura_desejada)
-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-        vheader.setCascadingSectionResizes(False)
-        vheader.setStretchLastSection(False)
-        vheader.setVisible(False)
-
-        # Função para aplicar altura quando dados forem carregados
-        def aplicar_altura_quando_necessario():
-            try:
-                if hasattr(self, "tabela") and self.tabela:
-                    for row in range(self.tabela.rowCount()):
-                        self.tabela.setRowHeight(row, altura_desejada)
-            except Exception:
-                pass
-
-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
-        try:
-            if hasattr(self.tabela, "model"):
-                model = self.tabela.model()
-                model.rowsInserted.connect(
-                    lambda parent, first, last: aplicar_altura_quando_necessario()
-                )
-        except Exception:
-            pass
+        fixar_altura_linhas(self.tabela, 22)
         # ========== FIM DA CONFIGURAÇÃO ==========
 
         self.tabela.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -240,7 +213,7 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
             if hasattr(self, "tabela") and self.tabela:
                 for row in range(self.tabela.rowCount()):
                     self.tabela.setRowHeight(row, 21)
-        except Exception:
+        except RuntimeError:
             pass
 
     def selecionar_cliente(self, index):

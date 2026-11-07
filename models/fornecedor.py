@@ -65,8 +65,8 @@ class Fornecedor(BaseModel):
             if not self.id:
                 self.id = result
 
-        except sqlite3.IntegrityError:
-            raise ValueError("Já existe um fornecedor cadastrado com este CNPJ")
+        except sqlite3.IntegrityError as e:
+            raise ValueError("Já existe um fornecedor cadastrado com este CNPJ") from e
 
     def inativar(self):
         self.ativo = False

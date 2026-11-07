@@ -2,6 +2,7 @@
 View de Pedidos - Otimizada com correções de ordenação e layout reorganizado - CORRIGIDO para nova estrutura
 """
 
+import sqlite3
 from datetime import datetime, timedelta
 
 from PyQt6.QtCore import Qt
@@ -34,6 +35,7 @@ from utils.helpers import (
     validar_data,
 )
 from utils.pedido_utils import PedidoUtils
+from utils.tabela import fixar_altura_linhas
 
 
 # ========== CORREÇÃO: Classe para ordenação numérica ==========
@@ -282,35 +284,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
 
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
-        vheader = self.tabela_pedidos.verticalHeader()
-        altura_desejada = 22
-
-        vheader.setDefaultSectionSize(altura_desejada)
-        vheader.setMinimumSectionSize(altura_desejada)
-        vheader.setMaximumSectionSize(altura_desejada)
-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-        vheader.setCascadingSectionResizes(False)
-        vheader.setStretchLastSection(False)
-        vheader.setVisible(False)
-
-        # Função para aplicar altura quando dados forem carregados
-        def aplicar_altura_quando_necessario():
-            try:
-                if hasattr(self, "tabela_pedidos") and self.tabela_pedidos:
-                    for row in range(self.tabela_pedidos.rowCount()):
-                        self.tabela_pedidos.setRowHeight(row, altura_desejada)
-            except:
-                pass
-
-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
-        try:
-            if hasattr(self.tabela_pedidos, "model"):
-                model = self.tabela_pedidos.model()
-                model.rowsInserted.connect(
-                    lambda parent, first, last: aplicar_altura_quando_necessario()
-                )
-        except:
-            pass
+        fixar_altura_linhas(self.tabela_pedidos, 22)
         # ========== FIM DA CONFIGURAÇÃO ==========
 
         # Configurações gerais
@@ -416,7 +390,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             try:
                 if hasattr(db, "close_connection"):
                     db.close_connection()
-            except:
+            except sqlite3.Error:
                 pass
 
     def _carregar_dados(
@@ -551,7 +525,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             )
             # Destacar desconto em vermelho se houver
             if desconto_valor > 0:
-                desconto_item.setForeground
+                desconto_item.setForeground(QBrush(QColor("#ff6b6b")))
             self.tabela_pedidos.setItem(row, 5, desconto_item)
 
             # CORREÇÃO: Frete - índice 5

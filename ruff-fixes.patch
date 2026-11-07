@@ -1,0 +1,1778 @@
+diff --git a/database.py b/database.py
+index f5a8db9..89fbe58 100644
+--- a/database.py
++++ b/database.py
+@@ -2,6 +2,7 @@
+ import sqlite3
+ from datetime import datetime
+ from pathlib import Path
++from typing import ClassVar
+ 
+ from config import config, get_config
+ 
+@@ -25,7 +26,7 @@ class Database:
+     """
+ 
+     # (versão, nome do método). Nunca renumere nem apague entradas antigas.
+-    MIGRACOES = [
++    MIGRACOES: ClassVar[list[tuple[int, str]]] = [
+         (1, "_migracao_001_esquema_base"),
+         # (2, "_migracao_002_exemplo"),
+     ]
+diff --git a/dialogs/backup_dialog.py b/dialogs/backup_dialog.py
+index 087dbfa..53b8b44 100644
+--- a/dialogs/backup_dialog.py
++++ b/dialogs/backup_dialog.py
+@@ -69,7 +69,7 @@ class BackupConfig:
+                     last_date_str = data.get("last_backup_date", "")
+                     if last_date_str:
+                         return datetime.fromisoformat(last_date_str)
+-            except Exception:
++            except (OSError, ValueError):
+                 pass
+         return None
+ 
+@@ -211,7 +211,7 @@ class BackupThread(QThread):
+                 import shutil
+ 
+                 db_size = os.path.getsize(self.source_db)
+-                total, used, free = shutil.disk_usage(self.destination_path)
++                _total, _used, free = shutil.disk_usage(self.destination_path)
+                 if (
+                     free < db_size * 1.5
+                 ):  # Precisa de pelo menos 1.5x o tamanho do banco
+@@ -294,7 +294,7 @@ Tamanho original: {os.path.getsize(self.source_db) / (1024 * 1024):.2f} MB
+             if temp_zip and os.path.exists(temp_zip):
+                 try:
+                     os.remove(temp_zip)
+-                except Exception:
++                except OSError:
+                     pass
+             self.backup_error.emit(f"Erro ao criar backup: {e!s}")
+ 
+diff --git a/dialogs/cliente_selection_dialog.py b/dialogs/cliente_selection_dialog.py
+index 8e9e41d..56df02d 100644
+--- a/dialogs/cliente_selection_dialog.py
++++ b/dialogs/cliente_selection_dialog.py
+@@ -20,6 +20,7 @@ from mixins.dialog_size_mixin import DialogSizeMixin
+ from mixins.table_scroll_mixin import TableScrollNavigationMixin
+ from models.cliente import Cliente
+ from utils.helpers import aplicar_maiuscula_formulario
++from utils.tabela import fixar_altura_linhas
+ from views.cliente_view import ClienteDialog
+ 
+ 
+@@ -101,35 +102,7 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
+ 
+         # ========== CONFIGURAÇÃO DE ALTURA ==========
+         # Configurar VERTICAL HEADER para altura fixa
+-        vheader = self.tabela.verticalHeader()
+-        altura_desejada = 22
+-
+-        vheader.setDefaultSectionSize(altura_desejada)
+-        vheader.setMinimumSectionSize(altura_desejada)
+-        vheader.setMaximumSectionSize(altura_desejada)
+-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+-        vheader.setCascadingSectionResizes(False)
+-        vheader.setStretchLastSection(False)
+-        vheader.setVisible(False)
+-
+-        # Função para aplicar altura quando dados forem carregados
+-        def aplicar_altura_quando_necessario():
+-            try:
+-                if hasattr(self, "tabela") and self.tabela:
+-                    for row in range(self.tabela.rowCount()):
+-                        self.tabela.setRowHeight(row, altura_desejada)
+-            except Exception:
+-                pass
+-
+-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+-        try:
+-            if hasattr(self.tabela, "model"):
+-                model = self.tabela.model()
+-                model.rowsInserted.connect(
+-                    lambda parent, first, last: aplicar_altura_quando_necessario()
+-                )
+-        except Exception:
+-            pass
++        fixar_altura_linhas(self.tabela, 22)
+         # ========== FIM DA CONFIGURAÇÃO ==========
+ 
+         self.tabela.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+@@ -240,7 +213,7 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
+             if hasattr(self, "tabela") and self.tabela:
+                 for row in range(self.tabela.rowCount()):
+                     self.tabela.setRowHeight(row, 21)
+-        except Exception:
++        except RuntimeError:
+             pass
+ 
+     def selecionar_cliente(self, index):
+diff --git a/dialogs/condicional_dialog.py b/dialogs/condicional_dialog.py
+index 2eefc16..e5d7a94 100644
+--- a/dialogs/condicional_dialog.py
++++ b/dialogs/condicional_dialog.py
+@@ -39,6 +39,7 @@ from utils.helpers import (
+     calcular_subtotal,
+     formatar_moeda,
+ )
++from utils.tabela import fixar_altura_linhas
+ 
+ 
+ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
+@@ -371,35 +372,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
+         self.tabela_produtos.setColumnWidth(7, 90)  # Subtotal
+ 
+         # Configurar VERTICAL HEADER para altura fixa
+-        vheader = self.tabela_produtos.verticalHeader()
+-        altura_desejada = 22
+-
+-        vheader.setDefaultSectionSize(altura_desejada)
+-        vheader.setMinimumSectionSize(altura_desejada)
+-        vheader.setMaximumSectionSize(altura_desejada)
+-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+-        vheader.setCascadingSectionResizes(False)
+-        vheader.setStretchLastSection(False)
+-        vheader.setVisible(False)
+-
+-        # Função para aplicar altura quando dados forem carregados
+-        def aplicar_altura_quando_necessario():
+-            try:
+-                if hasattr(self, "tabela_produtos") and self.tabela_produtos:
+-                    for row in range(self.tabela_produtos.rowCount()):
+-                        self.tabela_produtos.setRowHeight(row, altura_desejada)
+-            except Exception:
+-                pass
+-
+-        # Conectar ao sinal de dados alterados
+-        try:
+-            if hasattr(self.tabela_produtos, "model"):
+-                model = self.tabela_produtos.model()
+-                model.rowsInserted.connect(
+-                    lambda parent, first, last: aplicar_altura_quando_necessario()
+-                )
+-        except Exception:
+-            pass
++        fixar_altura_linhas(self.tabela_produtos, 22)
+ 
+         # Configurações gerais
+         self.tabela_produtos.setSelectionBehavior(
+@@ -598,7 +571,7 @@ class CondicionalDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
+             if produto and produto.preco_venda > 0:
+                 # Formatar valor sem R$ para facilitar edição
+                 self.entry_valor.setText(f"{produto.preco_venda:.2f}".replace(".", ","))
+-        except (ValueError, Exception):
++        except Exception:  # noqa: S110 - o preco e opcional; se falhar o campo fica vazio
+             pass
+ 
+     def _buscar_e_validar_produto(self, codigo_texto):
+diff --git a/dialogs/pedido_dialog.py b/dialogs/pedido_dialog.py
+index eff84af..6cc625b 100644
+--- a/dialogs/pedido_dialog.py
++++ b/dialogs/pedido_dialog.py
+@@ -32,6 +32,7 @@ from utils.helpers import (
+     formatar_moeda,
+ )
+ from utils.pedido_utils import PedidoUtils
++from utils.tabela import fixar_altura_linhas
+ 
+ 
+ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
+@@ -262,35 +263,7 @@ class PedidoDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
+ 
+         # ========== CONFIGURAÇÃO DE ALTURA ==========
+         # Configurar VERTICAL HEADER para altura fixa
+-        vheader = self.tabela_produtos.verticalHeader()
+-        altura_desejada = 22
+-
+-        vheader.setDefaultSectionSize(altura_desejada)
+-        vheader.setMinimumSectionSize(altura_desejada)
+-        vheader.setMaximumSectionSize(altura_desejada)
+-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+-        vheader.setCascadingSectionResizes(False)
+-        vheader.setStretchLastSection(False)
+-        vheader.setVisible(False)
+-
+-        # Função para aplicar altura quando dados forem carregados
+-        def aplicar_altura_quando_necessario():
+-            try:
+-                if hasattr(self, "tabela_produtos") and self.tabela_produtos:
+-                    for row in range(self.tabela_produtos.rowCount()):
+-                        self.tabela_produtos.setRowHeight(row, altura_desejada)
+-            except Exception:
+-                pass
+-
+-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+-        try:
+-            if hasattr(self.tabela_produtos, "model"):
+-                model = self.tabela_produtos.model()
+-                model.rowsInserted.connect(
+-                    lambda parent, first, last: aplicar_altura_quando_necessario()
+-                )
+-        except Exception:
+-            pass
++        fixar_altura_linhas(self.tabela_produtos, 22)
+         # ========== FIM DA CONFIGURAÇÃO ==========
+ 
+         # Configurações gerais
+diff --git a/dialogs/produto_selection_dialog.py b/dialogs/produto_selection_dialog.py
+index 74994a3..1d1670f 100644
+--- a/dialogs/produto_selection_dialog.py
++++ b/dialogs/produto_selection_dialog.py
+@@ -22,6 +22,7 @@ from mixins.table_scroll_mixin import TableScrollNavigationMixin
+ from models.produto import Produto
+ from utils.helpers import aplicar_maiuscula_formulario
+ from utils.produto_utils import ProdutoUtils
++from utils.tabela import fixar_altura_linhas
+ from views.produto_dialog import ProdutoDialog
+ 
+ 
+@@ -161,35 +162,7 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
+ 
+         # ========== CONFIGURAÇÃO DE ALTURA ==========
+         # Configurar VERTICAL HEADER para altura fixa
+-        vheader = self.tabela_produtos.verticalHeader()
+-        altura_desejada = 22
+-
+-        vheader.setDefaultSectionSize(altura_desejada)
+-        vheader.setMinimumSectionSize(altura_desejada)
+-        vheader.setMaximumSectionSize(altura_desejada)
+-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+-        vheader.setCascadingSectionResizes(False)
+-        vheader.setStretchLastSection(False)
+-        vheader.setVisible(False)
+-
+-        # Função para aplicar altura quando dados forem carregados
+-        def aplicar_altura_quando_necessario():
+-            try:
+-                if hasattr(self, "tabela_produtos") and self.tabela_produtos:
+-                    for row in range(self.tabela_produtos.rowCount()):
+-                        self.tabela_produtos.setRowHeight(row, altura_desejada)
+-            except Exception:
+-                pass
+-
+-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+-        try:
+-            if hasattr(self.tabela_produtos, "model"):
+-                model = self.tabela_produtos.model()
+-                model.rowsInserted.connect(
+-                    lambda parent, first, last: aplicar_altura_quando_necessario()
+-                )
+-        except Exception:
+-            pass
++        fixar_altura_linhas(self.tabela_produtos, 22)
+         # ========== FIM DA CONFIGURAÇÃO ==========
+ 
+         # Configurações gerais
+diff --git a/dialogs/venda_dialog.py b/dialogs/venda_dialog.py
+index 746279f..55119ad 100644
+--- a/dialogs/venda_dialog.py
++++ b/dialogs/venda_dialog.py
+@@ -37,6 +37,7 @@ from utils.helpers import (
+     formatar_moeda,
+     validar_quantidade,
+ )
++from utils.tabela import fixar_altura_linhas
+ from utils.venda_utils import VendaUtils
+ 
+ 
+@@ -342,35 +343,7 @@ class ProdutoVendaDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
+         self.tabela_produtos.setColumnWidth(7, 90)  # Subtotal
+ 
+         # Configurar VERTICAL HEADER para altura fixa
+-        vheader = self.tabela_produtos.verticalHeader()
+-        altura_desejada = 22
+-
+-        vheader.setDefaultSectionSize(altura_desejada)
+-        vheader.setMinimumSectionSize(altura_desejada)
+-        vheader.setMaximumSectionSize(altura_desejada)
+-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+-        vheader.setCascadingSectionResizes(False)
+-        vheader.setStretchLastSection(False)
+-        vheader.setVisible(False)
+-
+-        # Função para aplicar altura quando dados forem carregados
+-        def aplicar_altura_quando_necessario():
+-            try:
+-                if hasattr(self, "tabela_produtos") and self.tabela_produtos:
+-                    for row in range(self.tabela_produtos.rowCount()):
+-                        self.tabela_produtos.setRowHeight(row, altura_desejada)
+-            except Exception:
+-                pass
+-
+-        # Conectar ao sinal de dados alterados
+-        try:
+-            if hasattr(self.tabela_produtos, "model"):
+-                model = self.tabela_produtos.model()
+-                model.rowsInserted.connect(
+-                    lambda parent, first, last: aplicar_altura_quando_necessario()
+-                )
+-        except Exception:
+-            pass
++        fixar_altura_linhas(self.tabela_produtos, 22)
+ 
+         # Configurações gerais
+         self.tabela_produtos.setSelectionBehavior(
+diff --git a/distribuicao/criar_release.py b/distribuicao/criar_release.py
+index 1a4fd8d..d74b9ae 100644
+--- a/distribuicao/criar_release.py
++++ b/distribuicao/criar_release.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/env python3
+ """Gera o pacote de release do MainERP (um .zip com o código-fonte).
+ 
+ Uso (na pasta do projeto):
+diff --git a/distribuicao/instalar.py b/distribuicao/instalar.py
+index 937dbd6..462ef2e 100644
+--- a/distribuicao/instalar.py
++++ b/distribuicao/instalar.py
+@@ -1,4 +1,3 @@
+-#!/usr/bin/env python3
+ """Instalador do MainERP (modelo sem PyInstaller).
+ 
+ Cria, em %LOCALAPPDATA%\\MainERP:
+@@ -81,7 +80,7 @@ def main():
+     )
+     args = ap.parse_args()
+ 
+-    if sys.version_info < (3, 10):
++    if sys.version_info < (3, 10):  # noqa: UP036 - mensagem amigável ao rodar em Python antigo
+         sys.exit("É necessário Python 3.10 ou superior (recomendado 3.12).")
+ 
+     base = args.destino
+@@ -117,7 +116,8 @@ def main():
+     # 4) o launcher instala a release e as dependências (pip)
+     print("Instalando a versão e as dependências (pode levar alguns minutos)...")
+     r = subprocess.run(
+-        [str(python_do_runtime(runtime)), str(launcher), "--somente-atualizar"]
++        [str(python_do_runtime(runtime)), str(launcher), "--somente-atualizar"],
++        check=False,
+     )
+     if r.returncode != 0 or not (sistema / "current.txt").exists():
+         sys.exit(f"Falha na instalação. Veja {sistema / 'logs' / 'launcher.log'}")
+diff --git a/fix/exceptions.py b/exceptions.py
+new file mode 100644
+index 0000000..599cb2f
+--- /dev/null
++++ b/exceptions.py
+@@ -0,0 +1,9 @@
++"""Exceções do MainERP."""
++
++
++class ErroERP(Exception):
++    """Erro de operação/negócio do sistema (mensagem pensada para o usuário).
++
++    Herda de Exception, então todo ``except Exception`` existente continua
++    funcionando; o ganho é poder capturar só os erros do sistema quando quiser.
++    """
+diff --git a/imprecoes/print_comprovante_recebimento.py b/imprecoes/print_comprovante_recebimento.py
+index 1552457..81df191 100644
+--- a/imprecoes/print_comprovante_recebimento.py
++++ b/imprecoes/print_comprovante_recebimento.py
+@@ -17,6 +17,7 @@ from reportlab.platypus import (
+     TableStyle,
+ )
+ 
++from exceptions import ErroERP
+ from models.empresa import Empresa
+ from utils.helpers import formatar_data, formatar_moeda
+ 
+@@ -289,4 +290,4 @@ class PrintComprovanteRecebimento:
+             return filename
+ 
+         except Exception as e:
+-            raise Exception(f"Erro ao gerar comprovante: {e!s}")
++            raise ErroERP(f"Erro ao gerar comprovante: {e!s}") from e
+diff --git a/imprecoes/print_condicional.py b/imprecoes/print_condicional.py
+index 59a60d4..af689fd 100644
+--- a/imprecoes/print_condicional.py
++++ b/imprecoes/print_condicional.py
+@@ -1,6 +1,7 @@
+ import io
+ import logging
+ import os
++import sqlite3
+ from datetime import datetime
+ 
+ from PIL import Image as PILImage
+@@ -106,7 +107,7 @@ class PrintCondicional:
+         finally:
+             try:
+                 conn.close()
+-            except Exception:
++            except sqlite3.Error:
+                 pass
+ 
+     @staticmethod
+diff --git a/imprecoes/print_pedido.py b/imprecoes/print_pedido.py
+index 450fd29..b46daba 100644
+--- a/imprecoes/print_pedido.py
++++ b/imprecoes/print_pedido.py
+@@ -1,5 +1,6 @@
+ import io
+ import os
++import sqlite3
+ from datetime import datetime
+ 
+ from PIL import Image as PILImage
+@@ -66,7 +67,7 @@ class PrintPedido:
+                     db.close_connection()
+                 elif hasattr(db, "connection") and db.connection:
+                     db.connection.close()
+-            except Exception:
++            except sqlite3.Error:
+                 pass
+ 
+     @staticmethod
+@@ -512,5 +513,5 @@ class PrintPedido:
+                     db.close_connection()
+                 elif hasattr(db, "connection") and db.connection:
+                     db.connection.close()
+-            except Exception:
++            except sqlite3.Error:
+                 pass
+diff --git a/imprecoes/print_relat_condicional.py b/imprecoes/print_relat_condicional.py
+index 707cff3..4b2d222 100644
+--- a/imprecoes/print_relat_condicional.py
++++ b/imprecoes/print_relat_condicional.py
+@@ -520,10 +520,9 @@ class PrintRelatCondicional:
+                             continue
+ 
+                     # FILTRO POR CLIENTE
+-                    if cliente_id:
+-                        # Índice 1 = cliente_id
+-                        if condicional[1] != cliente_id:
+-                            continue
++                    # Índice 1 = cliente_id
++                    if cliente_id and condicional[1] != cliente_id:
++                        continue
+ 
+                     # Se passou por todos os filtros, adicionar à lista
+                     condicionais_filtradas.append(condicional)
+diff --git a/imprecoes/print_relat_pedido.py b/imprecoes/print_relat_pedido.py
+index 4233ffa..e6f32d7 100644
+--- a/imprecoes/print_relat_pedido.py
++++ b/imprecoes/print_relat_pedido.py
+@@ -1,6 +1,7 @@
+ import io
+ import logging
+ import os
++import sqlite3
+ from datetime import datetime
+ 
+ from PIL import Image as PILImage
+@@ -90,7 +91,7 @@ class PrintRelatPedido:
+                         data_inicio = datetime.strptime(
+                             data_inicio, "%d/%m/%Y"
+                         ).strftime("%Y-%m-%d")
+-                    except Exception:
++                    except (ValueError, TypeError):
+                         pass
+                 params.append(data_inicio)
+ 
+@@ -101,7 +102,7 @@ class PrintRelatPedido:
+                         data_fim = datetime.strptime(data_fim, "%d/%m/%Y").strftime(
+                             "%Y-%m-%d"
+                         )
+-                    except Exception:
++                    except (ValueError, TypeError):
+                         pass
+                 params.append(data_fim)
+ 
+@@ -125,7 +126,7 @@ class PrintRelatPedido:
+             try:
+                 if conn:
+                     conn.close()
+-            except Exception:
++            except sqlite3.Error:
+                 pass
+ 
+     @staticmethod
+@@ -491,7 +492,7 @@ class PrintRelatPedido:
+ 
+                 # Adicionar observações se houver
+                 tem_observacoes = False
+-                for i, pedido in enumerate(pedidos_data):
++                for pedido in pedidos_data:
+                     observacao = pedido[6] if len(pedido) > 6 and pedido[6] else None
+                     if observacao:
+                         if not tem_observacoes:
+diff --git a/imprecoes/print_relat_recebimento.py b/imprecoes/print_relat_recebimento.py
+index 86a1ecb..90426b8 100644
+--- a/imprecoes/print_relat_recebimento.py
++++ b/imprecoes/print_relat_recebimento.py
+@@ -19,6 +19,7 @@ from reportlab.platypus import (
+ )
+ 
+ from database import Database
++from exceptions import ErroERP
+ from models.empresa import Empresa
+ from utils.helpers import formatar_moeda, validar_data
+ 
+@@ -521,4 +522,4 @@ class PrintRelatRecebimento:
+             import traceback
+ 
+             traceback.print_exc()
+-            raise Exception(f"Erro ao gerar relatório: {e!s}")
++            raise ErroERP(f"Erro ao gerar relatório: {e!s}") from e
+diff --git a/imprecoes/print_relat_venda.py b/imprecoes/print_relat_venda.py
+index f3e2f30..e8985f7 100644
+--- a/imprecoes/print_relat_venda.py
++++ b/imprecoes/print_relat_venda.py
+@@ -369,7 +369,7 @@ class PrintRelatVenda:
+                 if isinstance(venda_data, str):
+                     try:
+                         venda_data = datetime.strptime(venda_data, "%Y-%m-%d").date()
+-                    except Exception:
++                    except (ValueError, TypeError):
+                         continue
+ 
+                 # Filtro por data
+diff --git a/imprecoes/print_venda.py b/imprecoes/print_venda.py
+index 7a5224b..fb39351 100644
+--- a/imprecoes/print_venda.py
++++ b/imprecoes/print_venda.py
+@@ -1,5 +1,6 @@
+ import io
+ import os
++import sqlite3
+ from datetime import datetime
+ 
+ from PIL import Image as PILImage
+@@ -65,7 +66,7 @@ class PrintVenda:
+         finally:
+             try:
+                 conn.close()
+-            except Exception:
++            except sqlite3.Error:
+                 pass
+ 
+     @staticmethod
+@@ -114,7 +115,7 @@ class PrintVenda:
+         finally:
+             try:
+                 conn.close()
+-            except Exception:
++            except sqlite3.Error:
+                 pass
+ 
+     @staticmethod
+diff --git a/main.py b/main.py
+index d157d20..6b418a6 100644
+--- a/main.py
++++ b/main.py
+@@ -238,7 +238,7 @@ def verificar_instancia_unica(nome_aplicacao):
+         def cleanup_mutex():
+             try:
+                 win32api.CloseHandle(mutex_handle)
+-            except:
++            except Exception:  # noqa: S110 - limpeza ao encerrar; nada a fazer se falhar
+                 pass
+ 
+         atexit.register(cleanup_mutex)
+@@ -285,7 +285,7 @@ def verificar_instancia_unica_simples(nome_aplicacao):
+             try:
+                 if os.path.exists(lock_file):
+                     os.unlink(lock_file)
+-            except:
++            except OSError:
+                 pass
+ 
+         atexit.register(cleanup_lock)
+@@ -333,7 +333,7 @@ def erro_fatal(titulo, detalhe):
+         if QApplication.instance() is None:
+             QApplication(sys.argv)
+         QMessageBox.critical(None, titulo, detalhe)
+-    except Exception:
++    except Exception:  # noqa: S110 - ultimo recurso ao reportar um erro fatal
+         pass
+ 
+ 
+diff --git a/models/base_model.py b/models/base_model.py
+index 3ef37d7..1eea6cd 100644
+--- a/models/base_model.py
++++ b/models/base_model.py
+@@ -24,9 +24,9 @@ class BaseModel:
+                 return cursor.fetchall()
+             conn.commit()
+             return cursor.lastrowid
+-        except sqlite3.Error as e:
++        except sqlite3.Error:
+             conn.rollback()
+-            raise e
++            raise
+         finally:
+             conn.close()
+ 
+diff --git a/models/cliente.py b/models/cliente.py
+index 93ba445..8f857da 100644
+--- a/models/cliente.py
++++ b/models/cliente.py
+@@ -74,9 +74,9 @@ class Cliente:
+ 
+             conn.commit()
+ 
+-        except sqlite3.IntegrityError:
++        except sqlite3.IntegrityError as e:
+             conn.rollback()
+-            raise ValueError("Já existe um cliente cadastrado com este CPF/CNPJ")
++            raise ValueError("Já existe um cliente cadastrado com este CPF/CNPJ") from e
+ 
+         finally:
+             conn.close()
+diff --git a/models/condicional.py b/models/condicional.py
+index 9637f7c..0b70eac 100644
+--- a/models/condicional.py
++++ b/models/condicional.py
+@@ -76,9 +76,9 @@ class Condicional:
+             conn.commit()
+             return self.id
+ 
+-        except Exception as e:
++        except Exception:
+             conn.rollback()
+-            raise e
++            raise
+         finally:
+             conn.close()
+ 
+@@ -272,6 +272,6 @@ class Condicional:
+ 
+         except Exception as e:
+             print(f"Erro ao criar tabelas de condicionais: {e}")
+-            raise e
++            raise
+         finally:
+             pass
+diff --git a/models/duplicata.py b/models/duplicata.py
+index e5c2a08..1954445 100644
+--- a/models/duplicata.py
++++ b/models/duplicata.py
+@@ -3,6 +3,7 @@ import sqlite3
+ from datetime import timedelta
+ 
+ from database import Database
++from exceptions import ErroERP
+ from utils.database_utils import DatabaseUtils
+ 
+ 
+@@ -72,9 +73,9 @@ class Duplicata:
+ 
+             conn.commit()
+             return self.id
+-        except sqlite3.Error as e:
++        except sqlite3.Error:
+             conn.rollback()
+-            raise e
++            raise
+         finally:
+             conn.close()
+ 
+@@ -141,8 +142,6 @@ class Duplicata:
+                 ORDER BY d.data_vencimento
+             """)
+             return cursor.fetchall()
+-        except Exception as e:
+-            raise e
+         finally:
+             conn.close()
+ 
+@@ -170,8 +169,6 @@ class Duplicata:
+                     ORDER BY dp.data_pagamento DESC
+                 """)
+             return cursor.fetchall()
+-        except Exception as e:
+-            raise e
+         finally:
+             conn.close()
+ 
+@@ -210,8 +207,6 @@ class Duplicata:
+             pagas = cursor.fetchall()
+ 
+             return abertas + pagas
+-        except Exception as e:
+-            raise e
+         finally:
+             conn.close()
+ 
+@@ -227,7 +222,7 @@ class Duplicata:
+             )
+             duplicata = cursor.fetchone()
+             if not duplicata:
+-                raise Exception("Duplicata não encontrada")
++                raise ErroERP("Duplicata não encontrada")
+ 
+             valor_original = float(duplicata[4])
+             venda_id = duplicata[1]
+@@ -334,7 +329,7 @@ class Duplicata:
+                                 )
+                 else:
+                     # Pagou a menos - aumentar o valor das parcelas restantes
+-                    for parcela_id, num_parcela, valor_parcela in parcelas_restantes:
++                    for parcela_id, _num_parcela, valor_parcela in parcelas_restantes:
+                         novo_valor = float(valor_parcela) + abs(ajuste_por_parcela)
+                         cursor.execute(
+                             "UPDATE duplicatas SET valor_parcela = ? WHERE id = ?",
+@@ -367,9 +362,9 @@ class Duplicata:
+             conn.commit()
+             return True
+ 
+-        except Exception as e:
++        except Exception:
+             conn.rollback()
+-            raise e
++            raise
+         finally:
+             conn.close()
+ 
+@@ -398,7 +393,7 @@ class Duplicata:
+                 )
+                 row = cursor.fetchone()
+                 if not row:
+-                    raise Exception(
++                    raise ErroERP(
+                         "Não foi possível obter o valor da duplicata original para ajuste."
+                     )
+                 valor_original = float(row[0])
+@@ -487,6 +482,6 @@ class Duplicata:
+             import traceback
+ 
+             traceback.print_exc()
+-            raise e
++            raise
+         finally:
+             conn.close()
+diff --git a/models/fornecedor.py b/models/fornecedor.py
+index 8e99e16..3515687 100644
+--- a/models/fornecedor.py
++++ b/models/fornecedor.py
+@@ -65,8 +65,8 @@ class Fornecedor(BaseModel):
+             if not self.id:
+                 self.id = result
+ 
+-        except sqlite3.IntegrityError:
+-            raise ValueError("Já existe um fornecedor cadastrado com este CNPJ")
++        except sqlite3.IntegrityError as e:
++            raise ValueError("Já existe um fornecedor cadastrado com este CNPJ") from e
+ 
+     def inativar(self):
+         self.ativo = False
+diff --git a/models/pedido.py b/models/pedido.py
+index fb9389b..7e01041 100644
+--- a/models/pedido.py
++++ b/models/pedido.py
+@@ -1,4 +1,5 @@
+ # \erp\models\pedido.py
++import sqlite3
+ from datetime import datetime
+ 
+ from database import Database
+@@ -79,9 +80,9 @@ class Pedido(BaseModel):
+                 self.id = cursor.lastrowid
+ 
+             return self.id
+-        except Exception as e:
++        except Exception:
+             conn.rollback()
+-            raise e
++            raise
+ 
+     @classmethod
+     def buscar_por_id(cls, id):
+@@ -128,7 +129,7 @@ class Pedido(BaseModel):
+         finally:
+             try:
+                 conn.close()
+-            except:
++            except sqlite3.Error:
+                 pass
+ 
+     @classmethod
+@@ -186,7 +187,7 @@ class Pedido(BaseModel):
+         finally:
+             try:
+                 conn.close()
+-            except:
++            except sqlite3.Error:
+                 pass
+ 
+     def marcar_como_recebido(self):
+@@ -235,7 +236,7 @@ class Pedido(BaseModel):
+         finally:
+             try:
+                 conn.close()
+-            except:
++            except sqlite3.Error:
+                 pass
+ 
+     def calcular_subtotal_produtos(self):
+diff --git a/models/venda.py b/models/venda.py
+index 10904f8..73e15ff 100644
+--- a/models/venda.py
++++ b/models/venda.py
+@@ -6,6 +6,7 @@ Simplificado e integrado com VendaUtils refatorado
+ from datetime import datetime
+ from typing import Any, Optional
+ 
++from exceptions import ErroERP
+ from models.base_model import BaseModel
+ from utils.database_utils import DatabaseUtils
+ 
+@@ -69,7 +70,7 @@ class Venda(BaseModel):
+             else:
+                 return self._inserir()
+         except Exception as e:
+-            raise Exception(f"Erro ao salvar venda: {e!s}")
++            raise ErroERP(f"Erro ao salvar venda: {e!s}") from e
+ 
+     def _inserir(self) -> int:
+         """Insere nova venda"""
+@@ -146,7 +147,7 @@ class Venda(BaseModel):
+             return True
+ 
+         except Exception as e:
+-            raise Exception(f"Erro ao excluir venda: {e!s}")
++            raise ErroERP(f"Erro ao excluir venda: {e!s}") from e
+ 
+     def cancelar(self) -> bool:
+         """Cancela venda e devolve estoque"""
+@@ -164,7 +165,7 @@ class Venda(BaseModel):
+             return True
+ 
+         except Exception as e:
+-            raise Exception(f"Erro ao cancelar venda: {e!s}")
++            raise ErroERP(f"Erro ao cancelar venda: {e!s}") from e
+ 
+     # ========== MÉTODOS DE CONSULTA ==========
+ 
+@@ -253,7 +254,7 @@ class Venda(BaseModel):
+ 
+     @classmethod
+     def buscar_todas(
+-        cls, limite: int = None, apenas_ativas: bool = True
++        cls, limite: int | None = None, apenas_ativas: bool = True
+     ) -> list["Venda"]:
+         """Busca todas as vendas"""
+         query = "SELECT * FROM vendas"
+@@ -367,7 +368,7 @@ class Venda(BaseModel):
+                 raise ValueError(erro_estoque)
+ 
+             # Calcular totais
+-            subtotal, total = VendaUtils.calcular_totais_venda(produtos, desconto)
++            _subtotal, total = VendaUtils.calcular_totais_venda(produtos, desconto)
+ 
+             # Determinar status
+             status = VendaStatus.CONCLUIDA
+@@ -397,7 +398,7 @@ class Venda(BaseModel):
+             return venda
+ 
+         except Exception as e:
+-            raise Exception(f"Erro ao criar venda: {e!s}")
++            raise ErroERP(f"Erro ao criar venda: {e!s}") from e
+ 
+     # ========== MÉTODOS AUXILIARES ==========
+ 
+diff --git a/fix/pyproject.toml b/pyproject.toml
+new file mode 100644
+index 0000000..4189e29
+--- /dev/null
++++ b/pyproject.toml
+@@ -0,0 +1,28 @@
++[tool.ruff]
++target-version = "py310"
++extend-exclude = ["main.spec"]
++
++[tool.ruff.lint]
++# Regras ligadas: erros reais (F, B, E4/E7/E9), imports ordenados (I) e as
++# famílias de "exceção" que já foram zeradas (não deixe voltar).
++select = [
++    "E4", "E7", "E9", "F", "B", "I",
++    "S110", "S112",              # try/except/pass e try/except/continue
++    "TRY002", "TRY201", "TRY203",  # raise Exception(...), raise e, handler inútil
++    "RUF012", "RUF013", "RUF059",  # tipos e variáveis não usadas
++    "PLW1510",                   # subprocess.run sem check=
++    "SIM102", "SIM103", "SIM117",  # if/with desnecessariamente aninhados
++    "UP036",                     # bloco de versão obsoleto
++]
++ignore = [
++    # TODO (Fase 1 do ROADMAP): 147 ocorrências de "except Exception". Nas telas é
++    # intencional (mostrar QMessageBox). O que falta é registrar o erro em log.
++    # Para ver a dívida: ruff check --select BLE001 --statistics
++    "BLE001",
++]
++
++[tool.ruff.lint.per-file-ignores]
++# main.py precisa chamar paths.preparar_ambiente() ANTES de importar o resto
++# (os módulos leem a pasta de dados na importação); instalar.py ajusta o sys.path.
++"main.py" = ["E402"]
++"distribuicao/instalar.py" = ["E402"]
+diff --git a/utils/database_utils.py b/utils/database_utils.py
+index d45d2e7..5b71458 100644
+--- a/utils/database_utils.py
++++ b/utils/database_utils.py
+@@ -17,9 +17,9 @@ class DatabaseUtils:
+                 return cursor.fetchall()
+             conn.commit()
+             return cursor.lastrowid
+-        except Exception as e:
++        except Exception:
+             conn.rollback()
+-            raise e
++            raise
+         finally:
+             pass
+ 
+@@ -65,7 +65,7 @@ class DatabaseUtils:
+                     time.sleep(0.1 * tentativa)
+                     continue
+                 else:
+-                    raise e
++                    raise
+             finally:
+                 pass
+ 
+diff --git a/utils/db_utils.py b/utils/db_utils.py
+index b55e7b9..b0d14a1 100644
+--- a/utils/db_utils.py
++++ b/utils/db_utils.py
+@@ -44,21 +44,22 @@ class DatabaseManager:
+     @staticmethod
+     def _restore_from_zip(zip_file, target_db):
+         """Restaura a partir de arquivo ZIP"""
+-        with tempfile.TemporaryDirectory() as temp_dir:
+-            # Extrair arquivo ZIP
+-            with zipfile.ZipFile(zip_file, "r") as zipf:
+-                # Procurar arquivo .db dentro do ZIP
+-                db_files = [f for f in zipf.namelist() if f.endswith(".db")]
+-                if not db_files:
+-                    raise ValueError("Nenhum arquivo .db encontrado no backup")
+-
+-                # Extrair o primeiro arquivo .db
+-                db_filename = db_files[0]
+-                zipf.extract(db_filename, temp_dir)
+-                extracted_db = os.path.join(temp_dir, db_filename)
+-
+-                # Fazer a restauração
+-                return DatabaseManager._restore_from_db(extracted_db, target_db)
++        with (
++            tempfile.TemporaryDirectory() as temp_dir,
++            zipfile.ZipFile(zip_file, "r") as zipf,
++        ):
++            # Procurar arquivo .db dentro do ZIP
++            db_files = [f for f in zipf.namelist() if f.endswith(".db")]
++            if not db_files:
++                raise ValueError("Nenhum arquivo .db encontrado no backup")
++
++            # Extrair o primeiro arquivo .db
++            db_filename = db_files[0]
++            zipf.extract(db_filename, temp_dir)
++            extracted_db = os.path.join(temp_dir, db_filename)
++
++            # Fazer a restauração
++            return DatabaseManager._restore_from_db(extracted_db, target_db)
+ 
+     @staticmethod
+     def _restore_from_db(source_db, target_db):
+@@ -91,14 +92,14 @@ class DatabaseManager:
+ 
+             return True
+ 
+-        except Exception as e:
++        except Exception:
+             # Em caso de erro, tentar restaurar o backup anterior
+             try:
+                 if os.path.exists(pre_restore_backup):
+                     shutil.copy2(pre_restore_backup, target_db)
+-            except:
++            except OSError:
+                 pass
+-            raise e
++            raise
+ 
+     @staticmethod
+     def _verify_database(db_path):
+@@ -125,7 +126,7 @@ class DatabaseManager:
+ 
+             return len(tables) > 0 and found_essential
+ 
+-        except:
++        except (sqlite3.Error, OSError):
+             return False
+ 
+     @staticmethod
+@@ -136,13 +137,8 @@ class DatabaseManager:
+         # Coletar garbage para liberar conexões
+         gc.collect()
+ 
+-        # Tentar fechar conexões do sqlite3
+-        try:
+-            # SQLite3 não tem uma maneira global de fechar todas as conexões
+-            # Dependemos do garbage collector
+-            pass
+-        except:
+-            pass
++        # SQLite3 não tem uma maneira global de fechar todas as conexões;
++        # dependemos do garbage collector (gc.collect acima).
+ 
+     @staticmethod
+     def get_database_info(db_path):
+@@ -175,7 +171,7 @@ class DatabaseManager:
+                     cursor.execute(f"SELECT COUNT(*) FROM {table}")
+                     count = cursor.fetchone()[0]
+                     info["record_counts"][table] = count
+-                except:
++                except sqlite3.Error:
+                     info["record_counts"][table] = 0
+ 
+             conn.close()
+@@ -210,7 +206,7 @@ class DatabaseManager:
+                             db_files = [f for f in zipf.namelist() if f.endswith(".db")]
+                             file_info["contains_db"] = len(db_files) > 0
+                             file_info["db_files"] = db_files
+-                    except:
++                    except (zipfile.BadZipFile, OSError):
+                         file_info["contains_db"] = False
+ 
+                 backups.append(file_info)
+diff --git a/utils/export_utils.py b/utils/export_utils.py
+index 59337a8..0f258d1 100644
+--- a/utils/export_utils.py
++++ b/utils/export_utils.py
+@@ -15,9 +15,9 @@ class ExportUtils:
+             if os.name == "nt":  # Windows
+                 os.startfile(filename)
+             elif sys.platform == "darwin":  # macOS
+-                subprocess.run(["open", filename])
++                subprocess.run(["open", filename], check=False)
+             else:  # Linux e outros
+-                subprocess.run(["xdg-open", filename])
++                subprocess.run(["xdg-open", filename], check=False)
+             return True
+         except Exception:
+             return False
+diff --git a/utils/helpers.py b/utils/helpers.py
+index fca2b44..590ffbe 100644
+--- a/utils/helpers.py
++++ b/utils/helpers.py
+@@ -24,7 +24,7 @@ def formatar_data(data, formato_origem="%Y-%m-%d", formato_destino="%d/%m/%Y"):
+         try:
+             data_obj = datetime.strptime(data, formato_origem)
+             return data_obj.strftime(formato_destino)
+-        except:
++        except ValueError:
+             return data
+ 
+     return str(data)
+diff --git a/utils/pedido_utils.py b/utils/pedido_utils.py
+index d208d24..e939d46 100644
+--- a/utils/pedido_utils.py
++++ b/utils/pedido_utils.py
+@@ -9,33 +9,30 @@ class PedidoUtils:
+     @staticmethod
+     def salvar_itens_pedido(pedido_id: int, itens: list[dict[str, Any]]) -> bool:
+         """Salva os itens do pedido no banco - MODIFICADO para incluir valor de venda"""
+-        try:
+-            for item in itens:
+-                query = """
+-                    INSERT INTO itens_pedido
+-                    (pedido_id, produto_id, quantidade, preco_custo, preco_venda, subtotal)
+-                    VALUES (?, ?, ?, ?, ?, ?)
+-                """
+-                params = (
+-                    pedido_id,
+-                    item["id"],
+-                    item["quantidade"],
+-                    item["preco_custo"],
+-                    item["preco_venda"],
+-                    item["subtotal"],
+-                )
+-                DatabaseUtils.executar_query(query, params)
++        for item in itens:
++            query = """
++                INSERT INTO itens_pedido
++                (pedido_id, produto_id, quantidade, preco_custo, preco_venda, subtotal)
++                VALUES (?, ?, ?, ?, ?, ?)
++            """
++            params = (
++                pedido_id,
++                item["id"],
++                item["quantidade"],
++                item["preco_custo"],
++                item["preco_venda"],
++                item["subtotal"],
++            )
++            DatabaseUtils.executar_query(query, params)
+ 
+-            return True
+-        except Exception as e:
+-            raise e
++        return True
+ 
+     @staticmethod
+     def filtrar_pedidos(
+-        data_inicio_str: str = None,
+-        data_fim_str: str = None,
+-        fornecedor_id: int = None,
+-        status: str = None,
++        data_inicio_str: str | None = None,
++        data_fim_str: str | None = None,
++        fornecedor_id: int | None = None,
++        status: str | None = None,
+     ) -> list[tuple]:
+         """Filtra pedidos com os parâmetros fornecidos"""
+         query = """
+@@ -135,17 +132,14 @@ class PedidoUtils:
+ 
+         except Exception as e:
+             print(f"Erro ao receber pedido {pedido_id}: {e!s}")
+-            raise e
++            raise
+ 
+     @staticmethod
+     def cancelar_pedido(pedido_id: int) -> bool:
+         """Cancela o pedido"""
+         query = "UPDATE pedidos SET status = 'cancelado' WHERE id = ?"
+-        try:
+-            DatabaseUtils.executar_query(query, (pedido_id,))
+-            return True
+-        except Exception as e:
+-            raise e
++        DatabaseUtils.executar_query(query, (pedido_id,))
++        return True
+ 
+     @staticmethod
+     def calcular_totais_pedido(
+@@ -162,50 +156,47 @@ class PedidoUtils:
+         fornecedor_id: int,
+         itens: list[dict[str, Any]],
+         valor_frete: float,
+-        observacao: str = None,
++        observacao: str | None = None,
+     ) -> bool:
+         """Atualiza um pedido existente - MODIFICADO para incluir valor de venda"""
+-        try:
+-            # Calcular total
+-            subtotal = sum(item["subtotal"] for item in itens)
+-            total = subtotal + valor_frete
++        # Calcular total
++        subtotal = sum(item["subtotal"] for item in itens)
++        total = subtotal + valor_frete
+ 
+-            # Atualizar pedido
+-            query_pedido = """
+-                UPDATE pedidos
+-                SET fornecedor_id = ?, valor_total = ?, valor_frete = ?, observacao = ?
+-                WHERE id = ?
+-            """
+-            DatabaseUtils.executar_query(
+-                query_pedido, (fornecedor_id, total, valor_frete, observacao, pedido_id)
+-            )
++        # Atualizar pedido
++        query_pedido = """
++            UPDATE pedidos
++            SET fornecedor_id = ?, valor_total = ?, valor_frete = ?, observacao = ?
++            WHERE id = ?
++        """
++        DatabaseUtils.executar_query(
++            query_pedido, (fornecedor_id, total, valor_frete, observacao, pedido_id)
++        )
+ 
+-            # Remover itens antigos e adicionar novos
++        # Remover itens antigos e adicionar novos
++        DatabaseUtils.executar_query(
++            "DELETE FROM itens_pedido WHERE pedido_id = ?", (pedido_id,)
++        )
++
++        for item in itens:
++            query_item = """
++                INSERT INTO itens_pedido
++                (pedido_id, produto_id, quantidade, preco_custo, preco_venda, subtotal)
++                VALUES (?, ?, ?, ?, ?, ?)
++            """
+             DatabaseUtils.executar_query(
+-                "DELETE FROM itens_pedido WHERE pedido_id = ?", (pedido_id,)
++                query_item,
++                (
++                    pedido_id,
++                    item["id"],
++                    item["quantidade"],
++                    item["preco_custo"],
++                    item["preco_venda"],
++                    item["subtotal"],
++                ),
+             )
+ 
+-            for item in itens:
+-                query_item = """
+-                    INSERT INTO itens_pedido
+-                    (pedido_id, produto_id, quantidade, preco_custo, preco_venda, subtotal)
+-                    VALUES (?, ?, ?, ?, ?, ?)
+-                """
+-                DatabaseUtils.executar_query(
+-                    query_item,
+-                    (
+-                        pedido_id,
+-                        item["id"],
+-                        item["quantidade"],
+-                        item["preco_custo"],
+-                        item["preco_venda"],
+-                        item["subtotal"],
+-                    ),
+-                )
+-
+-            return True
+-        except Exception as e:
+-            raise e
++        return True
+ 
+     @staticmethod
+     def obter_resumo_recebimento(pedido_id: int) -> dict[str, Any]:
+diff --git a/fix/utils/tabela.py b/utils/tabela.py
+new file mode 100644
+index 0000000..93ec3d6
+--- /dev/null
++++ b/utils/tabela.py
+@@ -0,0 +1,29 @@
++"""Utilitários para tabelas Qt."""
++
++from PyQt6.QtWidgets import QHeaderView, QTableWidget
++
++
++def fixar_altura_linhas(tabela: QTableWidget, altura: int = 22) -> None:
++    """Fixa a altura das linhas e a reaplica sempre que entram linhas novas.
++
++    Substitui o bloco de ~30 linhas que estava copiado em várias telas.
++    """
++    vheader = tabela.verticalHeader()
++    vheader.setDefaultSectionSize(altura)
++    vheader.setMinimumSectionSize(altura)
++    vheader.setMaximumSectionSize(altura)
++    vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
++    vheader.setCascadingSectionResizes(False)
++    vheader.setStretchLastSection(False)
++    vheader.setVisible(False)
++
++    def aplicar() -> None:
++        try:
++            for row in range(tabela.rowCount()):
++                tabela.setRowHeight(row, altura)
++        except RuntimeError:  # o widget Qt já foi destruído
++            pass
++
++    model = tabela.model()
++    if model is not None:
++        model.rowsInserted.connect(lambda *_: aplicar())
+diff --git a/utils/venda_utils.py b/utils/venda_utils.py
+index b64ea58..cec0742 100644
+--- a/utils/venda_utils.py
++++ b/utils/venda_utils.py
+@@ -5,6 +5,7 @@ Centraliza toda a lógica de negócio relacionada a vendas
+ 
+ from typing import Any
+ 
++from exceptions import ErroERP
+ from utils.database_utils import DatabaseUtils
+ from utils.helpers import converter_data_string
+ 
+@@ -136,7 +137,9 @@ class VendaRepository:
+ 
+     @staticmethod
+     def buscar_vendas_com_filtros(
+-        data_inicio: str = None, data_fim: str = None, cliente_id: int = None
++        data_inicio: str | None = None,
++        data_fim: str | None = None,
++        cliente_id: int | None = None,
+     ) -> list[tuple]:
+         """Busca vendas com filtros aplicados"""
+         query = """
+@@ -190,7 +193,7 @@ class VendaRepository:
+ 
+             return True
+         except Exception as e:
+-            raise Exception(f"Erro ao salvar itens da venda: {e!s}")
++            raise ErroERP(f"Erro ao salvar itens da venda: {e!s}") from e
+ 
+     @staticmethod
+     def buscar_itens_venda_detalhados(venda_id: int) -> list[tuple]:
+@@ -258,7 +261,7 @@ class VendaRepository:
+             return {}
+ 
+         except Exception as e:
+-            raise Exception(f"Erro ao obter resumo do período: {e!s}")
++            raise ErroERP(f"Erro ao obter resumo do período: {e!s}") from e
+ 
+ 
+ class VendaEstoqueManager:
+@@ -275,7 +278,7 @@ class VendaEstoqueManager:
+                 )
+             return True
+         except Exception as e:
+-            raise Exception(f"Erro ao atualizar estoque: {e!s}")
++            raise ErroERP(f"Erro ao atualizar estoque: {e!s}") from e
+ 
+     @staticmethod
+     def devolver_estoque_venda(venda_id: int) -> bool:
+@@ -295,7 +298,7 @@ class VendaEstoqueManager:
+ 
+             return True
+         except Exception as e:
+-            raise Exception(f"Erro ao devolver estoque: {e!s}")
++            raise ErroERP(f"Erro ao devolver estoque: {e!s}") from e
+ 
+     @staticmethod
+     def verificar_disponibilidade_produtos(
+@@ -334,9 +337,9 @@ class VendaUtils:
+     @classmethod
+     def filtrar_vendas(
+         cls,
+-        data_inicio_str: str = None,
+-        data_fim_str: str = None,
+-        cliente_id: int = None,
++        data_inicio_str: str | None = None,
++        data_fim_str: str | None = None,
++        cliente_id: int | None = None,
+     ) -> list[tuple]:
+         """Filtra vendas - método principal para compatibilidade"""
+         return cls.repository.buscar_vendas_com_filtros(
+diff --git a/views/cliente_view.py b/views/cliente_view.py
+index 307a809..9043880 100644
+--- a/views/cliente_view.py
++++ b/views/cliente_view.py
+@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
+ from mixins.table_scroll_mixin import TableScrollNavigationMixin
+ from models.cliente import Cliente
+ from utils.helpers import aplicar_maiuscula_formulario
++from utils.tabela import fixar_altura_linhas
+ 
+ 
+ # ========== CORREÇÃO: Classe para ordenação numérica ==========
+@@ -318,35 +319,7 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
+ 
+         # ========== CONFIGURAÇÃO DE ALTURA ==========
+         # Configurar VERTICAL HEADER para altura fixa
+-        vheader = self.tabela_clientes.verticalHeader()
+-        altura_desejada = 22
+-
+-        vheader.setDefaultSectionSize(altura_desejada)
+-        vheader.setMinimumSectionSize(altura_desejada)
+-        vheader.setMaximumSectionSize(altura_desejada)
+-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+-        vheader.setCascadingSectionResizes(False)
+-        vheader.setStretchLastSection(False)
+-        vheader.setVisible(False)
+-
+-        # Função para aplicar altura quando dados forem carregados
+-        def aplicar_altura_quando_necessario():
+-            try:
+-                if hasattr(self, "tabela_clientes") and self.tabela_clientes:
+-                    for row in range(self.tabela_clientes.rowCount()):
+-                        self.tabela_clientes.setRowHeight(row, altura_desejada)
+-            except:
+-                pass
+-
+-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+-        try:
+-            if hasattr(self.tabela_clientes, "model"):
+-                model = self.tabela_clientes.model()
+-                model.rowsInserted.connect(
+-                    lambda parent, first, last: aplicar_altura_quando_necessario()
+-                )
+-        except:
+-            pass
++        fixar_altura_linhas(self.tabela_clientes, 22)
+         # ========== FIM DA CONFIGURAÇÃO ==========
+ 
+         # Configurações gerais da tabela
+diff --git a/views/condicional_view.py b/views/condicional_view.py
+index 11cab87..ed0bea3 100644
+--- a/views/condicional_view.py
++++ b/views/condicional_view.py
+@@ -33,6 +33,7 @@ from utils.helpers import (
+     formatar_moeda,
+     validar_data,
+ )
++from utils.tabela import fixar_altura_linhas
+ 
+ 
+ # ========== CORREÇÃO: Classe para ordenação numérica ==========
+@@ -288,35 +289,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
+ 
+         # ========== CONFIGURAÇÃO DE ALTURA ==========
+         # Configurar VERTICAL HEADER para altura fixa
+-        vheader = self.tabela_condicionais.verticalHeader()
+-        altura_desejada = 22
+-
+-        vheader.setDefaultSectionSize(altura_desejada)
+-        vheader.setMinimumSectionSize(altura_desejada)
+-        vheader.setMaximumSectionSize(altura_desejada)
+-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+-        vheader.setCascadingSectionResizes(False)
+-        vheader.setStretchLastSection(False)
+-        vheader.setVisible(False)
+-
+-        # Função para aplicar altura quando dados forem carregados
+-        def aplicar_altura_quando_necessario():
+-            try:
+-                if hasattr(self, "tabela_condicionais") and self.tabela_condicionais:
+-                    for row in range(self.tabela_condicionais.rowCount()):
+-                        self.tabela_condicionais.setRowHeight(row, altura_desejada)
+-            except:
+-                pass
+-
+-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+-        try:
+-            if hasattr(self.tabela_condicionais, "model"):
+-                model = self.tabela_condicionais.model()
+-                model.rowsInserted.connect(
+-                    lambda parent, first, last: aplicar_altura_quando_necessario()
+-                )
+-        except:
+-            pass
++        fixar_altura_linhas(self.tabela_condicionais, 22)
+         # ========== FIM DA CONFIGURAÇÃO ==========
+ 
+         # Configurações gerais da tabela
+@@ -592,7 +565,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
+             return val.date() if hasattr(val, "date") else val
+         try:
+             return datetime.strptime(str(val), "%Y-%m-%d").date()
+-        except:
++        except ValueError:
+             return None
+ 
+     def _marcar_campo_erro(self, campo):
+diff --git a/views/fornecedor_view.py b/views/fornecedor_view.py
+index be8bd50..2748f3a 100644
+--- a/views/fornecedor_view.py
++++ b/views/fornecedor_view.py
+@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
+ from dialogs.fornecedor_dialog import FornecedorDialog
+ from mixins.table_scroll_mixin import TableScrollNavigationMixin
+ from models.fornecedor import Fornecedor
++from utils.tabela import fixar_altura_linhas
+ 
+ 
+ # ========== CORREÇÃO: Classe para ordenação numérica ==========
+@@ -210,35 +211,7 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
+ 
+         # ========== CONFIGURAÇÃO DE ALTURA ==========
+         # Configurar VERTICAL HEADER para altura fixa
+-        vheader = self.tabela_fornecedores.verticalHeader()
+-        altura_desejada = 22
+-
+-        vheader.setDefaultSectionSize(altura_desejada)
+-        vheader.setMinimumSectionSize(altura_desejada)
+-        vheader.setMaximumSectionSize(altura_desejada)
+-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+-        vheader.setCascadingSectionResizes(False)
+-        vheader.setStretchLastSection(False)
+-        vheader.setVisible(False)
+-
+-        # Função para aplicar altura quando dados forem carregados
+-        def aplicar_altura_quando_necessario():
+-            try:
+-                if hasattr(self, "tabela_fornecedores") and self.tabela_fornecedores:
+-                    for row in range(self.tabela_fornecedores.rowCount()):
+-                        self.tabela_fornecedores.setRowHeight(row, altura_desejada)
+-            except:
+-                pass
+-
+-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+-        try:
+-            if hasattr(self.tabela_fornecedores, "model"):
+-                model = self.tabela_fornecedores.model()
+-                model.rowsInserted.connect(
+-                    lambda parent, first, last: aplicar_altura_quando_necessario()
+-                )
+-        except:
+-            pass
++        fixar_altura_linhas(self.tabela_fornecedores, 22)
+         # ========== FIM DA CONFIGURAÇÃO ==========
+ 
+         # Configurações gerais da tabela
+diff --git a/views/pedido_view.py b/views/pedido_view.py
+index 408f28b..cb6bf07 100644
+--- a/views/pedido_view.py
++++ b/views/pedido_view.py
+@@ -2,6 +2,7 @@
+ View de Pedidos - Otimizada com correções de ordenação e layout reorganizado - CORRIGIDO para nova estrutura
+ """
+ 
++import sqlite3
+ from datetime import datetime, timedelta
+ 
+ from PyQt6.QtCore import Qt
+@@ -34,6 +35,7 @@ from utils.helpers import (
+     validar_data,
+ )
+ from utils.pedido_utils import PedidoUtils
++from utils.tabela import fixar_altura_linhas
+ 
+ 
+ # ========== CORREÇÃO: Classe para ordenação numérica ==========
+@@ -282,35 +284,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
+ 
+         # ========== CONFIGURAÇÃO DE ALTURA ==========
+         # Configurar VERTICAL HEADER para altura fixa
+-        vheader = self.tabela_pedidos.verticalHeader()
+-        altura_desejada = 22
+-
+-        vheader.setDefaultSectionSize(altura_desejada)
+-        vheader.setMinimumSectionSize(altura_desejada)
+-        vheader.setMaximumSectionSize(altura_desejada)
+-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+-        vheader.setCascadingSectionResizes(False)
+-        vheader.setStretchLastSection(False)
+-        vheader.setVisible(False)
+-
+-        # Função para aplicar altura quando dados forem carregados
+-        def aplicar_altura_quando_necessario():
+-            try:
+-                if hasattr(self, "tabela_pedidos") and self.tabela_pedidos:
+-                    for row in range(self.tabela_pedidos.rowCount()):
+-                        self.tabela_pedidos.setRowHeight(row, altura_desejada)
+-            except:
+-                pass
+-
+-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
+-        try:
+-            if hasattr(self.tabela_pedidos, "model"):
+-                model = self.tabela_pedidos.model()
+-                model.rowsInserted.connect(
+-                    lambda parent, first, last: aplicar_altura_quando_necessario()
+-                )
+-        except:
+-            pass
++        fixar_altura_linhas(self.tabela_pedidos, 22)
+         # ========== FIM DA CONFIGURAÇÃO ==========
+ 
+         # Configurações gerais
+@@ -416,7 +390,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
+             try:
+                 if hasattr(db, "close_connection"):
+                     db.close_connection()
+-            except:
++            except sqlite3.Error:
+                 pass
+ 
+     def _carregar_dados(
+@@ -551,7 +525,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
+             )
+             # Destacar desconto em vermelho se houver
+             if desconto_valor > 0:
+-                desconto_item.setForeground
++                desconto_item.setForeground(QBrush(QColor("#ff6b6b")))
+             self.tabela_pedidos.setItem(row, 5, desconto_item)
+ 
+             # CORREÇÃO: Frete - índice 5
+diff --git a/views/produto_dialog.py b/views/produto_dialog.py
+index 8bebf3a..4f88f08 100644
+--- a/views/produto_dialog.py
++++ b/views/produto_dialog.py
+@@ -269,7 +269,7 @@ class ProdutoDialog(QDialog):
+                 # Remove conexões existentes de returnPressed
+                 try:
+                     campo.returnPressed.disconnect()
+-                except:
++                except TypeError:
+                     pass
+                 # Conecta para navegar para próximo campo
+                 campo.returnPressed.connect(
+diff --git a/views/produto_view.py b/views/produto_view.py
+index eebcb51..5b221c5 100644
+--- a/views/produto_view.py
++++ b/views/produto_view.py
+@@ -896,7 +896,8 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
+                 os.startfile(filename)
+             elif os.name == "posix":
+                 subprocess.run(
+-                    ["open" if sys.platform == "darwin" else "xdg-open", filename]
++                    ["open" if sys.platform == "darwin" else "xdg-open", filename],
++                    check=False,
+                 )
+         except Exception as e:
+             self._mostrar_aviso(f"Não foi possível abrir automaticamente:\n{e}")
+diff --git a/views/recebimento_view.py b/views/recebimento_view.py
+index f0a69de..781eee2 100644
+--- a/views/recebimento_view.py
++++ b/views/recebimento_view.py
+@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
+ from database import Database
+ from dialogs.cliente_selection_dialog import ClienteSelectionDialog
+ from dialogs.recebimento_dialog import RecebimentoDialog
++from exceptions import ErroERP
+ from imprecoes.print_comprovante_recebimento import PrintComprovanteRecebimento
+ from imprecoes.print_relat_recebimento import PrintRelatRecebimento
+ from mixins.table_scroll_mixin import TableScrollNavigationMixin
+@@ -356,7 +357,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
+                             lambda parent, first, last: aplicar_altura_fixa_segura()
+                         )
+                         model.modelReset.connect(lambda: aplicar_altura_fixa_segura())
+-            except:
++            except RuntimeError:
+                 pass
+ 
+         # Conectar sinais após um pequeno delay
+@@ -523,13 +524,13 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
+         if data_inicio_str:
+             try:
+                 data_inicio = datetime.strptime(data_inicio_str, "%d/%m/%Y").date()
+-            except:
++            except (ValueError, TypeError):
+                 pass
+ 
+         if data_fim_str:
+             try:
+                 data_fim = datetime.strptime(data_fim_str, "%d/%m/%Y").date()
+-            except:
++            except (ValueError, TypeError):
+                 pass
+ 
+         duplicatas_filtradas = []
+@@ -578,7 +579,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
+             try:
+                 data_venc = datetime.strptime(data_vencimento, "%Y-%m-%d").date()
+                 return data_venc < hoje
+-            except:
++            except (ValueError, TypeError):
+                 return False
+         elif status_filtro == "Pagas":
+             return status == "pago"
+@@ -601,11 +602,8 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
+             if data_inicio and data_ref < data_inicio:
+                 return False
+ 
+-            if data_fim and data_ref > data_fim:
+-                return False
+-
+-            return True
+-        except:
++            return not (data_fim and data_ref > data_fim)
++        except (ValueError, TypeError):
+             return False
+ 
+     def _exibir_duplicatas_otimizado(self, duplicatas):
+@@ -704,7 +702,7 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
+                     font = venc_item.font()
+                     font.setBold(True)
+                     venc_item.setFont(font)
+-            except:
++            except (ValueError, TypeError):
+                 pass
+ 
+         self.tabela_duplicatas.setItem(row, 6, venc_item)
+@@ -818,64 +816,60 @@ class RecebimentoView(TableScrollNavigationMixin, QWidget):
+         self, duplicata, valor_recebido, data_recebimento, forma_pagamento
+     ):
+         """Processa recebimento e retorna dados da duplicata paga"""
+-        try:
+-            duplicata_id = duplicata[0]
+-            venda_id = duplicata[2]
+-            cliente_id = duplicata[1]
+-            numero_parcela = duplicata[3]
+-            valor_original = duplicata[4]
+-            data_vencimento = duplicata[5]
+-
+-            # Processar o recebimento
+-            success = Duplicata.marcar_como_paga(
+-                duplicata_id, valor_recebido, data_recebimento, forma_pagamento
+-            )
+-
+-            if not success:
+-                raise Exception("Falha ao processar recebimento")
+-
+-            # Buscar dados para comprovante
+-            conn = Database().get_connection()
+-            cursor = conn.cursor()
++        duplicata_id = duplicata[0]
++        venda_id = duplicata[2]
++        cliente_id = duplicata[1]
++        numero_parcela = duplicata[3]
++        valor_original = duplicata[4]
++        data_vencimento = duplicata[5]
++
++        # Processar o recebimento
++        success = Duplicata.marcar_como_paga(
++            duplicata_id, valor_recebido, data_recebimento, forma_pagamento
++        )
+ 
+-            cursor.execute(
+-                """
+-                SELECT c.nome, c.cpf_cnpj, c.endereco, v.total, v.data_venda
+-                FROM clientes c
+-                LEFT JOIN vendas v ON v.cliente_id = c.id
+-                WHERE c.id = ? AND v.id = ?
+-            """,
+-                (cliente_id, venda_id),
+-            )
++        if not success:
++            raise ErroERP("Falha ao processar recebimento")
+ 
+-            cliente_venda = cursor.fetchone()
+-            conn.close()
++        # Buscar dados para comprovante
++        conn = Database().get_connection()
++        cursor = conn.cursor()
+ 
+-            if not cliente_venda:
+-                raise Exception("Dados do cliente/venda não encontrados")
+-
+-            # Montar dados para comprovante
+-            dados_comprovante = {
+-                "id": duplicata_id,
+-                "venda_id": venda_id,
+-                "cliente_id": cliente_id,
+-                "numero_parcela": numero_parcela,
+-                "valor_original": float(valor_original),
+-                "valor_recebido": float(valor_recebido),
+-                "data_vencimento": data_vencimento,
+-                "data_pagamento": data_recebimento,
+-                "forma_pagamento": forma_pagamento,
+-                "cliente_nome": cliente_venda[0],
+-                "cpf_cnpj": cliente_venda[1],
+-                "endereco": cliente_venda[2],
+-                "venda_total": float(cliente_venda[3]) if cliente_venda[3] else 0,
+-                "data_venda": cliente_venda[4],
+-            }
+-
+-            return dados_comprovante
++        cursor.execute(
++            """
++            SELECT c.nome, c.cpf_cnpj, c.endereco, v.total, v.data_venda
++            FROM clientes c
++            LEFT JOIN vendas v ON v.cliente_id = c.id
++            WHERE c.id = ? AND v.id = ?
++        """,
++            (cliente_id, venda_id),
++        )
+ 
+-        except Exception as e:
+-            raise e
++        cliente_venda = cursor.fetchone()
++        conn.close()
++
++        if not cliente_venda:
++            raise ErroERP("Dados do cliente/venda não encontrados")
++
++        # Montar dados para comprovante
++        dados_comprovante = {
++            "id": duplicata_id,
++            "venda_id": venda_id,
++            "cliente_id": cliente_id,
++            "numero_parcela": numero_parcela,
++            "valor_original": float(valor_original),
++            "valor_recebido": float(valor_recebido),
++            "data_vencimento": data_vencimento,
++            "data_pagamento": data_recebimento,
++            "forma_pagamento": forma_pagamento,
++            "cliente_nome": cliente_venda[0],
++            "cpf_cnpj": cliente_venda[1],
++            "endereco": cliente_venda[2],
++            "venda_total": float(cliente_venda[3]) if cliente_venda[3] else 0,
++            "data_venda": cliente_venda[4],
++        }
++
++        return dados_comprovante
+ 
+     def _recarregar_dados_apos_recebimento(self):
+         """Recarrega dados após recebimento - otimizado"""

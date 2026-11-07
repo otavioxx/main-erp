@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
 from mixins.table_scroll_mixin import TableScrollNavigationMixin
 from models.cliente import Cliente
 from utils.helpers import aplicar_maiuscula_formulario
+from utils.tabela import fixar_altura_linhas
 
 
 # ========== CORREÇÃO: Classe para ordenação numérica ==========
@@ -318,35 +319,7 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
 
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
-        vheader = self.tabela_clientes.verticalHeader()
-        altura_desejada = 22
-
-        vheader.setDefaultSectionSize(altura_desejada)
-        vheader.setMinimumSectionSize(altura_desejada)
-        vheader.setMaximumSectionSize(altura_desejada)
-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-        vheader.setCascadingSectionResizes(False)
-        vheader.setStretchLastSection(False)
-        vheader.setVisible(False)
-
-        # Função para aplicar altura quando dados forem carregados
-        def aplicar_altura_quando_necessario():
-            try:
-                if hasattr(self, "tabela_clientes") and self.tabela_clientes:
-                    for row in range(self.tabela_clientes.rowCount()):
-                        self.tabela_clientes.setRowHeight(row, altura_desejada)
-            except:
-                pass
-
-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
-        try:
-            if hasattr(self.tabela_clientes, "model"):
-                model = self.tabela_clientes.model()
-                model.rowsInserted.connect(
-                    lambda parent, first, last: aplicar_altura_quando_necessario()
-                )
-        except:
-            pass
+        fixar_altura_linhas(self.tabela_clientes, 22)
         # ========== FIM DA CONFIGURAÇÃO ==========
 
         # Configurações gerais da tabela

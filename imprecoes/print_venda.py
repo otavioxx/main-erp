@@ -1,5 +1,6 @@
 import io
 import os
+import sqlite3
 from datetime import datetime
 
 from PIL import Image as PILImage
@@ -65,7 +66,7 @@ class PrintVenda:
         finally:
             try:
                 conn.close()
-            except Exception:
+            except sqlite3.Error:
                 pass
 
     @staticmethod
@@ -114,7 +115,7 @@ class PrintVenda:
         finally:
             try:
                 conn.close()
-            except Exception:
+            except sqlite3.Error:
                 pass
 
     @staticmethod

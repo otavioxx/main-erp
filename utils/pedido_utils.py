@@ -9,33 +9,30 @@ class PedidoUtils:
     @staticmethod
     def salvar_itens_pedido(pedido_id: int, itens: list[dict[str, Any]]) -> bool:
         """Salva os itens do pedido no banco - MODIFICADO para incluir valor de venda"""
-        try:
-            for item in itens:
-                query = """
-                    INSERT INTO itens_pedido
-                    (pedido_id, produto_id, quantidade, preco_custo, preco_venda, subtotal)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """
-                params = (
-                    pedido_id,
-                    item["id"],
-                    item["quantidade"],
-                    item["preco_custo"],
-                    item["preco_venda"],
-                    item["subtotal"],
-                )
-                DatabaseUtils.executar_query(query, params)
+        for item in itens:
+            query = """
+                INSERT INTO itens_pedido
+                (pedido_id, produto_id, quantidade, preco_custo, preco_venda, subtotal)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """
+            params = (
+                pedido_id,
+                item["id"],
+                item["quantidade"],
+                item["preco_custo"],
+                item["preco_venda"],
+                item["subtotal"],
+            )
+            DatabaseUtils.executar_query(query, params)
 
-            return True
-        except Exception as e:
-            raise e
+        return True
 
     @staticmethod
     def filtrar_pedidos(
-        data_inicio_str: str = None,
-        data_fim_str: str = None,
-        fornecedor_id: int = None,
-        status: str = None,
+        data_inicio_str: str | None = None,
+        data_fim_str: str | None = None,
+        fornecedor_id: int | None = None,
+        status: str | None = None,
     ) -> list[tuple]:
         """Filtra pedidos com os parâmetros fornecidos"""
         query = """
@@ -135,17 +132,14 @@ class PedidoUtils:
 
         except Exception as e:
             print(f"Erro ao receber pedido {pedido_id}: {e!s}")
-            raise e
+            raise
 
     @staticmethod
     def cancelar_pedido(pedido_id: int) -> bool:
         """Cancela o pedido"""
         query = "UPDATE pedidos SET status = 'cancelado' WHERE id = ?"
-        try:
-            DatabaseUtils.executar_query(query, (pedido_id,))
-            return True
-        except Exception as e:
-            raise e
+        DatabaseUtils.executar_query(query, (pedido_id,))
+        return True
 
     @staticmethod
     def calcular_totais_pedido(
@@ -162,50 +156,47 @@ class PedidoUtils:
         fornecedor_id: int,
         itens: list[dict[str, Any]],
         valor_frete: float,
-        observacao: str = None,
+        observacao: str | None = None,
     ) -> bool:
         """Atualiza um pedido existente - MODIFICADO para incluir valor de venda"""
-        try:
-            # Calcular total
-            subtotal = sum(item["subtotal"] for item in itens)
-            total = subtotal + valor_frete
+        # Calcular total
+        subtotal = sum(item["subtotal"] for item in itens)
+        total = subtotal + valor_frete
 
-            # Atualizar pedido
-            query_pedido = """
-                UPDATE pedidos
-                SET fornecedor_id = ?, valor_total = ?, valor_frete = ?, observacao = ?
-                WHERE id = ?
+        # Atualizar pedido
+        query_pedido = """
+            UPDATE pedidos
+            SET fornecedor_id = ?, valor_total = ?, valor_frete = ?, observacao = ?
+            WHERE id = ?
+        """
+        DatabaseUtils.executar_query(
+            query_pedido, (fornecedor_id, total, valor_frete, observacao, pedido_id)
+        )
+
+        # Remover itens antigos e adicionar novos
+        DatabaseUtils.executar_query(
+            "DELETE FROM itens_pedido WHERE pedido_id = ?", (pedido_id,)
+        )
+
+        for item in itens:
+            query_item = """
+                INSERT INTO itens_pedido
+                (pedido_id, produto_id, quantidade, preco_custo, preco_venda, subtotal)
+                VALUES (?, ?, ?, ?, ?, ?)
             """
             DatabaseUtils.executar_query(
-                query_pedido, (fornecedor_id, total, valor_frete, observacao, pedido_id)
+                query_item,
+                (
+                    pedido_id,
+                    item["id"],
+                    item["quantidade"],
+                    item["preco_custo"],
+                    item["preco_venda"],
+                    item["subtotal"],
+                ),
             )
 
-            # Remover itens antigos e adicionar novos
-            DatabaseUtils.executar_query(
-                "DELETE FROM itens_pedido WHERE pedido_id = ?", (pedido_id,)
-            )
-
-            for item in itens:
-                query_item = """
-                    INSERT INTO itens_pedido
-                    (pedido_id, produto_id, quantidade, preco_custo, preco_venda, subtotal)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """
-                DatabaseUtils.executar_query(
-                    query_item,
-                    (
-                        pedido_id,
-                        item["id"],
-                        item["quantidade"],
-                        item["preco_custo"],
-                        item["preco_venda"],
-                        item["subtotal"],
-                    ),
-                )
-
-            return True
-        except Exception as e:
-            raise e
+        return True
 
     @staticmethod
     def obter_resumo_recebimento(pedido_id: int) -> dict[str, Any]:

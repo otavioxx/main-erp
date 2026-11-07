@@ -24,7 +24,7 @@ def formatar_data(data, formato_origem="%Y-%m-%d", formato_destino="%d/%m/%Y"):
         try:
             data_obj = datetime.strptime(data, formato_origem)
             return data_obj.strftime(formato_destino)
-        except:
+        except ValueError:
             return data
 
     return str(data)

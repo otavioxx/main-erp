@@ -3,6 +3,7 @@ import sqlite3
 from datetime import timedelta
 
 from database import Database
+from exceptions import ErroERP
 from utils.database_utils import DatabaseUtils
 
 
@@ -72,9 +73,9 @@ class Duplicata:
 
             conn.commit()
             return self.id
-        except sqlite3.Error as e:
+        except sqlite3.Error:
             conn.rollback()
-            raise e
+            raise
         finally:
             conn.close()
 
@@ -141,8 +142,6 @@ class Duplicata:
                 ORDER BY d.data_vencimento
             """)
             return cursor.fetchall()
-        except Exception as e:
-            raise e
         finally:
             conn.close()
 
@@ -170,8 +169,6 @@ class Duplicata:
                     ORDER BY dp.data_pagamento DESC
                 """)
             return cursor.fetchall()
-        except Exception as e:
-            raise e
         finally:
             conn.close()
 
@@ -210,8 +207,6 @@ class Duplicata:
             pagas = cursor.fetchall()
 
             return abertas + pagas
-        except Exception as e:
-            raise e
         finally:
             conn.close()
 
@@ -227,7 +222,7 @@ class Duplicata:
             )
             duplicata = cursor.fetchone()
             if not duplicata:
-                raise Exception("Duplicata não encontrada")
+                raise ErroERP("Duplicata não encontrada")
 
             valor_original = float(duplicata[4])
             venda_id = duplicata[1]
@@ -334,7 +329,7 @@ class Duplicata:
                                 )
                 else:
                     # Pagou a menos - aumentar o valor das parcelas restantes
-                    for parcela_id, num_parcela, valor_parcela in parcelas_restantes:
+                    for parcela_id, _num_parcela, valor_parcela in parcelas_restantes:
                         novo_valor = float(valor_parcela) + abs(ajuste_por_parcela)
                         cursor.execute(
                             "UPDATE duplicatas SET valor_parcela = ? WHERE id = ?",
@@ -367,9 +362,9 @@ class Duplicata:
             conn.commit()
             return True
 
-        except Exception as e:
+        except Exception:
             conn.rollback()
-            raise e
+            raise
         finally:
             conn.close()
 
@@ -398,7 +393,7 @@ class Duplicata:
                 )
                 row = cursor.fetchone()
                 if not row:
-                    raise Exception(
+                    raise ErroERP(
                         "Não foi possível obter o valor da duplicata original para ajuste."
                     )
                 valor_original = float(row[0])
@@ -487,6 +482,6 @@ class Duplicata:
             import traceback
 
             traceback.print_exc()
-            raise e
+            raise
         finally:
             conn.close()

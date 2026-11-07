@@ -5,6 +5,7 @@ Centraliza toda a lógica de negócio relacionada a vendas
 
 from typing import Any
 
+from exceptions import ErroERP
 from utils.database_utils import DatabaseUtils
 from utils.helpers import converter_data_string
 
@@ -136,7 +137,9 @@ class VendaRepository:
 
     @staticmethod
     def buscar_vendas_com_filtros(
-        data_inicio: str = None, data_fim: str = None, cliente_id: int = None
+        data_inicio: str | None = None,
+        data_fim: str | None = None,
+        cliente_id: int | None = None,
     ) -> list[tuple]:
         """Busca vendas com filtros aplicados"""
         query = """
@@ -190,7 +193,7 @@ class VendaRepository:
 
             return True
         except Exception as e:
-            raise Exception(f"Erro ao salvar itens da venda: {e!s}")
+            raise ErroERP(f"Erro ao salvar itens da venda: {e!s}") from e
 
     @staticmethod
     def buscar_itens_venda_detalhados(venda_id: int) -> list[tuple]:
@@ -258,7 +261,7 @@ class VendaRepository:
             return {}
 
         except Exception as e:
-            raise Exception(f"Erro ao obter resumo do período: {e!s}")
+            raise ErroERP(f"Erro ao obter resumo do período: {e!s}") from e
 
 
 class VendaEstoqueManager:
@@ -275,7 +278,7 @@ class VendaEstoqueManager:
                 )
             return True
         except Exception as e:
-            raise Exception(f"Erro ao atualizar estoque: {e!s}")
+            raise ErroERP(f"Erro ao atualizar estoque: {e!s}") from e
 
     @staticmethod
     def devolver_estoque_venda(venda_id: int) -> bool:
@@ -295,7 +298,7 @@ class VendaEstoqueManager:
 
             return True
         except Exception as e:
-            raise Exception(f"Erro ao devolver estoque: {e!s}")
+            raise ErroERP(f"Erro ao devolver estoque: {e!s}") from e
 
     @staticmethod
     def verificar_disponibilidade_produtos(
@@ -334,9 +337,9 @@ class VendaUtils:
     @classmethod
     def filtrar_vendas(
         cls,
-        data_inicio_str: str = None,
-        data_fim_str: str = None,
-        cliente_id: int = None,
+        data_inicio_str: str | None = None,
+        data_fim_str: str | None = None,
+        cliente_id: int | None = None,
     ) -> list[tuple]:
         """Filtra vendas - método principal para compatibilidade"""
         return cls.repository.buscar_vendas_com_filtros(

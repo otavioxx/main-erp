@@ -17,6 +17,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
+from exceptions import ErroERP
 from models.empresa import Empresa
 from utils.helpers import formatar_data, formatar_moeda
 
@@ -289,4 +290,4 @@ class PrintComprovanteRecebimento:
             return filename
 
         except Exception as e:
-            raise Exception(f"Erro ao gerar comprovante: {e!s}")
+            raise ErroERP(f"Erro ao gerar comprovante: {e!s}") from e

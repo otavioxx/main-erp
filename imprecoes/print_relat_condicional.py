@@ -520,10 +520,9 @@ class PrintRelatCondicional:
                             continue
 
                     # FILTRO POR CLIENTE
-                    if cliente_id:
-                        # Índice 1 = cliente_id
-                        if condicional[1] != cliente_id:
-                            continue
+                    # Índice 1 = cliente_id
+                    if cliente_id and condicional[1] != cliente_id:
+                        continue
 
                     # Se passou por todos os filtros, adicionar à lista
                     condicionais_filtradas.append(condicional)

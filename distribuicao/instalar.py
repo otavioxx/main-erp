@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Instalador do MainERP (modelo sem PyInstaller).
 
 Cria, em %LOCALAPPDATA%\\MainERP:
@@ -81,7 +80,7 @@ def main():
     )
     args = ap.parse_args()
 
-    if sys.version_info < (3, 10):
+    if sys.version_info < (3, 10):  # noqa: UP036 - mensagem amigável ao rodar em Python antigo
         sys.exit("É necessário Python 3.10 ou superior (recomendado 3.12).")
 
     base = args.destino
@@ -117,7 +116,8 @@ def main():
     # 4) o launcher instala a release e as dependências (pip)
     print("Instalando a versão e as dependências (pode levar alguns minutos)...")
     r = subprocess.run(
-        [str(python_do_runtime(runtime)), str(launcher), "--somente-atualizar"]
+        [str(python_do_runtime(runtime)), str(launcher), "--somente-atualizar"],
+        check=False,
     )
     if r.returncode != 0 or not (sistema / "current.txt").exists():
         sys.exit(f"Falha na instalação. Veja {sistema / 'logs' / 'launcher.log'}")

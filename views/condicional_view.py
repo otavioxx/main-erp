@@ -33,6 +33,7 @@ from utils.helpers import (
     formatar_moeda,
     validar_data,
 )
+from utils.tabela import fixar_altura_linhas
 
 
 # ========== CORREÇÃO: Classe para ordenação numérica ==========
@@ -288,35 +289,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
 
         # ========== CONFIGURAÇÃO DE ALTURA ==========
         # Configurar VERTICAL HEADER para altura fixa
-        vheader = self.tabela_condicionais.verticalHeader()
-        altura_desejada = 22
-
-        vheader.setDefaultSectionSize(altura_desejada)
-        vheader.setMinimumSectionSize(altura_desejada)
-        vheader.setMaximumSectionSize(altura_desejada)
-        vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-        vheader.setCascadingSectionResizes(False)
-        vheader.setStretchLastSection(False)
-        vheader.setVisible(False)
-
-        # Função para aplicar altura quando dados forem carregados
-        def aplicar_altura_quando_necessario():
-            try:
-                if hasattr(self, "tabela_condicionais") and self.tabela_condicionais:
-                    for row in range(self.tabela_condicionais.rowCount()):
-                        self.tabela_condicionais.setRowHeight(row, altura_desejada)
-            except:
-                pass
-
-        # Conectar ao sinal de dados alterados (quando a tabela for populada)
-        try:
-            if hasattr(self.tabela_condicionais, "model"):
-                model = self.tabela_condicionais.model()
-                model.rowsInserted.connect(
-                    lambda parent, first, last: aplicar_altura_quando_necessario()
-                )
-        except:
-            pass
+        fixar_altura_linhas(self.tabela_condicionais, 22)
         # ========== FIM DA CONFIGURAÇÃO ==========
 
         # Configurações gerais da tabela
@@ -592,7 +565,7 @@ class CondicionalView(TableScrollNavigationMixin, QWidget):
             return val.date() if hasattr(val, "date") else val
         try:
             return datetime.strptime(str(val), "%Y-%m-%d").date()
-        except:
+        except ValueError:
             return None
 
     def _marcar_campo_erro(self, campo):

@@ -44,21 +44,22 @@ class DatabaseManager:
     @staticmethod
     def _restore_from_zip(zip_file, target_db):
         """Restaura a partir de arquivo ZIP"""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Extrair arquivo ZIP
-            with zipfile.ZipFile(zip_file, "r") as zipf:
-                # Procurar arquivo .db dentro do ZIP
-                db_files = [f for f in zipf.namelist() if f.endswith(".db")]
-                if not db_files:
-                    raise ValueError("Nenhum arquivo .db encontrado no backup")
+        with (
+            tempfile.TemporaryDirectory() as temp_dir,
+            zipfile.ZipFile(zip_file, "r") as zipf,
+        ):
+            # Procurar arquivo .db dentro do ZIP
+            db_files = [f for f in zipf.namelist() if f.endswith(".db")]
+            if not db_files:
+                raise ValueError("Nenhum arquivo .db encontrado no backup")
 
-                # Extrair o primeiro arquivo .db
-                db_filename = db_files[0]
-                zipf.extract(db_filename, temp_dir)
-                extracted_db = os.path.join(temp_dir, db_filename)
+            # Extrair o primeiro arquivo .db
+            db_filename = db_files[0]
+            zipf.extract(db_filename, temp_dir)
+            extracted_db = os.path.join(temp_dir, db_filename)
 
-                # Fazer a restauração
-                return DatabaseManager._restore_from_db(extracted_db, target_db)
+            # Fazer a restauração
+            return DatabaseManager._restore_from_db(extracted_db, target_db)
 
     @staticmethod
     def _restore_from_db(source_db, target_db):
@@ -91,14 +92,14 @@ class DatabaseManager:
 
             return True
 
-        except Exception as e:
+        except Exception:
             # Em caso de erro, tentar restaurar o backup anterior
             try:
                 if os.path.exists(pre_restore_backup):
                     shutil.copy2(pre_restore_backup, target_db)
-            except:
+            except OSError:
                 pass
-            raise e
+            raise
 
     @staticmethod
     def _verify_database(db_path):
@@ -125,7 +126,7 @@ class DatabaseManager:
 
             return len(tables) > 0 and found_essential
 
-        except:
+        except (sqlite3.Error, OSError):
             return False
 
     @staticmethod
@@ -136,13 +137,8 @@ class DatabaseManager:
         # Coletar garbage para liberar conexões
         gc.collect()
 
-        # Tentar fechar conexões do sqlite3
-        try:
-            # SQLite3 não tem uma maneira global de fechar todas as conexões
-            # Dependemos do garbage collector
-            pass
-        except:
-            pass
+        # SQLite3 não tem uma maneira global de fechar todas as conexões;
+        # dependemos do garbage collector (gc.collect acima).
 
     @staticmethod
     def get_database_info(db_path):
@@ -175,7 +171,7 @@ class DatabaseManager:
                     cursor.execute(f"SELECT COUNT(*) FROM {table}")
                     count = cursor.fetchone()[0]
                     info["record_counts"][table] = count
-                except:
+                except sqlite3.Error:
                     info["record_counts"][table] = 0
 
             conn.close()
@@ -210,7 +206,7 @@ class DatabaseManager:
                             db_files = [f for f in zipf.namelist() if f.endswith(".db")]
                             file_info["contains_db"] = len(db_files) > 0
                             file_info["db_files"] = db_files
-                    except:
+                    except (zipfile.BadZipFile, OSError):
                         file_info["contains_db"] = False
 
                 backups.append(file_info)
