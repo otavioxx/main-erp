@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import ClassVar, Iterator
 
 from mainerp.core.config import config
+from mainerp.data.money import para_centavos
 
 
 class MigracaoError(RuntimeError):
@@ -31,6 +32,7 @@ class Database:
     MIGRACOES: ClassVar[list[tuple[int, str]]] = [
         (1, "_migracao_001_esquema_base"),
         (2, "_migracao_002_indices_consultas_frequentes"),
+        (3, "_migracao_003_valores_monetarios_centavos"),
     ]
 
     MANTER_BACKUPS_MIGRACAO = 10
@@ -261,6 +263,88 @@ class Database:
             cursor.execute(
                 f"CREATE INDEX IF NOT EXISTS {nome} ON {tabela} ({colunas_sql})"
             )
+
+    def _migracao_003_valores_monetarios_centavos(self):
+        cursor = self.get_connection().cursor()
+        conn = self.get_connection()
+        tabelas_monetarias = {
+            "produtos": ("preco_custo", "preco_venda"),
+            "vendas": ("total", "desconto", "valor_entrada", "valor_financiado"),
+            "itens_venda": ("preco_unitario", "desconto"),
+            "duplicatas": ("valor_parcela",),
+            "duplicatas_pagas": ("valor_original", "valor_recebido"),
+            "condicionais": ("desconto",),
+            "itens_condicional": ("preco_unitario",),
+            "pedidos": ("valor_total", "valor_frete", "desconto"),
+            "itens_pedido": ("preco_custo", "preco_venda", "subtotal"),
+        }
+
+        for tabela, colunas_monetarias in tabelas_monetarias.items():
+            colunas_existentes = set(self._colunas(cursor, tabela))
+            colunas_convertidas = [
+                coluna for coluna in colunas_monetarias if coluna in colunas_existentes
+            ]
+            if not colunas_convertidas:
+                continue
+
+            colunas_novas = []
+            for coluna in colunas_convertidas:
+                coluna_centavos = f"{coluna}_centavos"
+                if self._garantir_coluna(
+                    cursor, tabela, coluna_centavos, "INTEGER NOT NULL DEFAULT 0"
+                ):
+                    colunas_novas.append(coluna)
+
+            if colunas_novas:
+                select_cursor = conn.cursor()
+                select_cursor.execute(
+                    f"SELECT rowid, {', '.join(colunas_novas)} FROM {tabela}"
+                )
+                update_sql = (
+                    f"UPDATE {tabela} SET "
+                    + ", ".join(f"{coluna}_centavos = ?" for coluna in colunas_novas)
+                    + " WHERE rowid = ?"
+                )
+                while linhas := select_cursor.fetchmany(500):
+                    conn.executemany(
+                        update_sql,
+                        [
+                            tuple(para_centavos(valor) for valor in linha[1:])
+                            + (linha[0],)
+                            for linha in linhas
+                        ],
+                    )
+                select_cursor.close()
+
+            nomes_legacy = ", ".join(colunas_convertidas)
+            # Compensa resíduos binários comuns de valores já arredondados em float.
+            atribuicoes = ", ".join(
+                f"{coluna}_centavos = CAST(ROUND("
+                f"COALESCE(NEW.{coluna}, 0) * 100 + "
+                f"CASE WHEN COALESCE(NEW.{coluna}, 0) >= 0 THEN 0.000000001 "
+                f"ELSE -0.000000001 END, 0) AS INTEGER)"
+                for coluna in colunas_convertidas
+            )
+            nome_insert = f"trg_{tabela}_centavos_insert"
+            nome_update = f"trg_{tabela}_centavos_update"
+            cursor.execute(f"""
+                CREATE TRIGGER IF NOT EXISTS {nome_insert}
+                AFTER INSERT ON {tabela}
+                BEGIN
+                    UPDATE {tabela}
+                    SET {atribuicoes}
+                    WHERE rowid = NEW.rowid;
+                END
+            """)
+            cursor.execute(f"""
+                CREATE TRIGGER IF NOT EXISTS {nome_update}
+                AFTER UPDATE OF {nomes_legacy} ON {tabela}
+                BEGIN
+                    UPDATE {tabela}
+                    SET {atribuicoes}
+                    WHERE rowid = NEW.rowid;
+                END
+            """)
 
     def init_database(self):
         conn = self.get_connection()

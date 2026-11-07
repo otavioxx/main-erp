@@ -84,6 +84,88 @@ def test_migracao_cria_indices_de_consulta_e_e_idempotente(tmp_path):
         banco.close_connection()
 
 
+def test_migracao_monetaria_cria_centavos_preserva_valores_e_sincroniza_escritas(
+    tmp_path,
+):
+    caminho_banco = tmp_path / "centavos.db"
+    banco = Database(str(caminho_banco))
+    try:
+        conn = banco.get_connection()
+        conn.execute("INSERT INTO clientes (id, nome) VALUES (1, 'Cliente de teste')")
+        conn.execute(
+            "INSERT INTO vendas (id, cliente_id, total, desconto) "
+            "VALUES (1, 1, 0.1 + 0.2, 1.005)"
+        )
+        conn.commit()
+
+        assert conn.execute(
+            "SELECT total, total_centavos, desconto_centavos FROM vendas WHERE id = 1"
+        ).fetchone() == (0.30000000000000004, 30, 101)
+
+        conn.execute(
+            "UPDATE vendas SET total = ?, desconto = ? WHERE id = 1",
+            (12.345, -1.005),
+        )
+        conn.commit()
+        assert conn.execute(
+            "SELECT total_centavos, desconto_centavos FROM vendas WHERE id = 1"
+        ).fetchone() == (1235, -101)
+
+        conn.execute(
+            "INSERT INTO produtos (nome, preco_custo, preco_venda) VALUES (?, ?, ?)",
+            ("Produto de teste", 3.99, 5.5),
+        )
+        conn.commit()
+        assert conn.execute(
+            "SELECT preco_custo_centavos, preco_venda_centavos FROM produtos"
+        ).fetchone() == (399, 550)
+
+        banco.migrar()
+        assert (
+            conn.execute(
+                "SELECT COUNT(*) FROM sqlite_master "
+                "WHERE type = 'trigger' AND name LIKE 'trg_%_centavos_%'"
+            ).fetchone()[0]
+            == 18
+        )
+    finally:
+        banco.close_connection()
+
+    conexao_legada = sqlite3.connect(caminho_banco)
+    try:
+        conexao_legada.execute("UPDATE vendas SET total = 7.25 WHERE id = 1")
+        conexao_legada.commit()
+        assert conexao_legada.execute(
+            "SELECT total_centavos FROM vendas WHERE id = 1"
+        ).fetchone() == (725,)
+    finally:
+        conexao_legada.close()
+
+
+def test_migracao_monetaria_cria_centavos_para_todos_os_campos_do_esquema(tmp_path):
+    banco = Database(str(tmp_path / "todos_centavos.db"))
+    campos_monetarios = {
+        "produtos": {"preco_custo", "preco_venda"},
+        "vendas": {"total", "desconto", "valor_entrada", "valor_financiado"},
+        "itens_venda": {"preco_unitario", "desconto"},
+        "duplicatas": {"valor_parcela"},
+        "duplicatas_pagas": {"valor_original", "valor_recebido"},
+        "condicionais": {"desconto"},
+        "itens_condicional": {"preco_unitario"},
+        "pedidos": {"valor_total", "valor_frete", "desconto"},
+        "itens_pedido": {"preco_custo", "preco_venda", "subtotal"},
+    }
+
+    try:
+        conn = banco.get_connection()
+        assert sum(map(len, campos_monetarios.values())) == 19
+        for tabela, campos in campos_monetarios.items():
+            colunas = set(banco._colunas(conn.cursor(), tabela))
+            assert {f"{campo}_centavos" for campo in campos} <= colunas
+    finally:
+        banco.close_connection()
+
+
 def test_migracao_adiciona_colunas_ausentes_e_preserva_dados_anteriores(tmp_path):
     caminho_banco = tmp_path / "legado.db"
     conn = sqlite3.connect(caminho_banco)
@@ -114,6 +196,9 @@ def test_migracao_adiciona_colunas_ausentes_e_preserva_dados_anteriores(tmp_path
         assert conn.execute(
             "SELECT valor_financiado FROM vendas WHERE id = 1"
         ).fetchone() == (80.0,)
+        assert conn.execute(
+            "SELECT valor_financiado_centavos FROM vendas WHERE id = 1"
+        ).fetchone() == (8000,)
 
         colunas_condicionais = banco._colunas(conn.cursor(), "condicionais")
         colunas_pedidos = banco._colunas(conn.cursor(), "pedidos")

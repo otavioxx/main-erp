@@ -35,8 +35,11 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
       Models, utilitários, telas e relatórios usam o gerenciador compartilhado.
 - [x] Tirar o SQL das telas (`mainerp/ui/views/recebimento_view`, `condicional_view`,
       `venda_view`, `pedido_view`) para `mainerp/data/models/` e repositórios.
-- [ ] **Dinheiro**: 23 colunas `REAL` (float) acumulam erro de arredondamento. Migrar para
-      centavos inteiros (`INTEGER`) ou `Decimal`, com migração numerada e testes antes.
+- [ ] **Dinheiro**: concluir a migração dos 19 campos monetários `REAL` do esquema atual
+      para centavos inteiros (`INTEGER`), incluindo cálculos e leituras da aplicação.
+      - [x] Migração 3 cria colunas `*_centavos`, converte os dados existentes e mantém
+            os centavos sincronizados em escritas antigas; cálculos e leituras ainda
+            precisam passar a usar os campos inteiros.
 - [x] Índices nas colunas mais filtradas (cliente, data, status); `PRAGMA foreign_keys`
       permanece ativo.
 
