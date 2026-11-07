@@ -20,6 +20,7 @@ from reportlab.platypus import (
 
 from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
+from mainerp.data.money import de_centavos, para_centavos
 
 logger = logging.getLogger(__name__)
 
@@ -69,11 +70,11 @@ class PrintRelatPedido:
                     p.fornecedor_id,               -- 1
                     p.data_pedido,                 -- 2
                     p.data_recebimento,            -- 3
-                    p.valor_total,                 -- 4
-                    p.valor_frete,                 -- 5
+                    p.valor_total_centavos,        -- 4
+                    p.valor_frete_centavos,        -- 5
                     p.observacao,                  -- 6
                     p.status,                      -- 7
-                    COALESCE(p.desconto, 0) as desconto,  -- 8 - NOVO CAMPO
+                    COALESCE(p.desconto_centavos, 0) as desconto_centavos,  -- 8
                     f.nome as fornecedor_nome      -- 9
                 FROM pedidos p
                 LEFT JOIN fornecedores f ON p.fornecedor_id = f.id
@@ -115,7 +116,17 @@ class PrintRelatPedido:
             query += " ORDER BY p.data_pedido DESC, p.id DESC"
 
             cursor.execute(query, params)
-            return cursor.fetchall()
+            return [
+                (
+                    *pedido[:4],
+                    float(de_centavos(pedido[4])),
+                    float(de_centavos(pedido[5])),
+                    *pedido[6:8],
+                    float(de_centavos(pedido[8])),
+                    *pedido[9:],
+                )
+                for pedido in cursor.fetchall()
+            ]
 
         except Exception as e:
             logger.error(f"Erro ao buscar pedidos: {e}")
@@ -302,9 +313,9 @@ class PrintRelatPedido:
                     ]
                 ]
 
-                total_pedidos = 0
-                total_descontos = 0
-                total_frete = 0
+                total_pedidos_centavos = 0
+                total_descontos_centavos = 0
+                total_frete_centavos = 0
                 pedidos_pendentes = 0
                 pedidos_recebidos = 0
                 pedidos_cancelados = 0
@@ -329,7 +340,12 @@ class PrintRelatPedido:
                     fornecedor_nome = pedido[9] if len(pedido) > 9 else "N/A"
 
                     # Calcular subtotal (valor total + desconto - frete)
-                    subtotal = valor_total + desconto - valor_frete
+                    subtotal_centavos = (
+                        para_centavos(valor_total)
+                        + para_centavos(desconto)
+                        - para_centavos(valor_frete)
+                    )
+                    subtotal = float(de_centavos(subtotal_centavos))
 
                     # Contabilizar por status
                     if status.lower() == "pendente":
@@ -359,9 +375,9 @@ class PrintRelatPedido:
                         PrintRelatPedido._formatar_moeda(valor_total),
                     ]
 
-                    total_pedidos += valor_total
-                    total_descontos += desconto
-                    total_frete += valor_frete
+                    total_pedidos_centavos += para_centavos(valor_total)
+                    total_descontos_centavos += para_centavos(desconto)
+                    total_frete_centavos += para_centavos(valor_frete)
                     tabela_dados.append(dados)
 
                 # Adicionar linha de totais
@@ -373,13 +389,19 @@ class PrintRelatPedido:
                         "",
                         "",
                         "TOTAIS:",
-                        PrintRelatPedido._formatar_moeda(total_descontos)
-                        if total_descontos > 0
+                        PrintRelatPedido._formatar_moeda(
+                            float(de_centavos(total_descontos_centavos))
+                        )
+                        if total_descontos_centavos > 0
                         else "-",
-                        PrintRelatPedido._formatar_moeda(total_frete)
-                        if total_frete > 0
+                        PrintRelatPedido._formatar_moeda(
+                            float(de_centavos(total_frete_centavos))
+                        )
+                        if total_frete_centavos > 0
                         else "-",
-                        PrintRelatPedido._formatar_moeda(total_pedidos),
+                        PrintRelatPedido._formatar_moeda(
+                            float(de_centavos(total_pedidos_centavos))
+                        ),
                     ]
                 )
 
@@ -462,9 +484,16 @@ class PrintRelatPedido:
                 elements.append(Spacer(1, 4 * mm))
 
                 # RESUMO ESTATÍSTICO ATUALIZADO
-                valor_produtos = (
-                    total_pedidos + total_descontos - total_frete
-                )  # Valor real dos produtos
+                valor_produtos = float(
+                    de_centavos(
+                        total_pedidos_centavos
+                        + total_descontos_centavos
+                        - total_frete_centavos
+                    )
+                )
+                total_pedidos = float(de_centavos(total_pedidos_centavos))
+                total_descontos = float(de_centavos(total_descontos_centavos))
+                total_frete = float(de_centavos(total_frete_centavos))
 
                 resumo_texto = f"""
                 Total de pedidos: {len(pedidos_data)} |

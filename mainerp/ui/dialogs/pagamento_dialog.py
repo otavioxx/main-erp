@@ -3,6 +3,7 @@ Dialog de Pagamento - Versão Simplificada com Entrada
 """
 
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QGuiApplication
@@ -21,6 +22,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from mainerp.data.money import de_centavos, para_centavos
 from mainerp.domain.utils.helpers import SelectAllDoubleSpinBox, formatar_moeda
 
 
@@ -29,7 +31,7 @@ class PagamentoDialog(QDialog):
 
     def __init__(self, valor_total, cliente_id, parent=None):
         super().__init__(parent)
-        self.valor_total = float(valor_total)
+        self.valor_total = float(de_centavos(para_centavos(valor_total)))
         self.cliente_id = cliente_id
         self.valor_entrada = 0.0
         self._init_ui()
@@ -216,7 +218,12 @@ class PagamentoDialog(QDialog):
 
     def _aplicar_percentual(self, percentual):
         """Aplica percentual do valor total como entrada"""
-        valor = (self.valor_total * percentual) / 100
+        entrada_centavos = para_centavos(
+            de_centavos(para_centavos(self.valor_total))
+            * Decimal(str(percentual))
+            / Decimal(100)
+        )
+        valor = float(de_centavos(entrada_centavos))
         self.entrada_input.setValue(valor)
 
     def _calcular_financiado(self):
@@ -224,7 +231,10 @@ class PagamentoDialog(QDialog):
         if hasattr(self, "entrada_input"):
             self.valor_entrada = self.entrada_input.value()
 
-        valor_financiado = self.valor_total - self.valor_entrada
+        valor_financiado_centavos = para_centavos(self.valor_total) - para_centavos(
+            self.valor_entrada
+        )
+        valor_financiado = float(de_centavos(valor_financiado_centavos))
 
         if hasattr(self, "label_financiado"):
             self.label_financiado.setText(
@@ -241,13 +251,19 @@ class PagamentoDialog(QDialog):
             return
 
         if self.rb_crediario.isChecked():
-            valor_financiado = self.valor_total - self.valor_entrada
+            valor_financiado_centavos = para_centavos(self.valor_total) - para_centavos(
+                self.valor_entrada
+            )
             if (
-                valor_financiado > 0
+                valor_financiado_centavos > 0
                 and hasattr(self, "parcelas_spinner")
                 and self.parcelas_spinner.value() > 0
             ):
-                valor_parcela = valor_financiado / self.parcelas_spinner.value()
+                valor_parcela_centavos = para_centavos(
+                    de_centavos(valor_financiado_centavos)
+                    / self.parcelas_spinner.value()
+                )
+                valor_parcela = float(de_centavos(valor_parcela_centavos))
                 self.label_valor_parcela.setText(
                     f"Valor da parcela: {formatar_moeda(valor_parcela)}"
                 )
@@ -267,14 +283,16 @@ class PagamentoDialog(QDialog):
     def _validar_e_aceitar(self):
         """Valida dados antes de aceitar"""
         if self.rb_crediario.isChecked():
-            if self.valor_entrada >= self.valor_total:
+            entrada_centavos = para_centavos(self.valor_entrada)
+            total_centavos = para_centavos(self.valor_total)
+            if entrada_centavos >= total_centavos:
                 QMessageBox.warning(
                     self, "Erro", "Valor de entrada deve ser menor que o total."
                 )
                 return
 
-            valor_financiado = self.valor_total - self.valor_entrada
-            if valor_financiado <= 0:
+            valor_financiado_centavos = total_centavos - entrada_centavos
+            if valor_financiado_centavos <= 0:
                 QMessageBox.warning(
                     self, "Erro", "Valor financiado deve ser maior que zero."
                 )
@@ -313,7 +331,11 @@ class PagamentoDialog(QDialog):
                 # Se houver erro na conversão, usar data padrão
                 data_vencimento = (datetime.now() + timedelta(days=30)).date()
 
-        valor_financiado = self.valor_total - self.valor_entrada
+        valor_financiado = float(
+            de_centavos(
+                para_centavos(self.valor_total) - para_centavos(self.valor_entrada)
+            )
+        )
 
         # Retorna no formato esperado pelo código original
         return {

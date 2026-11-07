@@ -22,6 +22,7 @@ from mainerp.core.app_logging import registrar_excecao
 from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
 from mainerp.data.models.venda import Venda
+from mainerp.data.money import de_centavos, para_centavos
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ class PrintVenda:
                     p.cor,
                     p.tamanho,
                     iv.quantidade,
-                    iv.preco_unitario
+                    iv.preco_unitario_centavos
                 FROM itens_venda iv
                 INNER JOIN produtos p ON iv.produto_id = p.id
                 WHERE iv.venda_id = ?
@@ -61,7 +62,7 @@ class PrintVenda:
 
             cursor.execute(query, (venda_id,))
             result = cursor.fetchall()
-            return result
+            return [(*item[:6], float(de_centavos(item[6]))) for item in result]
 
         except Exception:
             logger.exception("Erro ao buscar itens da venda %s", venda_id)
@@ -78,7 +79,7 @@ class PrintVenda:
             # Buscar duplicatas abertas
             cursor.execute(
                 """
-                SELECT numero_parcela, valor_parcela, data_vencimento, status
+                SELECT numero_parcela, valor_parcela_centavos, data_vencimento, status
                 FROM duplicatas
                 WHERE venda_id = ?
                 ORDER BY numero_parcela
@@ -91,7 +92,8 @@ class PrintVenda:
             # Buscar duplicatas pagas
             cursor.execute(
                 """
-                SELECT numero_parcela, valor_recebido as valor_parcela, data_vencimento, 'pago' as status
+                SELECT numero_parcela, valor_recebido_centavos as valor_parcela,
+                       data_vencimento, 'pago' as status
                 FROM duplicatas_pagas
                 WHERE venda_id = ?
                 ORDER BY numero_parcela
@@ -102,7 +104,10 @@ class PrintVenda:
             parcelas_pagas = cursor.fetchall()
 
             # Combinar e ordenar todas as parcelas
-            todas_parcelas = list(parcelas_abertas) + list(parcelas_pagas)
+            todas_parcelas = [
+                (item[0], float(de_centavos(item[1])), *item[2:])
+                for item in [*parcelas_abertas, *parcelas_pagas]
+            ]
             todas_parcelas.sort(key=lambda x: x[0])  # Ordenar por numero_parcela
 
             return todas_parcelas
@@ -445,7 +450,7 @@ class PrintVenda:
             # TABELA COM OS CAMPOS SOLICITADOS: ID, Nome, Tamanho, Cor, Quantidade, Valor de venda
             tabela_dados = [["ID", "Nome", "Tamanho", "Cor", "Qtd", "Valor Venda R$"]]
 
-            subtotal = 0
+            subtotal_centavos = 0
             for item in itens:
                 # Estrutura da tupla: id, produto_id, nome, cor, tamanho, quantidade, preco_unitario
                 produto_id = item[1] if len(item) > 1 else "N/A"
@@ -456,8 +461,7 @@ class PrintVenda:
                 preco_unitario = float(item[6]) if len(item) > 6 and item[6] else 0.0
 
                 # Calcular subtotal do item
-                subtotal_item = quantidade * preco_unitario
-                subtotal += subtotal_item
+                subtotal_centavos += para_centavos(preco_unitario) * quantidade
 
                 # Limitar tamanhos dos textos
                 produto_nome = PrintVenda._limitar_texto(produto_nome, 45)
@@ -533,13 +537,17 @@ class PrintVenda:
             # TOTAIS
             totais_dados = []
 
+            subtotal = float(de_centavos(subtotal_centavos))
             totais_dados.append(["Subtotal:", f"R$ {subtotal:.2f}"])
 
             # Calcular o total com desconto aplicado
-            total_com_desconto = subtotal
+            total_com_desconto_centavos = subtotal_centavos
             if venda.desconto and venda.desconto > 0:
                 totais_dados.append(["Desconto:", f"- R$ {venda.desconto:.2f}"])
-                total_com_desconto = subtotal - venda.desconto
+                total_com_desconto_centavos = max(
+                    0, subtotal_centavos - para_centavos(venda.desconto)
+                )
+            total_com_desconto = float(de_centavos(total_com_desconto_centavos))
 
             # Mostrar o total da venda primeiro
             totais_dados.append(["TOTAL DA VENDA:", f"R$ {total_com_desconto:.2f}"])

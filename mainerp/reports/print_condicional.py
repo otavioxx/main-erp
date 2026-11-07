@@ -21,6 +21,7 @@ from reportlab.platypus import (
 from mainerp.data.database import obter_database
 from mainerp.data.models.condicional import Condicional
 from mainerp.data.models.empresa import Empresa
+from mainerp.data.money import de_centavos, para_centavos
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +89,7 @@ class PrintCondicional:
                     p.cor,
                     p.tamanho,
                     ic.quantidade,
-                    ic.preco_unitario
+                    ic.preco_unitario_centavos
                 FROM itens_condicional ic
                 INNER JOIN produtos p ON ic.produto_id = p.id
                 WHERE ic.condicional_id = ?
@@ -97,7 +98,7 @@ class PrintCondicional:
 
             cursor.execute(query, (condicional_id,))
             result = cursor.fetchall()
-            return result
+            return [(*item[:6], float(de_centavos(item[6]))) for item in result]
 
         except Exception as e:
             logger.error(f"Erro ao buscar itens da condicional: {e!s}")
@@ -304,7 +305,7 @@ class PrintCondicional:
                     ["ID", "Nome", "Tamanho", "Cor", "Qtd", "Valor Venda R$"]
                 ]
 
-                total = 0
+                total_centavos = 0
 
                 for item in itens:
                     # Estrutura da tupla: id, produto_id, nome, cor, tamanho, quantidade, preco_unitario
@@ -315,8 +316,7 @@ class PrintCondicional:
                     quantidade = item[5] if len(item) > 5 else 0
                     preco_unit = float(item[6]) if len(item) > 6 and item[6] else 0.0
 
-                    subtotal = quantidade * preco_unit
-                    total += subtotal
+                    total_centavos += para_centavos(preco_unit) * quantidade
 
                     # Limitar tamanhos dos textos
                     produto_nome = PrintCondicional._limitar_texto(produto_nome, 45)
@@ -389,7 +389,16 @@ class PrintCondicional:
                 elements.append(tabela)
                 elements.append(Spacer(1, 6 * mm))
 
-                total_dados = [["", "", "", "", "TOTAL:", f"R$ {total:.2f}"]]
+                total_dados = [
+                    [
+                        "",
+                        "",
+                        "",
+                        "",
+                        "TOTAL:",
+                        f"R$ {float(de_centavos(total_centavos)):.2f}",
+                    ]
+                ]
 
                 tabela_total = Table(
                     total_dados,

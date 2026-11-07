@@ -1,9 +1,10 @@
 import sqlite3
 
 from mainerp.core.app_logging import registrar_excecao
+from mainerp.data.models.base_model import BaseModel
 
 # \erp\model\produto.py
-from mainerp.data.models.base_model import BaseModel
+from mainerp.data.money import de_centavos, para_centavos
 
 
 class Produto(BaseModel):
@@ -46,9 +47,15 @@ class Produto(BaseModel):
         if erros:
             raise ValueError("\n".join(erros))
 
+        custo_centavos = para_centavos(self.preco_custo)
+        venda_centavos = para_centavos(self.preco_venda)
+        self.preco_custo = float(de_centavos(custo_centavos))
+        self.preco_venda = float(de_centavos(venda_centavos))
+
         if self.id:
             query = """
-                UPDATE produtos SET nome=?, preco_custo=?, preco_venda=?, estoque=?,
+                UPDATE produtos SET nome=?, preco_custo=?, preco_venda=?,
+                preco_custo_centavos=?, preco_venda_centavos=?, estoque=?,
                 fornecedor_id=?, ativo=?, tamanho=?, cor=?, ea=?, referencia=?
                 WHERE id=?
             """
@@ -56,6 +63,8 @@ class Produto(BaseModel):
                 self.nome,
                 self.preco_custo,
                 self.preco_venda,
+                custo_centavos,
+                venda_centavos,
                 self.estoque,
                 self.fornecedor_id,
                 self.ativo,
@@ -67,14 +76,18 @@ class Produto(BaseModel):
             )
         else:
             query = """
-                INSERT INTO produtos (nome, preco_custo, preco_venda, estoque, fornecedor_id,
-                ativo, tamanho, cor, ea, referencia)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO produtos
+                (nome, preco_custo, preco_venda, preco_custo_centavos,
+                 preco_venda_centavos, estoque, fornecedor_id, ativo, tamanho,
+                 cor, ea, referencia)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             params = (
                 self.nome,
                 self.preco_custo,
                 self.preco_venda,
+                custo_centavos,
+                venda_centavos,
                 self.estoque,
                 self.fornecedor_id,
                 self.ativo,
@@ -181,21 +194,16 @@ class Produto(BaseModel):
 
     @staticmethod
     def buscar_todos(apenas_ativos=True):
+        query = """
+            SELECT p.id, p.nome, p.preco_custo_centavos,
+                   p.preco_venda_centavos, p.estoque, p.fornecedor_id, p.ativo,
+                   p.tamanho, p.cor, p.ea, p.referencia, f.nome
+            FROM produtos p
+            LEFT JOIN fornecedores f ON p.fornecedor_id = f.id
+        """
         if apenas_ativos:
-            query = """
-                SELECT p.*, f.nome as fornecedor_nome
-                FROM produtos p
-                LEFT JOIN fornecedores f ON p.fornecedor_id = f.id
-                WHERE p.ativo = 1
-                ORDER BY p.nome
-            """
-        else:
-            query = """
-                SELECT p.*, f.nome as fornecedor_nome
-                FROM produtos p
-                LEFT JOIN fornecedores f ON p.fornecedor_id = f.id
-                ORDER BY p.nome
-            """
+            query += " WHERE p.ativo = 1"
+        query += " ORDER BY p.nome"
 
         resultados = Produto.executar_query(query)
         if not isinstance(resultados, list):
@@ -206,8 +214,8 @@ class Produto(BaseModel):
             produto = Produto(
                 id=row[0],
                 nome=row[1],
-                preco_custo=row[2],
-                preco_venda=row[3],
+                preco_custo=float(de_centavos(row[2])),
+                preco_venda=float(de_centavos(row[3])),
                 estoque=row[4],
                 fornecedor_id=row[5],
                 ativo=row[6],
@@ -224,7 +232,9 @@ class Produto(BaseModel):
     @staticmethod
     def buscar_por_id(produto_id):
         query = """
-            SELECT p.*, f.nome as fornecedor_nome
+            SELECT p.id, p.nome, p.preco_custo_centavos,
+                   p.preco_venda_centavos, p.estoque, p.fornecedor_id, p.ativo,
+                   p.tamanho, p.cor, p.ea, p.referencia, f.nome
             FROM produtos p
             LEFT JOIN fornecedores f ON p.fornecedor_id = f.id
             WHERE p.id = ?
@@ -238,8 +248,8 @@ class Produto(BaseModel):
             produto = Produto(
                 id=row[0],
                 nome=row[1],
-                preco_custo=row[2],
-                preco_venda=row[3],
+                preco_custo=float(de_centavos(row[2])),
+                preco_venda=float(de_centavos(row[3])),
                 estoque=row[4],
                 fornecedor_id=row[5],
                 ativo=row[6],

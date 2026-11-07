@@ -5,6 +5,7 @@ from typing import Any
 
 from mainerp.core.app_logging import registrar_excecao
 from mainerp.data.database import obter_database
+from mainerp.data.money import de_centavos
 
 
 class DatabaseUtils:
@@ -111,7 +112,8 @@ class DatabaseUtils:
         """
         query = """
             SELECT pi.id, pi.produto_id, p.nome as produto_nome, pi.quantidade,
-                   pi.preco_custo as preco_unitario, pi.subtotal
+                   pi.preco_custo_centavos as preco_unitario_centavos,
+                   pi.subtotal_centavos
             FROM itens_pedido pi
             INNER JOIN produtos p ON pi.produto_id = p.id
             WHERE pi.pedido_id = ?
@@ -119,4 +121,11 @@ class DatabaseUtils:
         """
         with obter_database().transacao() as cursor:
             cursor.execute(query, (pedido_id,))
-            return cursor.fetchall()
+            return [
+                (
+                    *item[:4],
+                    float(de_centavos(item[4])),
+                    float(de_centavos(item[5])),
+                )
+                for item in cursor.fetchall()
+            ]

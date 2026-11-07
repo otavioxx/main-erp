@@ -6,6 +6,8 @@ from datetime import datetime
 from PyQt6.QtGui import QValidator
 from PyQt6.QtWidgets import QComboBox, QDoubleSpinBox, QLineEdit, QSpinBox, QTextEdit
 
+from mainerp.data.money import de_centavos, para_centavos
+
 
 def formatar_moeda(valor):
     """Formata valor para formato monetário brasileiro"""
@@ -52,12 +54,14 @@ def validar_quantidade(quantidade, estoque_disponivel):
 
 def calcular_subtotal(preco, quantidade):
     """Calcula subtotal de um item"""
-    return float(preco) * int(quantidade)
+    subtotal_centavos = para_centavos(preco) * int(quantidade)
+    return float(de_centavos(subtotal_centavos))
 
 
 def aplicar_desconto_total(subtotal, desconto):
     """Aplica desconto ao subtotal"""
-    return max(0, subtotal - desconto)
+    total_centavos = max(0, para_centavos(subtotal) - para_centavos(desconto))
+    return float(de_centavos(total_centavos))
 
 
 def criar_pasta_se_nao_existir(caminho):
@@ -244,9 +248,7 @@ def aplicar_maiuscula_widget(widget):
     elif isinstance(widget, QComboBox) and widget.isEditable():
         line_edit = widget.lineEdit()
         if line_edit is not None:
-            line_edit.textChanged.connect(
-                lambda: _converter_texto_maiuscula(line_edit)
-            )
+            line_edit.textChanged.connect(lambda: _converter_texto_maiuscula(line_edit))
 
 
 def _converter_texto_maiuscula(line_edit):

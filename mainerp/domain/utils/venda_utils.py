@@ -295,12 +295,12 @@ class VendaRepository:
             query = """
                 SELECT
                     COUNT(*) as total_vendas,
-                    COALESCE(SUM(total), 0) as valor_total,
-                    COALESCE(SUM(desconto), 0) as total_desconto,
-                    COALESCE(SUM(CASE WHEN forma_pagamento = 'Dinheiro' THEN total ELSE 0 END), 0) as total_dinheiro,
-                    COALESCE(SUM(CASE WHEN forma_pagamento = 'Cartão' THEN total ELSE 0 END), 0) as total_cartao,
-                    COALESCE(SUM(CASE WHEN forma_pagamento = 'Pix' THEN total ELSE 0 END), 0) as total_pix,
-                    COALESCE(SUM(CASE WHEN forma_pagamento = 'Crediario' THEN total ELSE 0 END), 0) as total_crediario
+                    COALESCE(SUM(total_centavos), 0) as valor_total_centavos,
+                    COALESCE(SUM(desconto_centavos), 0) as total_desconto_centavos,
+                    COALESCE(SUM(CASE WHEN forma_pagamento = 'Dinheiro' THEN total_centavos ELSE 0 END), 0) as total_dinheiro_centavos,
+                    COALESCE(SUM(CASE WHEN forma_pagamento = 'Cartão' THEN total_centavos ELSE 0 END), 0) as total_cartao_centavos,
+                    COALESCE(SUM(CASE WHEN forma_pagamento = 'Pix' THEN total_centavos ELSE 0 END), 0) as total_pix_centavos,
+                    COALESCE(SUM(CASE WHEN forma_pagamento = 'Crediario' THEN total_centavos ELSE 0 END), 0) as total_crediario_centavos
                 FROM vendas
                 WHERE data_venda BETWEEN ? AND ? AND status IN ('concluida', 'parcelada')
             """
@@ -312,12 +312,12 @@ class VendaRepository:
                 dados = resultado[0]
                 return {
                     "total_vendas": dados[0],
-                    "valor_total": float(dados[1]),
-                    "total_desconto": float(dados[2]),
-                    "total_dinheiro": float(dados[3]),
-                    "total_cartao": float(dados[4]),
-                    "total_pix": float(dados[5]),
-                    "total_crediario": float(dados[6]),
+                    "valor_total": float(de_centavos(dados[1])),
+                    "total_desconto": float(de_centavos(dados[2])),
+                    "total_dinheiro": float(de_centavos(dados[3])),
+                    "total_cartao": float(de_centavos(dados[4])),
+                    "total_pix": float(de_centavos(dados[5])),
+                    "total_crediario": float(de_centavos(dados[6])),
                 }
 
             return {}

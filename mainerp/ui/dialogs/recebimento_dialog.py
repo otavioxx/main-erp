@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 )
 
 from mainerp.data.models.cliente import Cliente
+from mainerp.data.money import de_centavos, para_centavos
 from mainerp.domain.utils.helpers import (
     SelectAllDoubleSpinBox,
     SelectAllLineEdit,
@@ -37,7 +38,8 @@ class RecebimentoDialog(QDialog):
     def __init__(self, duplicata, parent=None):
         super().__init__(parent)
         self.duplicata = duplicata
-        self.valor_original = float(duplicata[4])
+        self.valor_original_centavos = para_centavos(duplicata[4])
+        self.valor_original = float(de_centavos(self.valor_original_centavos))
         self._init_ui()
 
         aplicar_maiuscula_formulario(self)
@@ -125,11 +127,13 @@ class RecebimentoDialog(QDialog):
 
     def _verificar_diferenca_valor(self):
         """Verifica e exibe diferença entre valor recebido e original"""
-        valor_recebido = self.valor_recebido_input.value()
-        diferenca = valor_recebido - self.valor_original
+        diferenca_centavos = (
+            para_centavos(self.valor_recebido_input.value())
+            - self.valor_original_centavos
+        )
 
         # Limpar label se não houver diferença
-        if abs(diferenca) < 0.01:  # Considera diferença menor que 1 centavo
+        if abs(diferenca_centavos) < 1:
             self.diferenca_label.setVisible(False)
             self.diferenca_label.setText("")
             return
@@ -137,11 +141,12 @@ class RecebimentoDialog(QDialog):
         # Mostrar diferença
         self.diferenca_label.setVisible(True)
 
-        if diferenca > 0:
+        diferenca = float(de_centavos(abs(diferenca_centavos)))
+        if diferenca_centavos > 0:
             texto = f"Valor maior em: {formatar_moeda(diferenca)}"
             cor = "green"
         else:
-            texto = f"Valor menor em: {formatar_moeda(abs(diferenca))}"
+            texto = f"Valor menor em: {formatar_moeda(diferenca)}"
             cor = "red"
 
         self.diferenca_label.setText(texto)
@@ -213,17 +218,19 @@ class RecebimentoDialog(QDialog):
             QMessageBox.warning(self, "Aviso", "Data inválida. Use DD/MM/AAAA.")
             return
 
-        valor_recebido = self.valor_recebido_input.value()
+        valor_recebido_centavos = para_centavos(self.valor_recebido_input.value())
 
-        if valor_recebido <= 0:
+        if valor_recebido_centavos <= 0:
             QMessageBox.warning(self, "Aviso", "Valor deve ser maior que zero.")
             return
 
         # Verificar se há diferença significativa
-        diferenca = abs(valor_recebido - self.valor_original)
+        diferenca_centavos = abs(valor_recebido_centavos - self.valor_original_centavos)
 
-        if diferenca > 0.01:  # Se diferença maior que 1 centavo
-            confirmado = self._mostrar_aviso_diferenca(valor_recebido)
+        if diferenca_centavos > 1:
+            confirmado = self._mostrar_aviso_diferenca(
+                float(de_centavos(valor_recebido_centavos))
+            )
 
             if not confirmado:
                 return  # Usuário cancelou
@@ -232,10 +239,13 @@ class RecebimentoDialog(QDialog):
 
     def _mostrar_aviso_diferenca(self, valor_recebido):
         """Mostra aviso sobre diferença de valor"""
-        diferenca = valor_recebido - self.valor_original
+        diferenca_centavos = (
+            para_centavos(valor_recebido) - self.valor_original_centavos
+        )
+        diferenca = float(de_centavos(abs(diferenca_centavos)))
 
         # Determinar o tipo de diferença
-        if diferenca > 0:
+        if diferenca_centavos > 0:
             tipo = "maior"
             acao = "reduzidos"
             simbolo = "+"
@@ -252,7 +262,7 @@ class RecebimentoDialog(QDialog):
 
     <code>Valor original:  {formatar_moeda(self.valor_original)}</code><br>
     <code>Valor recebido: {formatar_moeda(valor_recebido)}</code><br>
-    <code>Diferença:      {simbolo}{formatar_moeda(abs(diferenca))}</code><br><br>
+    <code>Diferença:      {simbolo}{formatar_moeda(diferenca)}</code><br><br>
 
     As próximas parcelas terão seus valores {acao}<br>
     proporcionalmente para compensar esta diferença.<br><br>

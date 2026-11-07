@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 
 from mainerp.data.database import obter_database
+from mainerp.data.money import de_centavos, para_centavos
 
 from .base_model import BaseModel
 
@@ -36,12 +37,20 @@ class Pedido(BaseModel):
 
     def salvar(self):
         database = obter_database()
+        total_centavos = para_centavos(self.valor_total)
+        frete_centavos = para_centavos(self.valor_frete)
+        desconto_centavos = para_centavos(self.desconto)
+        self.valor_total = float(de_centavos(total_centavos))
+        self.valor_frete = float(de_centavos(frete_centavos))
+        self.desconto = float(de_centavos(desconto_centavos))
         with database.transacao() as cursor:
             if self.id:
                 query = """
                     UPDATE pedidos
                     SET fornecedor_id=?, data_pedido=?, data_recebimento=?,
-                        valor_total=?, valor_frete=?, desconto=?, observacao=?, status=?
+                        valor_total=?, valor_frete=?, desconto=?,
+                        valor_total_centavos=?, valor_frete_centavos=?,
+                        desconto_centavos=?, observacao=?, status=?
                     WHERE id=?
                 """
                 params = (
@@ -51,6 +60,9 @@ class Pedido(BaseModel):
                     self.valor_total,
                     self.valor_frete,
                     self.desconto,
+                    total_centavos,
+                    frete_centavos,
+                    desconto_centavos,
                     self.observacao,
                     self.status,
                     self.id,
@@ -59,8 +71,9 @@ class Pedido(BaseModel):
                 query = """
                     INSERT INTO pedidos
                     (fornecedor_id, data_pedido, data_recebimento, valor_total,
-                     valor_frete, desconto, observacao, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                     valor_frete, desconto, valor_total_centavos,
+                     valor_frete_centavos, desconto_centavos, observacao, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
                 params = (
                     self.fornecedor_id,
@@ -69,6 +82,9 @@ class Pedido(BaseModel):
                     self.valor_total,
                     self.valor_frete,
                     self.desconto,
+                    total_centavos,
+                    frete_centavos,
+                    desconto_centavos,
                     self.observacao,
                     self.status,
                 )
@@ -90,9 +106,9 @@ class Pedido(BaseModel):
                     fornecedor_id,
                     data_pedido,
                     data_recebimento,
-                    valor_total,
-                    valor_frete,
-                    COALESCE(desconto, 0) as desconto,
+                    valor_total_centavos,
+                    valor_frete_centavos,
+                    COALESCE(desconto_centavos, 0) as desconto_centavos,
                     observacao,
                     status
                 FROM pedidos
@@ -109,9 +125,9 @@ class Pedido(BaseModel):
                     fornecedor_id=result[1],  # fornecedor_id
                     data_pedido=result[2],  # data_pedido
                     data_recebimento=result[3],  # data_recebimento
-                    valor_total=result[4],  # valor_total
-                    valor_frete=result[5],  # valor_frete
-                    desconto=result[6],  # desconto
+                    valor_total=float(de_centavos(result[4])),
+                    valor_frete=float(de_centavos(result[5])),
+                    desconto=float(de_centavos(result[6])),
                     observacao=result[7],  # observacao
                     status=result[8],  # status
                 )
@@ -131,9 +147,9 @@ class Pedido(BaseModel):
                     fornecedor_id,
                     data_pedido,
                     data_recebimento,
-                    valor_total,
-                    valor_frete,
-                    COALESCE(desconto, 0) as desconto,
+                    valor_total_centavos,
+                    valor_frete_centavos,
+                    COALESCE(desconto_centavos, 0) as desconto_centavos,
                     observacao,
                     status
                 FROM pedidos
@@ -157,9 +173,9 @@ class Pedido(BaseModel):
                     fornecedor_id=result[1],  # fornecedor_id
                     data_pedido=result[2],  # data_pedido
                     data_recebimento=result[3],  # data_recebimento
-                    valor_total=result[4],  # valor_total
-                    valor_frete=result[5],  # valor_frete
-                    desconto=result[6],  # desconto
+                    valor_total=float(de_centavos(result[4])),
+                    valor_frete=float(de_centavos(result[5])),
+                    desconto=float(de_centavos(result[6])),
                     observacao=result[7],  # observacao
                     status=result[8],  # status
                 )
@@ -182,11 +198,11 @@ class Pedido(BaseModel):
                 p.fornecedor_id,
                 p.data_pedido,
                 p.data_recebimento,
-                p.valor_total,
-                p.valor_frete,
+                p.valor_total_centavos,
+                p.valor_frete_centavos,
                 p.observacao,
                 p.status,
-                COALESCE(p.desconto, 0) as desconto,
+                COALESCE(p.desconto_centavos, 0) as desconto_centavos,
                 f.nome as fornecedor_nome
             FROM pedidos p
             LEFT JOIN fornecedores f ON p.fornecedor_id = f.id
@@ -215,7 +231,18 @@ class Pedido(BaseModel):
         try:
             with obter_database().transacao() as cursor:
                 cursor.execute(query, params)
-                return cursor.fetchall()
+                results = cursor.fetchall()
+            return [
+                (
+                    *result[:4],
+                    float(de_centavos(result[4])),
+                    float(de_centavos(result[5])),
+                    *result[6:8],
+                    float(de_centavos(result[8])),
+                    *result[9:],
+                )
+                for result in results
+            ]
         except Exception:
             logger.exception("Erro ao buscar pedidos para listagem")
             return []
@@ -245,11 +272,14 @@ class Pedido(BaseModel):
                     ip.pedido_id,    -- 1
                     ip.produto_id,   -- 2
                     ip.quantidade,   -- 3
-                    ip.preco_custo,  -- 4
-                    ip.subtotal,     -- 5
+                    ip.preco_custo_centavos,  -- 4
+                    ip.subtotal_centavos,     -- 5
                     p.nome,          -- 6
                     p.estoque,       -- 7
-                    COALESCE(ip.preco_venda, ip.preco_custo * 1.3) as preco_venda   -- 8
+                    COALESCE(
+                        ip.preco_venda_centavos,
+                        CAST(ROUND(ip.preco_custo_centavos * 1.3) AS INTEGER)
+                    ) as preco_venda_centavos   -- 8
                 FROM itens_pedido ip
                 JOIN produtos p ON ip.produto_id = p.id
                 WHERE ip.pedido_id = ?
@@ -257,7 +287,16 @@ class Pedido(BaseModel):
             with obter_database().transacao() as cursor:
                 cursor.execute(query, (self.id,))
                 results = cursor.fetchall()
-            return results if results else []
+            return [
+                (
+                    *result[:4],
+                    float(de_centavos(result[4])),
+                    float(de_centavos(result[5])),
+                    *result[6:8],
+                    float(de_centavos(result[8])),
+                )
+                for result in results
+            ]
         except Exception:
             logger.exception("Erro ao obter itens do pedido %s", self.id)
             return []
@@ -265,12 +304,17 @@ class Pedido(BaseModel):
     def calcular_subtotal_produtos(self):
         """Calcula o subtotal apenas dos produtos (sem frete e desconto)"""
         itens = self.obter_itens()
-        return sum(item[5] for item in itens)  # item[5] é o subtotal
+        subtotal_centavos = sum(para_centavos(item[5]) for item in itens)
+        return float(de_centavos(subtotal_centavos))
 
     def calcular_total_com_desconto_frete(self):
         """Calcula o total final: Subtotal - Desconto + Frete"""
-        subtotal = self.calcular_subtotal_produtos()
-        return max(0, subtotal - self.desconto + self.valor_frete)
+        total_centavos = (
+            para_centavos(self.calcular_subtotal_produtos())
+            - para_centavos(self.desconto)
+            + para_centavos(self.valor_frete)
+        )
+        return float(de_centavos(max(0, total_centavos)))
 
     def recalcular_total(self):
         """Recalcula o total baseado nos itens + frete - desconto"""

@@ -9,6 +9,22 @@ from mainerp.data.money import de_centavos, para_centavos
 logger = logging.getLogger(__name__)
 
 
+def _converter_valores_duplicatas(linhas, aberta):
+    if aberta:
+        return [
+            (*linha[:4], float(de_centavos(linha[4])), *linha[5:]) for linha in linhas
+        ]
+    return [
+        (
+            *linha[:4],
+            float(de_centavos(linha[4])),
+            float(de_centavos(linha[5])),
+            *linha[6:],
+        )
+        for linha in linhas
+    ]
+
+
 class Duplicata:
     @staticmethod
     def _criar_parcela_pendente(
@@ -163,23 +179,37 @@ class Duplicata:
     def buscar_por_venda(venda_id):
         with obter_database().transacao() as cursor:
             cursor.execute(
-                "SELECT * FROM duplicatas WHERE venda_id = ? ORDER BY numero_parcela",
+                """
+                SELECT id, venda_id, cliente_id, numero_parcela,
+                       valor_parcela_centavos, data_vencimento, data_pagamento, status
+                FROM duplicatas
+                WHERE venda_id = ?
+                ORDER BY numero_parcela
+                """,
                 (venda_id,),
             )
-            return cursor.fetchall()
+            return [
+                (*row[:4], float(de_centavos(row[4])), *row[5:])
+                for row in cursor.fetchall()
+            ]
 
     @staticmethod
     def buscar_todas_com_cliente():
         """Busca todas as duplicatas abertas com informações do cliente"""
         with obter_database().transacao() as cursor:
             cursor.execute("""
-                SELECT d.*, c.nome as cliente_nome
+                SELECT d.id, d.venda_id, d.cliente_id, d.numero_parcela,
+                       d.valor_parcela_centavos, d.data_vencimento, d.data_pagamento,
+                       d.status, c.nome as cliente_nome
                 FROM duplicatas d
                 LEFT JOIN clientes c ON d.cliente_id = c.id
                 WHERE d.status = 'aberto'
                 ORDER BY d.data_vencimento
             """)
-            return cursor.fetchall()
+            return [
+                (*row[:4], float(de_centavos(row[4])), *row[5:])
+                for row in cursor.fetchall()
+            ]
 
     @staticmethod
     def _registrar_pagamento(
@@ -311,7 +341,9 @@ class Duplicata:
         with obter_database().transacao() as cursor:
             if status == "aberto":
                 cursor.execute("""
-                    SELECT d.*, c.nome as cliente_nome
+                    SELECT d.id, d.venda_id, d.cliente_id, d.numero_parcela,
+                           d.valor_parcela_centavos, d.data_vencimento, d.data_pagamento,
+                           d.status, c.nome as cliente_nome
                     FROM duplicatas d
                     LEFT JOIN clientes c ON d.cliente_id = c.id
                     WHERE d.status = 'aberto'
@@ -319,12 +351,15 @@ class Duplicata:
                 """)
             else:
                 cursor.execute("""
-                    SELECT dp.*, c.nome as cliente_nome
+                    SELECT dp.id, dp.venda_id, dp.cliente_id, dp.numero_parcela,
+                           dp.valor_original_centavos, dp.valor_recebido_centavos,
+                           dp.data_vencimento, dp.data_pagamento, dp.forma_pagamento,
+                           dp.created_at, c.nome as cliente_nome
                     FROM duplicatas_pagas dp
                     LEFT JOIN clientes c ON dp.cliente_id = c.id
                     ORDER BY dp.data_pagamento DESC
                 """)
-            return cursor.fetchall()
+            return _converter_valores_duplicatas(cursor.fetchall(), status == "aberto")
 
     @staticmethod
     def buscar_por_cliente(cliente_id):
@@ -332,7 +367,9 @@ class Duplicata:
         with obter_database().transacao() as cursor:
             cursor.execute(
                 """
-                SELECT d.*, c.nome as cliente_nome
+                SELECT d.id, d.venda_id, d.cliente_id, d.numero_parcela,
+                       d.valor_parcela_centavos, d.data_vencimento, d.data_pagamento,
+                       d.status, c.nome as cliente_nome
                 FROM duplicatas d
                 LEFT JOIN clientes c ON d.cliente_id = c.id
                 WHERE d.cliente_id = ? AND d.status = 'aberto'
@@ -345,7 +382,10 @@ class Duplicata:
 
             cursor.execute(
                 """
-                SELECT dp.*, c.nome as cliente_nome
+                SELECT dp.id, dp.venda_id, dp.cliente_id, dp.numero_parcela,
+                       dp.valor_original_centavos, dp.valor_recebido_centavos,
+                       dp.data_vencimento, dp.data_pagamento, dp.forma_pagamento,
+                       dp.created_at, c.nome as cliente_nome
                 FROM duplicatas_pagas dp
                 LEFT JOIN clientes c ON dp.cliente_id = c.id
                 WHERE dp.cliente_id = ?
@@ -356,7 +396,9 @@ class Duplicata:
 
             pagas = cursor.fetchall()
 
-            return abertas + pagas
+            return _converter_valores_duplicatas(
+                abertas, aberta=True
+            ) + _converter_valores_duplicatas(pagas, aberta=False)
 
     @staticmethod
     def marcar_como_paga(duplicata_id, valor_recebido, data_pagamento, forma_pagamento):

@@ -20,6 +20,7 @@ from reportlab.platypus import (
 
 from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
+from mainerp.data.money import de_centavos, para_centavos
 
 logger = logging.getLogger(__name__)
 
@@ -58,11 +59,11 @@ class PrintRelatVenda:
                     v.id,
                     v.cliente_id,
                     v.data_venda,
-                    v.total,
+                    v.total_centavos,
                     v.forma_pagamento,
                     v.status,
                     v.parcelas,
-                    v.desconto,
+                    v.desconto_centavos,
                     COALESCE(c.nome, 'Cliente não informado') as nome_cliente
                 FROM vendas v
                 LEFT JOIN clientes c ON v.cliente_id = c.id
@@ -70,7 +71,16 @@ class PrintRelatVenda:
             """)
 
             vendas = cursor.fetchall()
-            return vendas
+            return [
+                (
+                    *venda[:3],
+                    float(de_centavos(venda[3])),
+                    *venda[4:7],
+                    float(de_centavos(venda[7])),
+                    *venda[8:],
+                )
+                for venda in vendas
+            ]
 
         except Exception as e:
             logger.error(f"Erro ao buscar vendas com cliente: {e}")
@@ -239,7 +249,7 @@ class PrintRelatVenda:
                     ]
                 ]
 
-                total_vendas = 0
+                total_vendas_centavos = 0
 
                 for venda in vendas_data:
                     # CORREÇÃO: Agora o nome do cliente está garantido no índice 8
@@ -255,11 +265,19 @@ class PrintRelatVenda:
                         f"R$ {venda[3]:.2f}" if venda[3] else "R$ 0,00",  # Total
                     ]
 
-                    total_vendas += venda[3] if venda[3] else 0
+                    total_vendas_centavos += para_centavos(venda[3] or 0)
                     tabela_dados.append(dados)
 
                 tabela_dados.append(
-                    ["", "", "", "", "TOTAL:", f"R$ {total_vendas:.2f}", ""]
+                    [
+                        "",
+                        "",
+                        "",
+                        "",
+                        "TOTAL:",
+                        f"R$ {float(de_centavos(total_vendas_centavos)):.2f}",
+                        "",
+                    ]
                 )
 
                 col_widths = [
@@ -312,7 +330,7 @@ class PrintRelatVenda:
                 elements.append(Spacer(1, 4 * mm))
                 elements.append(
                     Paragraph(
-                        f"Total de vendas: {len(vendas_data)} | Valor total: R$ {total_vendas:,.2f}",
+                        f"Total de vendas: {len(vendas_data)} | Valor total: R$ {float(de_centavos(total_vendas_centavos)):,.2f}",
                         estilo_normal_negrito,
                     )
                 )

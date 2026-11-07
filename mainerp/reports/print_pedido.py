@@ -22,6 +22,7 @@ from mainerp.core.app_logging import registrar_excecao
 from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
 from mainerp.data.models.pedido import Pedido
+from mainerp.data.money import de_centavos, para_centavos
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +48,12 @@ class PrintPedido:
                     p.tamanho,
                     p.referencia,
                     pi.quantidade,
-                    pi.preco_custo,
-                    COALESCE(pi.preco_venda, pi.preco_custo * 1.3) as preco_venda,
-                    pi.subtotal
+                    pi.preco_custo_centavos,
+                    COALESCE(
+                        pi.preco_venda_centavos,
+                        CAST(ROUND(pi.preco_custo_centavos * 1.3) AS INTEGER)
+                    ) as preco_venda_centavos,
+                    pi.subtotal_centavos
                 FROM itens_pedido pi
                 INNER JOIN produtos p ON pi.produto_id = p.id
                 WHERE pi.pedido_id = ?
@@ -58,7 +62,15 @@ class PrintPedido:
 
             cursor.execute(query, (pedido_id,))
             result = cursor.fetchall()
-            return result
+            return [
+                (
+                    *item[:7],
+                    float(de_centavos(item[7])),
+                    float(de_centavos(item[8])),
+                    float(de_centavos(item[9])),
+                )
+                for item in result
+            ]
 
         except Exception:
             logger.exception("Erro ao buscar itens do pedido %s", pedido_id)
@@ -258,7 +270,7 @@ class PrintPedido:
                 ]
             ]
 
-            subtotal = 0
+            subtotal_centavos = 0
             for item in itens:
                 # Acessar os itens com estrutura corrigida
                 # 0=id, 1=produto_id, 2=nome, 3=cor, 4=tamanho, 5=referencia,
@@ -277,7 +289,7 @@ class PrintPedido:
                 if len(produto_nome) > 40:
                     produto_nome = produto_nome[:37] + "..."
 
-                subtotal += subtotal_item
+                subtotal_centavos += para_centavos(subtotal_item)
 
                 tabela_dados.append(
                     [
@@ -365,6 +377,7 @@ class PrintPedido:
             totais_dados = []
 
             # Sempre mostrar subtotal
+            subtotal = float(de_centavos(subtotal_centavos))
             totais_dados.append(["Subtotal dos Produtos:", f"R$ {subtotal:.2f}"])
 
             # Mostrar desconto se houver (valor > 0) - CORRIGIDO

@@ -21,6 +21,7 @@ from reportlab.platypus import (
 from mainerp.core.exceptions import ErroERP
 from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
+from mainerp.data.money import de_centavos, para_centavos
 from mainerp.domain.utils.helpers import formatar_moeda, validar_data
 
 logger = logging.getLogger(__name__)
@@ -72,9 +73,9 @@ class PrintRelatRecebimento:
                 query_abertas = """
                     SELECT
                         d.id, d.venda_id, d.cliente_id, d.numero_parcela,
-                        d.valor_parcela, d.data_vencimento, d.data_pagamento,
+                        d.valor_parcela_centavos, d.data_vencimento, d.data_pagamento,
                         d.status, c.nome as cliente_nome, v.data_venda,
-                        v.forma_pagamento, v.total as venda_total
+                        v.forma_pagamento, v.total_centavos as venda_total_centavos
                     FROM duplicatas d
                     LEFT JOIN clientes c ON d.cliente_id = c.id
                     LEFT JOIN vendas v ON d.venda_id = v.id
@@ -114,7 +115,17 @@ class PrintRelatRecebimento:
                 try:
                     cursor.execute(query_abertas, params_abertas)
                     duplicatas_abertas = cursor.fetchall()
-                    duplicatas.extend(duplicatas_abertas)
+                    duplicatas.extend(
+                        (
+                            *duplicata[:4],
+                            float(de_centavos(duplicata[4])),
+                            *duplicata[5:11],
+                            float(de_centavos(duplicata[11]))
+                            if duplicata[11] is not None
+                            else None,
+                        )
+                        for duplicata in duplicatas_abertas
+                    )
                 except Exception as e:
                     logger.error(f"Erro ao buscar duplicatas abertas: {e}")
 
@@ -123,10 +134,11 @@ class PrintRelatRecebimento:
                 query_pagas = """
                     SELECT
                         dp.id, dp.venda_id, dp.cliente_id, dp.numero_parcela,
-                        dp.valor_original, dp.valor_recebido, dp.data_vencimento,
+                        dp.valor_original_centavos, dp.valor_recebido_centavos,
+                        dp.data_vencimento,
                         dp.data_pagamento, dp.forma_pagamento,
                         c.nome as cliente_nome, c.cpf_cnpj, c.endereco,
-                        v.total as venda_total, v.data_venda,
+                        v.total_centavos as venda_total_centavos, v.data_venda,
                         'pago' as status
                     FROM duplicatas_pagas dp
                     LEFT JOIN clientes c ON dp.cliente_id = c.id
@@ -165,7 +177,19 @@ class PrintRelatRecebimento:
                 try:
                     cursor.execute(query_pagas, params_pagas)
                     duplicatas_pagas = cursor.fetchall()
-                    duplicatas.extend(duplicatas_pagas)
+                    duplicatas.extend(
+                        (
+                            *duplicata[:4],
+                            float(de_centavos(duplicata[4])),
+                            float(de_centavos(duplicata[5])),
+                            *duplicata[6:12],
+                            float(de_centavos(duplicata[12]))
+                            if duplicata[12] is not None
+                            else None,
+                            *duplicata[13:],
+                        )
+                        for duplicata in duplicatas_pagas
+                    )
                 except Exception as e:
                     logger.error(f"Erro ao buscar duplicatas pagas: {e}")
 
@@ -366,8 +390,8 @@ class PrintRelatRecebimento:
                     ]
                 ]
 
-                total_abertas = 0
-                total_pagas = 0
+                total_abertas_centavos = 0
+                total_pagas_centavos = 0
 
                 for dup in duplicatas:
                     # Verificar se é duplicata paga (tem mais campos)
@@ -377,7 +401,7 @@ class PrintRelatRecebimento:
                         # Duplicata paga
                         valor = float(dup[5]) if dup[5] else 0  # valor_recebido
                         status = "Pago"
-                        total_pagas += valor
+                        total_pagas_centavos += para_centavos(valor)
                         forma_pagamento = dup[8] if dup[8] else "N/A"
                         data_pagamento = dup[7]
                         data_vencimento = dup[6]
@@ -386,7 +410,7 @@ class PrintRelatRecebimento:
                         # Duplicata aberta
                         valor = float(dup[4]) if dup[4] else 0  # valor_parcela
                         status = "Aberto"
-                        total_abertas += valor
+                        total_abertas_centavos += para_centavos(valor)
                         forma_pagamento = (
                             dup[10] if len(dup) > 10 and dup[10] else "N/A"
                         )
@@ -477,18 +501,19 @@ class PrintRelatRecebimento:
 
                 elements.append(
                     Paragraph(
-                        f"Total em Aberto: {formatar_moeda(total_abertas)}",
+                        f"Total em Aberto: {formatar_moeda(float(de_centavos(total_abertas_centavos)))}",
                         totais_style,
                     )
                 )
                 elements.append(
                     Paragraph(
-                        f"Total Recebido: {formatar_moeda(total_pagas)}", totais_style
+                        f"Total Recebido: {formatar_moeda(float(de_centavos(total_pagas_centavos)))}",
+                        totais_style,
                     )
                 )
                 elements.append(
                     Paragraph(
-                        f"Total Geral: {formatar_moeda(total_abertas + total_pagas)}",
+                        f"Total Geral: {formatar_moeda(float(de_centavos(total_abertas_centavos + total_pagas_centavos)))}",
                         totais_style,
                     )
                 )

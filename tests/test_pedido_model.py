@@ -52,3 +52,48 @@ def test_buscar_para_listagem_omite_filtros_opcionais(database):
     pedidos = pedido_model.Pedido.buscar_para_listagem()
 
     assert [pedido[0] for pedido in pedidos] == [3, 2, 5, 4, 1]
+
+
+def test_salvar_e_carregar_pedido_usa_valores_em_centavos(database):
+    pedido = pedido_model.Pedido(
+        fornecedor_id=1,
+        valor_total=10.015,
+        valor_frete=1.025,
+        desconto=0.335,
+    )
+
+    pedido.salvar()
+    carregado = pedido_model.Pedido.buscar_por_id(pedido.id)
+
+    assert carregado.valor_total == 10.02
+    assert carregado.valor_frete == 1.03
+    assert carregado.desconto == 0.34
+    with database.transacao() as cursor:
+        cursor.execute(
+            """
+            SELECT valor_total_centavos, valor_frete_centavos, desconto_centavos
+            FROM pedidos WHERE id = ?
+            """,
+            (pedido.id,),
+        )
+        assert cursor.fetchone() == (1002, 103, 34)
+
+
+def test_obter_itens_e_calcular_totais_usa_centavos(database):
+    with database.transacao() as cursor:
+        cursor.execute(
+            "INSERT INTO produtos (id, nome, preco_custo, preco_venda) VALUES (10, 'Produto', 1, 2)"
+        )
+        cursor.execute(
+            """
+            INSERT INTO itens_pedido
+                (pedido_id, produto_id, quantidade, preco_custo, preco_venda, subtotal)
+            VALUES (1, 10, 3, 0.10, 0.20, 0.30)
+            """
+        )
+
+    pedido = pedido_model.Pedido(id=1, valor_frete=0.1, desconto=0.05)
+
+    assert pedido.obter_itens()[0][5] == 0.3
+    assert pedido.calcular_subtotal_produtos() == 0.3
+    assert pedido.calcular_total_com_desconto_frete() == 0.35

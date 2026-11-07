@@ -1,7 +1,46 @@
 import pytest
 
+from mainerp.data.database import Database
+from mainerp.data.models import base_model
 from mainerp.data.models.produto import Produto
 from mainerp.domain.utils.produto_utils import ProdutoUtils
+
+
+@pytest.fixture
+def database(tmp_path, monkeypatch):
+    database = Database(str(tmp_path / "produtos.db"))
+    monkeypatch.setattr(base_model, "obter_database", lambda: database)
+    with database.transacao() as cursor:
+        cursor.execute("INSERT INTO fornecedores (id, nome) VALUES (1, 'Fornecedor')")
+    yield database
+    database.close_connection()
+
+
+def test_salvar_e_buscar_produto_preserva_precos_em_centavos(database):
+    produto = Produto(
+        nome="Camisa",
+        preco_custo=10.015,
+        preco_venda=20.025,
+        fornecedor_id=1,
+        fornecedor_nome="Fornecedor",
+    )
+
+    produto.salvar()
+    carregado = Produto.buscar_por_id(produto.id)
+    produtos = Produto.buscar_todos()
+
+    assert carregado.preco_custo == 10.02
+    assert carregado.preco_venda == 20.03
+    assert carregado.fornecedor_nome == "Fornecedor"
+    assert produtos[0].preco_custo == 10.02
+    assert produtos[0].preco_venda == 20.03
+    assert produtos[0].fornecedor_nome == "Fornecedor"
+    with database.transacao() as cursor:
+        cursor.execute(
+            "SELECT preco_custo_centavos, preco_venda_centavos FROM produtos WHERE id = ?",
+            (produto.id,),
+        )
+        assert cursor.fetchone() == (1002, 2003)
 
 
 @pytest.mark.parametrize(
@@ -14,7 +53,9 @@ from mainerp.domain.utils.produto_utils import ProdutoUtils
     ],
 )
 def test_validar_produto(nome, preco_custo, preco_venda, erros_esperados):
-    assert ProdutoUtils.validar_produto(nome, preco_custo, preco_venda) == erros_esperados
+    assert (
+        ProdutoUtils.validar_produto(nome, preco_custo, preco_venda) == erros_esperados
+    )
 
 
 @pytest.mark.parametrize(
@@ -30,9 +71,7 @@ def test_pode_ser_inativado_considera_estoque_e_vinculos(
     monkeypatch, estoque, pedidos_ativos, condicionais_ativas, pode
 ):
     produto = Produto(estoque=estoque)
-    monkeypatch.setattr(
-        produto, "_contar_pedidos_ativos", lambda: pedidos_ativos
-    )
+    monkeypatch.setattr(produto, "_contar_pedidos_ativos", lambda: pedidos_ativos)
     monkeypatch.setattr(
         produto, "_contar_condicionais_ativas", lambda: condicionais_ativas
     )

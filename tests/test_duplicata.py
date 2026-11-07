@@ -49,6 +49,42 @@ def test_criar_parcelas_divide_valor_e_incrementa_vencimentos(database):
     ]
 
 
+def test_consultas_de_duplicatas_preservam_tuplas_legadas_em_reais(database):
+    with database.transacao() as cursor:
+        cursor.execute("INSERT INTO clientes (id, nome) VALUES (7, 'Cliente')")
+        cursor.execute("INSERT INTO vendas (id, cliente_id) VALUES (42, 7)")
+        cursor.execute(
+            """
+            INSERT INTO duplicatas
+                (id, venda_id, cliente_id, numero_parcela, valor_parcela,
+                 data_vencimento, status)
+            VALUES (1, 42, 7, 1, 12.34, '2026-04-01', 'aberto')
+            """
+        )
+        cursor.execute(
+            """
+            INSERT INTO duplicatas_pagas
+                (id, venda_id, cliente_id, numero_parcela, valor_original,
+                 valor_recebido, data_vencimento, data_pagamento, forma_pagamento)
+            VALUES (2, 42, 7, 2, 12.34, 12.35, '2026-04-01', '2026-04-02', 'Pix')
+            """
+        )
+
+    abertas = duplicata_model.Duplicata.buscar_por_venda(42)
+    abertas_cliente = duplicata_model.Duplicata.buscar_por_status("aberto")
+    pagas_cliente = duplicata_model.Duplicata.buscar_por_status("pago")
+    por_cliente = duplicata_model.Duplicata.buscar_por_cliente(7)
+
+    assert len(abertas[0]) == 8
+    assert abertas[0][4] == 12.34
+    assert abertas_cliente[0][8] == "Cliente"
+    assert abertas_cliente[0][4] == 12.34
+    assert len(pagas_cliente[0]) == 11
+    assert pagas_cliente[0][4:6] == (12.34, 12.35)
+    assert len(por_cliente) == 2
+    assert por_cliente[1][4:6] == (12.34, 12.35)
+
+
 def test_criar_parcelas_reverte_todos_os_inserts_se_algum_falhar(database):
     with database.transacao() as cursor:
         cursor.execute("INSERT INTO clientes (nome) VALUES (?)", ("Cliente",))

@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
 from mainerp.core.app_logging import registrar_excecao
 from mainerp.data.models.cliente import Cliente
 from mainerp.data.models.condicional import Condicional
+from mainerp.data.money import de_centavos, para_centavos
 from mainerp.domain.utils.helpers import (
     aplicar_desconto_total,
     calcular_subtotal,
@@ -298,9 +299,10 @@ class _CondicionalDialogOperations(ComponentMixin):
             )
             return
 
-        total_sem_desconto = sum(
-            prod["subtotal"] for prod in self.produtos_selecionados
+        total_sem_desconto_centavos = sum(
+            para_centavos(prod["subtotal"]) for prod in self.produtos_selecionados
         )
+        total_sem_desconto = float(de_centavos(total_sem_desconto_centavos))
 
         desconto_dialog = QInputDialog(self)
         desconto_dialog.setWindowTitle("Desconto na Condicional")
@@ -330,7 +332,10 @@ class _CondicionalDialogOperations(ComponentMixin):
 
     def _calcular_total(self):
         """Calcula total da condicional com desconto"""
-        total_produtos = sum(prod["subtotal"] for prod in self.produtos_selecionados)
+        total_produtos_centavos = sum(
+            para_centavos(prod["subtotal"]) for prod in self.produtos_selecionados
+        )
+        total_produtos = float(de_centavos(total_produtos_centavos))
         total_condicional = aplicar_desconto_total(total_produtos, self.desconto_total)
 
         self.label_subtotal.setText(formatar_moeda(total_produtos))

@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from mainerp.data.money import de_centavos, para_centavos
 from mainerp.domain.utils.helpers import (
     calcular_subtotal,
     formatar_moeda,
@@ -327,7 +328,10 @@ class _PedidoDialogItems(ComponentMixin):
             )
             return
 
-        subtotal_produtos = sum(prod["subtotal"] for prod in self.produtos_selecionados)
+        subtotal_centavos = sum(
+            para_centavos(prod["subtotal"]) for prod in self.produtos_selecionados
+        )
+        subtotal_produtos = float(de_centavos(subtotal_centavos))
 
         # Criar um diálogo personalizado mais consistente
         from PyQt6.QtWidgets import (
@@ -430,8 +434,17 @@ class _PedidoDialogItems(ComponentMixin):
 
     def _calcular_total(self):
         """Calcula total do pedido - ATUALIZADO com desconto"""
-        subtotal = sum(prod["subtotal"] for prod in self.produtos_selecionados)
-        total = subtotal - self.valor_desconto + self.valor_frete
+        subtotal_centavos = sum(
+            para_centavos(prod["subtotal"]) for prod in self.produtos_selecionados
+        )
+        total_centavos = max(
+            0,
+            subtotal_centavos
+            - para_centavos(self.valor_desconto)
+            + para_centavos(self.valor_frete),
+        )
+        subtotal = float(de_centavos(subtotal_centavos))
+        total = float(de_centavos(total_centavos))
         # Garantir que o total não seja negativo
         total = max(0, total)
 

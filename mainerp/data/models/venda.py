@@ -200,11 +200,16 @@ class Venda(BaseModel):
     def get_parcelas(self) -> list[tuple]:
         """Obtém parcelas da venda"""
         query = """
-            SELECT * FROM duplicatas
+            SELECT id, venda_id, cliente_id, numero_parcela,
+                   valor_parcela_centavos, data_vencimento, data_pagamento, status
+            FROM duplicatas
             WHERE venda_id = ?
             ORDER BY numero_parcela
         """
-        return DatabaseUtils.executar_query(query, (self._obter_id(),))
+        return [
+            (*parcela[:4], float(de_centavos(parcela[4])), *parcela[5:])
+            for parcela in DatabaseUtils.executar_query(query, (self._obter_id(),))
+        ]
 
     def get_cliente(self):
         """Obtém cliente da venda"""

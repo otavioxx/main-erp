@@ -22,6 +22,7 @@ from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
 from mainerp.data.models.fornecedor import Fornecedor
 from mainerp.data.models.produto import Produto
+from mainerp.data.money import de_centavos, para_centavos
 
 logger = logging.getLogger(__name__)
 
@@ -34,21 +35,21 @@ class PrintProduto:
     @staticmethod
     def calcular_lucro_percentual(preco_custo, preco_venda):
         """Calcula o percentual de lucro sobre o preço de custo"""
-        if preco_custo == 0:
+        custo_centavos = para_centavos(preco_custo)
+        if custo_centavos == 0:
             return 0
-        return ((preco_venda - preco_custo) / preco_custo) * 100
+        diferenca_centavos = para_centavos(preco_venda) - custo_centavos
+        return (diferenca_centavos / custo_centavos) * 100
 
     @staticmethod
     def calcular_markup_percentual(preco_custo, preco_venda):
         """Calcula o percentual de markup sobre o preço de custo"""
-        if preco_custo == 0:
-            return 0
-        return ((preco_venda - preco_custo) / preco_custo) * 100
+        return PrintProduto.calcular_lucro_percentual(preco_custo, preco_venda)
 
     @staticmethod
     def calcular_valor_estoque(preco_custo, estoque):
         """Calcula o valor total em estoque"""
-        return preco_custo * estoque
+        return float(de_centavos(para_centavos(preco_custo) * estoque))
 
     @staticmethod
     def _get_fornecedor_por_id(fornecedor_id) -> Fornecedor | None:
@@ -380,7 +381,7 @@ class PrintProduto:
                     ]
                 ]
 
-                total_valor_estoque = 0
+                total_valor_estoque_centavos = 0
 
                 for produto in produtos:
                     lucro_percentual = PrintProduto.calcular_lucro_percentual(
@@ -389,7 +390,9 @@ class PrintProduto:
                     valor_estoque = PrintProduto.calcular_valor_estoque(
                         produto.preco_custo, produto.estoque
                     )
-                    total_valor_estoque += valor_estoque
+                    total_valor_estoque_centavos += (
+                        para_centavos(produto.preco_custo) * produto.estoque
+                    )
 
                     fornecedor_nome = "Nenhum"
                     if produto.fornecedor_id:
@@ -428,7 +431,7 @@ class PrintProduto:
                         "",
                         "",
                         "TOTAL:",
-                        f"R$ {total_valor_estoque:.2f}",
+                        f"R$ {float(de_centavos(total_valor_estoque_centavos)):.2f}",
                     ]
                 )
 
@@ -496,7 +499,7 @@ class PrintProduto:
                 elements.append(Spacer(1, 4 * mm))
                 elements.append(
                     Paragraph(
-                        f"Total de produtos: {len(produtos)} | Valor total em estoque: R$ {total_valor_estoque:,.2f}",
+                        f"Total de produtos: {len(produtos)} | Valor total em estoque: R$ {float(de_centavos(total_valor_estoque_centavos)):,.2f}",
                         estilo_normal_negrito,
                     )
                 )

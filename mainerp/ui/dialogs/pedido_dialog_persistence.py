@@ -1,13 +1,12 @@
 """Componentes de PedidoDialog."""
 
-
-
 from PyQt6.QtWidgets import (
     QMessageBox,
 )
 
 from mainerp.core.app_logging import registrar_excecao
 from mainerp.data.models.pedido import Pedido
+from mainerp.data.money import de_centavos, para_centavos
 from mainerp.domain.utils.helpers import (
     formatar_moeda,
 )
@@ -71,8 +70,17 @@ class _PedidoDialogPersistence(ComponentMixin):
             QMessageBox.warning(self, "Aviso", "Adicione pelo menos um produto.")
             return
 
-        subtotal = sum(prod["subtotal"] for prod in self.produtos_selecionados)
-        total = max(0, subtotal - self.valor_desconto + self.valor_frete)
+        subtotal_centavos = sum(
+            para_centavos(prod["subtotal"]) for prod in self.produtos_selecionados
+        )
+        total_centavos = max(
+            0,
+            subtotal_centavos
+            - para_centavos(self.valor_desconto)
+            + para_centavos(self.valor_frete),
+        )
+        subtotal = float(de_centavos(subtotal_centavos))
+        total = float(de_centavos(total_centavos))
 
         if self._confirmar_pedido(subtotal, total):
             try:

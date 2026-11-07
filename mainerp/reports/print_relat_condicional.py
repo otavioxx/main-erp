@@ -20,6 +20,7 @@ from reportlab.platypus import (
 
 from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
+from mainerp.data.money import de_centavos, para_centavos
 
 logger = logging.getLogger(__name__)
 
@@ -60,19 +61,26 @@ class PrintRelatCondicional:
                     c.data_prevista_devolucao,
                     c.status,
                     c.observacao,
-                    c.desconto,
+                    c.desconto_centavos,
                     COALESCE(cl.nome, 'Cliente não informado') as nome_cliente,
                     COUNT(ic.id) as total_itens
                 FROM condicionais c
                 LEFT JOIN clientes cl ON c.cliente_id = cl.id
                 LEFT JOIN itens_condicional ic ON c.id = ic.condicional_id
                 GROUP BY c.id, c.cliente_id, c.data_condicional, c.data_prevista_devolucao,
-                         c.status, c.observacao, c.desconto, cl.nome
+                         c.status, c.observacao, c.desconto_centavos, cl.nome
                 ORDER BY c.id DESC
             """)
 
             condicionais = cursor.fetchall()
-            return condicionais
+            return [
+                (
+                    *condicional[:6],
+                    float(de_centavos(condicional[6])),
+                    *condicional[7:],
+                )
+                for condicional in condicionais
+            ]
 
         except Exception as e:
             logger.error(f"Erro ao buscar condicionais com cliente: {e}")
@@ -88,7 +96,7 @@ class PrintRelatCondicional:
             # Buscar todos os itens da condicional
             cursor.execute(
                 """
-                SELECT quantidade, preco_unitario
+                SELECT quantidade, preco_unitario_centavos
                 FROM itens_condicional
                 WHERE condicional_id = ?
             """,
@@ -97,13 +105,13 @@ class PrintRelatCondicional:
 
             itens = cursor.fetchall()
 
-            total = 0
+            total_centavos = 0
             for item in itens:
                 quantidade = item[0] or 0
-                preco_unitario = item[1] or 0
-                total += quantidade * preco_unitario
+                preco_centavos = item[1] or 0
+                total_centavos += quantidade * preco_centavos
 
-            return total
+            return float(de_centavos(total_centavos))
 
         except Exception as e:
             logger.error(f"Erro ao calcular total da condicional {condicional_id}: {e}")
@@ -291,7 +299,7 @@ class PrintRelatCondicional:
                     ]
                 ]
 
-                total_valor = 0
+                total_valor_centavos = 0
                 total_itens = 0
 
                 for condicional_data in condicionais_data:
@@ -309,9 +317,13 @@ class PrintRelatCondicional:
                         total_bruto = PrintRelatCondicional._calcular_total_condicional(
                             condicional_id
                         )
-                        total_liquido = total_bruto - (desconto or 0)
+                        total_liquido_centavos = max(
+                            0,
+                            para_centavos(total_bruto) - para_centavos(desconto or 0),
+                        )
+                        total_liquido = float(de_centavos(total_liquido_centavos))
 
-                        total_valor += total_liquido
+                        total_valor_centavos += total_liquido_centavos
                         total_itens += qtd_itens or 0
 
                         # Formatar data prevista
@@ -351,7 +363,7 @@ class PrintRelatCondicional:
                         "",
                         "",
                         f"TOTAL: {total_itens}",
-                        f"R$ {total_valor:.2f}",
+                        f"R$ {float(de_centavos(total_valor_centavos)):.2f}",
                         "",
                     ]
                 )
@@ -417,7 +429,7 @@ class PrintRelatCondicional:
                 elements.append(Spacer(1, 4 * mm))
                 elements.append(
                     Paragraph(
-                        f"Total de condicionais: {len(condicionais_data)} | Itens: {total_itens} | Valor total: R$ {total_valor:,.2f}",
+                        f"Total de condicionais: {len(condicionais_data)} | Itens: {total_itens} | Valor total: R$ {float(de_centavos(total_valor_centavos)):,.2f}",
                         estilo_normal_negrito,
                     )
                 )
