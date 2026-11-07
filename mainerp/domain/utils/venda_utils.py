@@ -3,11 +3,13 @@ Utilitários de Venda - Versão Refatorada
 Centraliza toda a lógica de negócio relacionada a vendas
 """
 
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from mainerp.core.app_logging import registrar_excecao
 from mainerp.core.exceptions import ErroERP
 from mainerp.data.database_utils import DatabaseUtils
+from mainerp.data.money import de_centavos, para_centavos
 from mainerp.domain.utils.helpers import converter_data_string
 
 
@@ -78,55 +80,99 @@ class VendaCalculator:
     """Calculador para operações financeiras de vendas"""
 
     @staticmethod
+    def calcular_subtotal_produto_centavos(preco: float, quantidade: int) -> int:
+        """Calcula subtotal de um produto em centavos."""
+        return para_centavos(preco) * int(quantidade)
+
+    @staticmethod
     def calcular_subtotal_produto(preco: float, quantidade: int) -> float:
-        """Calcula subtotal de um produto"""
-        return round(float(preco) * int(quantidade), 2)
+        """Calcula subtotal em reais, mantendo a interface legada."""
+        return float(
+            de_centavos(
+                VendaCalculator.calcular_subtotal_produto_centavos(preco, quantidade)
+            )
+        )
+
+    @staticmethod
+    def calcular_total_produtos_centavos(produtos: list[dict[str, Any]]) -> int:
+        """Soma os subtotais dos produtos em centavos."""
+        return sum(para_centavos(produto.get("subtotal", 0)) for produto in produtos)
 
     @staticmethod
     def calcular_total_produtos(produtos: list[dict[str, Any]]) -> float:
-        """Calcula total de todos os produtos"""
-        return round(sum(produto.get("subtotal", 0) for produto in produtos), 2)
+        """Calcula total em reais, mantendo a interface legada."""
+        return float(
+            de_centavos(VendaCalculator.calcular_total_produtos_centavos(produtos))
+        )
+
+    @staticmethod
+    def aplicar_desconto_centavos(subtotal: int, desconto: int) -> int:
+        """Aplica desconto a valores em centavos, sem permitir total negativo."""
+        return max(0, int(subtotal) - int(desconto))
 
     @staticmethod
     def aplicar_desconto(subtotal: float, desconto: float) -> float:
-        """Aplica desconto ao subtotal"""
-        total_com_desconto = subtotal - desconto
-        return round(max(0, total_com_desconto), 2)
+        """Aplica desconto em reais, mantendo a interface legada."""
+        total_centavos = VendaCalculator.aplicar_desconto_centavos(
+            para_centavos(subtotal), para_centavos(desconto)
+        )
+        return float(de_centavos(total_centavos))
+
+    @staticmethod
+    def calcular_valor_parcela_centavos(total: int, num_parcelas: int) -> int:
+        """Calcula o valor arredondado de uma parcela em centavos."""
+        if num_parcelas <= 0:
+            return int(total)
+        valor = Decimal(int(total)) / Decimal(num_parcelas)
+        return int(valor.quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
     @staticmethod
     def calcular_valor_parcela(total: float, num_parcelas: int) -> float:
-        """Calcula valor da parcela"""
+        """Calcula valor da parcela em reais, mantendo a interface legada."""
         if num_parcelas <= 0:
             return total
-        return round(total / num_parcelas, 2)
+        valor_centavos = VendaCalculator.calcular_valor_parcela_centavos(
+            para_centavos(total), num_parcelas
+        )
+        return float(de_centavos(valor_centavos))
 
     @staticmethod
     def distribuir_desconto_proporcional(
         produtos: list[dict[str, Any]], desconto_total: float
     ) -> list[dict[str, Any]]:
         """Distribui desconto proporcionalmente entre produtos"""
-        if desconto_total <= 0:
+        desconto_total_centavos = para_centavos(desconto_total)
+        if desconto_total_centavos <= 0:
             return produtos
 
-        total_sem_desconto = VendaCalculator.calcular_total_produtos(produtos)
-        if total_sem_desconto <= 0:
+        total_sem_desconto_centavos = VendaCalculator.calcular_total_produtos_centavos(
+            produtos
+        )
+        if total_sem_desconto_centavos <= 0:
             return produtos
 
         produtos_com_desconto = []
-        desconto_aplicado = 0
+        desconto_aplicado_centavos = 0
 
         for i, produto in enumerate(produtos):
+            subtotal_centavos = para_centavos(produto["subtotal"])
             if i == len(produtos) - 1:  # Último produto recebe o resto
-                desconto_produto = desconto_total - desconto_aplicado
+                desconto_produto_centavos = (
+                    desconto_total_centavos - desconto_aplicado_centavos
+                )
             else:
-                proporcao = produto["subtotal"] / total_sem_desconto
-                desconto_produto = round(desconto_total * proporcao, 2)
-                desconto_aplicado += desconto_produto
+                desconto_proporcional = Decimal(
+                    desconto_total_centavos * subtotal_centavos
+                ) / Decimal(total_sem_desconto_centavos)
+                desconto_produto_centavos = int(
+                    desconto_proporcional.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+                )
+                desconto_aplicado_centavos += desconto_produto_centavos
 
             produto_copy = produto.copy()
-            produto_copy["desconto"] = desconto_produto
-            produto_copy["subtotal_com_desconto"] = (
-                produto["subtotal"] - desconto_produto
+            produto_copy["desconto"] = float(de_centavos(desconto_produto_centavos))
+            produto_copy["subtotal_com_desconto"] = float(
+                de_centavos(subtotal_centavos - desconto_produto_centavos)
             )
             produtos_com_desconto.append(produto_copy)
 

@@ -1,5 +1,6 @@
 import pytest
 
+from mainerp.data.money import para_centavos
 from mainerp.domain.utils.venda_utils import VendaCalculator, VendaValidator
 
 
@@ -7,7 +8,7 @@ from mainerp.domain.utils.venda_utils import VendaCalculator, VendaValidator
     ("preco", "quantidade", "esperado"),
     [
         (12.50, 3, 37.50),
-        (1.005, 1, 1.0),
+        (1.005, 1, 1.01),
         (0, 4, 0.0),
     ],
 )
@@ -18,7 +19,19 @@ def test_calcular_subtotal_produto(preco, quantidade, esperado):
 def test_calcular_total_produtos_arredonda_soma():
     produtos = [{"subtotal": 10.105}, {"subtotal": 2.205}]
 
-    assert VendaCalculator.calcular_total_produtos(produtos) == 12.31
+    assert VendaCalculator.calcular_total_produtos(produtos) == 12.32
+
+
+def test_calculos_de_venda_usam_centavos_inteiros():
+    assert VendaCalculator.calcular_subtotal_produto_centavos(1.005, 2) == 202
+    assert (
+        VendaCalculator.calcular_total_produtos_centavos(
+            [{"subtotal": 10.105}, {"subtotal": 2.205}]
+        )
+        == 1232
+    )
+    assert VendaCalculator.aplicar_desconto_centavos(1000, 125) == 875
+    assert VendaCalculator.calcular_valor_parcela_centavos(1000, 3) == 333
 
 
 @pytest.mark.parametrize(
@@ -61,6 +74,15 @@ def test_distribuir_desconto_proporcional_preserva_itens_de_entrada():
     assert produtos == [{"id": 1, "subtotal": 60}, {"id": 2, "subtotal": 40}]
 
 
+def test_distribuir_desconto_preserva_total_em_centavos():
+    produtos = [{"subtotal": 10.00}, {"subtotal": 10.00}, {"subtotal": 10.00}]
+
+    resultado = VendaCalculator.distribuir_desconto_proporcional(produtos, 1.00)
+
+    assert sum(para_centavos(item["desconto"]) for item in resultado) == 100
+    assert [item["desconto"] for item in resultado] == [0.33, 0.33, 0.34]
+
+
 @pytest.mark.parametrize(
     ("quantidade", "estoque", "ja_selecionada", "valido"),
     [
@@ -70,9 +92,7 @@ def test_distribuir_desconto_proporcional_preserva_itens_de_entrada():
         (-1, 5, 0, False),
     ],
 )
-def test_validar_quantidade_disponivel(
-    quantidade, estoque, ja_selecionada, valido
-):
+def test_validar_quantidade_disponivel(quantidade, estoque, ja_selecionada, valido):
     resultado, mensagem = VendaValidator.validar_quantidade_disponivel(
         quantidade, estoque, ja_selecionada
     )

@@ -40,6 +40,8 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
       - [x] Migração 3 cria colunas `*_centavos`, converte os dados existentes e mantém
             os centavos sincronizados em escritas antigas; cálculos e leituras ainda
             precisam passar a usar os campos inteiros.
+      - [x] Cálculos centrais de venda agora operam em centavos; os métodos legados
+            continuam retornando valores em reais para preservar os contratos da UI.
 - [x] Índices nas colunas mais filtradas (cliente, data, status); `PRAGMA foreign_keys`
       permanece ativo.
 
