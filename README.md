@@ -86,9 +86,13 @@ fechamento do sistema.
 
 ## Publicar uma nova versão
 
-1. Aumente `APP_VERSION` em `mainerp/core/config.py`.
-2. Atualize também a versão e a data exibidas na linha 54 de
-   `mainerp/ui/views/main_window.py` (barra de status).
+1. Aumente `APP_VERSION` em `mainerp/core/config.py` usando `MAJOR.MINOR.PATCH`
+   (por exemplo, `0.10.1`) e registre a versão, data e alterações em `CHANGELOG.md`.
+   A barra de status usa `APP_VERSION` automaticamente.
+2. Use MAJOR para mudanças incompatíveis, MINOR para funcionalidades compatíveis e PATCH
+   para correções compatíveis; enquanto MAJOR for zero, a API ainda está em desenvolvimento.
+   Reinicie os componentes inferiores ao aumentar MAJOR ou MINOR. Releases publicadas usam
+   apenas números sem zeros à esquerda, sem sufixos de pré-release ou metadados.
 3. Configure no repositório, em **Settings > Secrets and variables > Actions**, o secret
    `MAINERP_ED25519_PRIVATE_KEY` com o conteúdo PEM da chave privada. Gere essa chave uma
    única vez com `python distribuicao\gerar_chave_assinatura.py`; ela fica fora do repositório
@@ -96,7 +100,7 @@ fechamento do sistema.
    chat. O launcher contém somente a chave pública.
 4. Execute `verificar.bat` localmente. Atualize e envie o commit para `main`.
 5. Crie e envie uma tag anotada que corresponda exatamente a `APP_VERSION`, por exemplo:
-   `git tag -a v0.10 -m "MainERP 0.10"` e `git push origin v0.10`.
+   `git tag -a v0.10.1 -m "MainERP 0.10.1"` e `git push origin v0.10.1`.
 6. O GitHub Actions valida a tag, executa Ruff e pytest, gera o ZIP e o manifesto, assina o
    ZIP com Ed25519 e publica os três assets (`.zip`, `.zip.sig` e `version.json`) como latest.
    Não recicle tags já publicadas.

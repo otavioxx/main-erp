@@ -1,4 +1,4 @@
-# MainERP 0.10 - distribuição sem PyInstaller
+# MainERP - distribuição sem PyInstaller
 
 ## Novidades da versão 0.10
 
@@ -61,8 +61,8 @@ backups e relatórios ficam em `dados\`.
 Antes de distribuir uma versão:
 
 1. Faça e teste as alterações; atualize `APP_VERSION` em
-   `mainerp/core/config.py`, o texto da versão/data na linha 54 de
-   `mainerp\ui\views\main_window.py` e o histórico em `CHANGELOG.md`.
+   `mainerp/core/config.py` e a versão, data e histórico em `CHANGELOG.md`.
+   A barra de status usa `APP_VERSION` automaticamente.
 2. Execute `verificar.bat` na raiz do projeto. Corrija qualquer falha de Ruff ou pytest
    antes de continuar, atualize o commit em `main` e envie-o ao GitHub.
 3. Teste a instalação/atualização em uma instalação de teste antes de distribuir aos
@@ -74,8 +74,8 @@ Antes de distribuir uma versão:
    `%LOCALAPPDATA%\MainERP\signing\ed25519-private.pem`. Cadastre o conteúdo do arquivo como
    secret sem incluí-lo em commits, logs ou mensagens. O launcher contém somente a chave
    pública correspondente.
-5. Crie e envie uma tag anotada igual à versão, por exemplo `git tag -a v0.10 -m "MainERP 0.10"`
-   e `git push origin v0.10`. O GitHub Actions confere a tag com `APP_VERSION`,
+5. Crie e envie uma tag anotada igual à versão, por exemplo `git tag -a v0.10.1 -m "MainERP 0.10.1"`
+   e `git push origin v0.10.1`. O GitHub Actions confere a tag com `APP_VERSION`,
    executa Ruff e pytest, gera ZIP e manifesto SHA256, assina o ZIP com Ed25519 e publica
    os três assets (`.zip`, `.zip.sig` e `version.json`) na GitHub Release mais recente.
 
@@ -92,9 +92,14 @@ launcher fixo instalado. A release 0.09 e anteriores não têm assinatura Ed2551
 chave privada com acesso restrito e faça cópia segura; para rotacioná-la, atualize a chave
 pública embutida no launcher e o secret do Actions antes de publicar a próxima release.
 
-O nome da versão precisa ser novo e maior que as versões já instaladas. O launcher compara
-as sequências numéricas encontradas no nome (por exemplo, `0.08` e `0.09`); versão igual ou
-menor é ignorada. A adoção de SemVer estrito ainda não está configurada.
+Novas versões usam `MAJOR.MINOR.PATCH`, somente números sem zeros à esquerda; não são
+publicados pré-releases nem metadados. MAJOR indica mudanças incompatíveis, MINOR
+funcionalidades compatíveis e PATCH correções compatíveis; com MAJOR zero, a API ainda está
+em desenvolvimento. Reinicie os componentes inferiores ao aumentar MAJOR ou MINOR.
+A geração do pacote e o workflow recusam versões fora desse formato, e a tag deve ser
+`v` seguido da versão exata. A versão deve ser maior que as já instaladas: o launcher
+compara componentes numéricos e continua reconhecendo as versões históricas de dois
+componentes, como `0.10`, que é anterior a `0.10.0`. As releases antigas não são renomeadas.
 
 ## Publicar uma atualização (no mesmo PC)
 
@@ -179,7 +184,7 @@ Em cada release, publique os três assets na mesma GitHub Release:
 
 Marque como **Latest** a release mais nova. O manifesto contém a versão, o nome do ZIP e
 o SHA256. Mantenha o campo `url` como nome do ZIP (por exemplo,
-`MainERP-0.09.zip`): o launcher resolve esse caminho relativo ao endpoint
+`MainERP-0.10.1.zip`): o launcher resolve esse caminho relativo ao endpoint
 `latest/download/version.json`, que leva ao asset da mesma release. Não edite manualmente
 o SHA256 nem reutilize assets/version de builds diferentes. Se recriar o ZIP, regenere e
 publique também o manifesto correspondente.

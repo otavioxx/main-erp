@@ -5,9 +5,8 @@ Uso (na pasta do projeto):
     python distribuicao/criar_release.py --instalar   # idem + coloca o zip em atualizacoes\\
                                                       # (aplicado na próxima abertura do sistema)
 
-A versão vem de APP_VERSION em mainerp/core/config.py: aumente-a antes de cada release.
-Também é gerado dist/version.json (versão, nome do zip e SHA256), que serve de
-manifesto quando as atualizações passarem a vir de um servidor.
+A versão estável MAJOR.MINOR.PATCH vem de APP_VERSION em mainerp/core/config.py.
+Também é gerado dist/version.json (versão, nome do zip e SHA256), usado pelo launcher.
 """
 
 import argparse
@@ -45,6 +44,7 @@ EXCLUIR_NOMES = {
     "backup_config.json",
 }
 EXCLUIR_EXTENSOES = {".pyc", ".pyo", ".db", ".db-journal", ".zip", ".log"}
+VERSAO_ESTAVEL = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
 
 
 def ler_versao() -> str:
@@ -53,7 +53,19 @@ def ler_versao() -> str:
     m = re.search(r'APP_VERSION\s*=\s*["\']([^"\']+)["\']', texto)
     if not m:
         sys.exit(f"APP_VERSION não encontrada em {arquivo_config.relative_to(PROJETO)}")
-    return m.group(1)
+    versao = m.group(1)
+    if not VERSAO_ESTAVEL.fullmatch(versao):
+        sys.exit(
+            f"APP_VERSION inválida: {versao!r}. Use MAJOR.MINOR.PATCH "
+            "com números não negativos e sem zeros à esquerda."
+        )
+    return versao
+
+
+def verificar_tag(tag: str) -> None:
+    esperada = f"v{ler_versao()}"
+    if tag != esperada:
+        sys.exit(f"Tag {tag!r} não corresponde à versão {esperada!r}.")
 
 
 def arquivos_do_release():
@@ -122,7 +134,17 @@ def main():
         default=None,
         help="pasta 'sistema' da instalação (padrão: %%LOCALAPPDATA%%\\MainERP\\sistema)",
     )
+    ap.add_argument(
+        "--verificar-tag",
+        metavar="TAG",
+        help="valida a versão e a tag sem gerar o pacote",
+    )
     args = ap.parse_args()
+
+    if args.verificar_tag is not None:
+        verificar_tag(args.verificar_tag)
+        print(f"Tag {args.verificar_tag} válida.")
+        return
 
     zip_path = construir_zip(args.saida)
     sha = sha256_arquivo(zip_path)

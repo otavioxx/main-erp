@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 0.10.0
+
+- Adotado o formato de versão estável MAJOR.MINOR.PATCH para novas releases.
+- A geração de pacotes e o pipeline verificam o formato da versão e a tag.
+
 ## 0.10 - 2026-11-07
 
 - Pacotes publicados pelo GitHub Actions agora são assinados com Ed25519.

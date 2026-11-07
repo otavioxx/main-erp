@@ -101,7 +101,7 @@ MainERP/
 ## Fase 4 — Operação e atualização online
 
 - [x] Manter o `CHANGELOG.md` com o histórico das versões 0.07 e 0.08.
-- [ ] Adotar versionamento semântico estrito (MAJOR.MINOR.PATCH).
+- [x] Adotar versionamento semântico estrito (MAJOR.MINOR.PATCH).
 - [x] Assinar releases com Ed25519 e validar assinatura, SHA256 e versão no launcher.
 - [x] Implementar no launcher a consulta opcional do manifesto, o download e a validação
       SHA256 dos pacotes de atualização.
