@@ -4,11 +4,47 @@ from datetime import timedelta
 
 from mainerp.core.exceptions import ErroERP
 from mainerp.data.database import obter_database
+from mainerp.data.money import de_centavos, para_centavos
 
 logger = logging.getLogger(__name__)
 
 
 class Duplicata:
+    @staticmethod
+    def _criar_parcela_pendente(
+        cursor, venda_id, cliente_id, numero_parcela, data_vencimento, valor_centavos
+    ):
+        """Cria a próxima parcela para um saldo que não pôde ser redistribuído."""
+        cursor.execute(
+            """
+            SELECT COALESCE(MAX(numero_parcela), 0) + 1
+            FROM (
+                SELECT numero_parcela FROM duplicatas WHERE venda_id = ?
+                UNION ALL
+                SELECT numero_parcela FROM duplicatas_pagas WHERE venda_id = ?
+            )
+            """,
+            (venda_id, venda_id),
+        )
+        proximo_numero = max(numero_parcela + 1, cursor.fetchone()[0])
+        valor_parcela = float(de_centavos(valor_centavos))
+        cursor.execute(
+            """
+            INSERT INTO duplicatas
+            (venda_id, cliente_id, numero_parcela, valor_parcela,
+             valor_parcela_centavos, data_vencimento, status)
+            VALUES (?, ?, ?, ?, ?, date(?, '+30 days'), 'aberto')
+            """,
+            (
+                venda_id,
+                cliente_id,
+                proximo_numero,
+                valor_parcela,
+                valor_centavos,
+                data_vencimento,
+            ),
+        )
+
     def __init__(
         self,
         id=None,
@@ -35,7 +71,8 @@ class Duplicata:
                 cursor.execute(
                     """
                     UPDATE duplicatas SET venda_id=?, cliente_id=?, numero_parcela=?,
-                    valor_parcela=?, data_vencimento=?, data_pagamento=?, status=?
+                    valor_parcela=?, valor_parcela_centavos=?,
+                    data_vencimento=?, data_pagamento=?, status=?
                     WHERE id=?
                 """,
                     (
@@ -43,6 +80,7 @@ class Duplicata:
                         self.cliente_id,
                         self.numero_parcela,
                         self.valor_parcela,
+                        para_centavos(self.valor_parcela),
                         self.data_vencimento,
                         self.data_pagamento,
                         self.status,
@@ -53,14 +91,16 @@ class Duplicata:
                 cursor.execute(
                     """
                     INSERT INTO duplicatas (venda_id, cliente_id, numero_parcela,
-                    valor_parcela, data_vencimento, data_pagamento, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    valor_parcela, valor_parcela_centavos, data_vencimento,
+                    data_pagamento, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
                         self.venda_id,
                         self.cliente_id,
                         self.numero_parcela,
                         self.valor_parcela,
+                        para_centavos(self.valor_parcela),
                         self.data_vencimento,
                         self.data_pagamento,
                         self.status,
@@ -74,21 +114,36 @@ class Duplicata:
     def criar_parcelas(
         venda_id, cliente_id, valor_financiado, parcelas, data_primeiro_vencimento
     ):
-        """Cria parcelas baseadas no valor financiado (não no valor total)"""
-        valor_parcela = valor_financiado / parcelas
+        """Cria parcelas em centavos baseadas no valor financiado."""
+        valor_financiado_centavos = para_centavos(valor_financiado)
+        valor_base_centavos = valor_financiado_centavos // parcelas
         duplicatas = []
 
         with obter_database().transacao() as cursor:
             for i in range(parcelas):
+                valor_parcela_centavos = (
+                    valor_financiado_centavos - valor_base_centavos * (parcelas - 1)
+                    if i == parcelas - 1
+                    else valor_base_centavos
+                )
+                valor_parcela = float(de_centavos(valor_parcela_centavos))
                 data_vencimento = data_primeiro_vencimento + timedelta(days=30 * i)
 
                 cursor.execute(
                     """
                 INSERT INTO duplicatas
-                (venda_id, cliente_id, numero_parcela, valor_parcela, data_vencimento, status)
-                VALUES (?, ?, ?, ?, ?, 'aberto')
+                (venda_id, cliente_id, numero_parcela, valor_parcela,
+                 valor_parcela_centavos, data_vencimento, status)
+                VALUES (?, ?, ?, ?, ?, ?, 'aberto')
                 """,
-                    (venda_id, cliente_id, i + 1, valor_parcela, data_vencimento),
+                    (
+                        venda_id,
+                        cliente_id,
+                        i + 1,
+                        valor_parcela,
+                        valor_parcela_centavos,
+                        data_vencimento,
+                    ),
                 )
 
                 duplicata = Duplicata(
@@ -277,6 +332,9 @@ class Duplicata:
 
             # Calcular diferença
             diferenca = float(valor_recebido) - valor_original
+            diferenca_centavos = para_centavos(valor_recebido) - para_centavos(
+                valor_original
+            )
 
             # Buscar parcelas restantes
             cursor.execute(
@@ -290,6 +348,16 @@ class Duplicata:
 
             parcelas_restantes = cursor.fetchall()
             qtd_restantes = len(parcelas_restantes)
+
+            if qtd_restantes == 0 and diferenca_centavos < 0:
+                Duplicata._criar_parcela_pendente(
+                    cursor,
+                    venda_id,
+                    cliente_id,
+                    numero_parcela,
+                    data_vencimento,
+                    -diferenca_centavos,
+                )
 
             # Se há diferença e parcelas restantes, redistribuir
             if qtd_restantes > 0 and abs(diferenca) > 1e-9:
@@ -430,10 +498,14 @@ class Duplicata:
         from datetime import datetime
 
         with obter_database().transacao() as cursor:
-            # Obter valor original se não foi passado
+            # Obter dados da duplicata original se necessário.
             if valor_original is None:
                 cursor.execute(
-                    "SELECT valor_parcela FROM duplicatas WHERE id = ?", (duplicata_id,)
+                    """
+                    SELECT valor_parcela, cliente_id, numero_parcela, data_vencimento
+                    FROM duplicatas WHERE id = ?
+                    """,
+                    (duplicata_id,),
                 )
                 row = cursor.fetchone()
                 if not row:
@@ -441,8 +513,25 @@ class Duplicata:
                         "Não foi possível obter o valor da duplicata original para ajuste."
                     )
                 valor_original = float(row[0])
+                cliente_id, numero_parcela, data_vencimento = row[1:]
+            else:
+                cursor.execute(
+                    """
+                    SELECT cliente_id, numero_parcela, data_vencimento
+                    FROM duplicatas WHERE id = ? AND venda_id = ?
+                    """,
+                    (duplicata_id, venda_id),
+                )
+                row = cursor.fetchone()
+                if row:
+                    cliente_id, numero_parcela, data_vencimento = row
+                else:
+                    cliente_id = numero_parcela = data_vencimento = None
 
             diferenca = float(valor_pago) - float(valor_original)
+            diferenca_centavos = para_centavos(valor_pago) - para_centavos(
+                valor_original
+            )
             if abs(diferenca) < 1e-9:
                 # Nada a ajustar
                 return
@@ -462,6 +551,20 @@ class Duplicata:
             parcelas_restantes = cursor.fetchall()
 
             if not parcelas_restantes:
+                if diferenca_centavos < 0 and cliente_id is not None:
+                    Duplicata._criar_parcela_pendente(
+                        cursor,
+                        venda_id,
+                        cliente_id,
+                        numero_parcela,
+                        data_vencimento,
+                        -diferenca_centavos,
+                    )
+                    logger.info(
+                        "Criada parcela para saldo pendente de venda %s", venda_id
+                    )
+                    return
+
                 logger.debug("Nenhuma parcela restante para redistribuir")
                 return
 

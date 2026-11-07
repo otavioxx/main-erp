@@ -46,6 +46,10 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
             `*_centavos`, mantendo as colunas antigas preenchidas para compatibilidade.
       - [x] Itens de venda são gravados em centavos e lidos pelo repositório inteiro,
             convertendo para reais apenas na interface legada de tuplas.
+      - [x] A criação de parcelas divide o financiado em centavos e aloca qualquer
+            resto na última parcela, garantindo que a soma corresponda ao total.
+      - [x] Pagamento parcial sem parcelas abertas cria uma nova parcela para o
+            saldo pendente, com vencimento 30 dias após a parcela quitada.
 - [x] Índices nas colunas mais filtradas (cliente, data, status); `PRAGMA foreign_keys`
       permanece ativo.
 

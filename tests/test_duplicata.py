@@ -31,20 +31,22 @@ def test_criar_parcelas_divide_valor_e_incrementa_vencimentos(database):
 
     assert [parcela.id for parcela in parcelas] == [1, 2, 3]
     assert [parcela.numero_parcela for parcela in parcelas] == [1, 2, 3]
-    assert [parcela.valor_parcela for parcela in parcelas] == [100 / 3] * 3
+    assert [parcela.valor_parcela for parcela in parcelas] == [33.33, 33.33, 33.34]
     assert [parcela.data_vencimento for parcela in parcelas] == [
         primeiro_vencimento + timedelta(days=30 * indice) for indice in range(3)
     ]
     assert all(parcela.status == "aberto" for parcela in parcelas)
-    assert [
-        row[0:4]
-        for row in database.get_connection()
-        .execute(
-            "SELECT venda_id, cliente_id, numero_parcela, valor_parcela "
-            "FROM duplicatas ORDER BY numero_parcela"
-        )
-        .fetchall()
-    ] == [(42, 7, 1, 100 / 3), (42, 7, 2, 100 / 3), (42, 7, 3, 100 / 3)]
+    assert database.get_connection().execute(
+        """
+            SELECT venda_id, cliente_id, numero_parcela, valor_parcela,
+                   valor_parcela_centavos
+            FROM duplicatas ORDER BY numero_parcela
+            """
+    ).fetchall() == [
+        (42, 7, 1, 33.33, 3333),
+        (42, 7, 2, 33.33, 3333),
+        (42, 7, 3, 33.34, 3334),
+    ]
 
 
 def test_criar_parcelas_reverte_todos_os_inserts_se_algum_falhar(database):
@@ -75,3 +77,76 @@ def test_criar_parcelas_reverte_todos_os_inserts_se_algum_falhar(database):
         .fetchone()[0]
         == 0
     )
+
+
+def test_pagamento_parcial_da_ultima_parcela_cria_nova_parcela_com_saldo(database):
+    vencimento = date(2026, 1, 15)
+    with database.transacao() as cursor:
+        cursor.execute("INSERT INTO clientes (id, nome) VALUES (7, 'Cliente')")
+        cursor.execute("INSERT INTO vendas (id, cliente_id) VALUES (42, 7)")
+        cursor.execute(
+            """
+            INSERT INTO duplicatas
+            (id, venda_id, cliente_id, numero_parcela, valor_parcela,
+             valor_parcela_centavos, data_vencimento, status)
+            VALUES (5, 42, 7, 3, 100, 10000, ?, 'aberto')
+            """,
+            (vencimento,),
+        )
+
+    assert duplicata_model.Duplicata.marcar_como_paga(
+        5, 80, date(2026, 1, 15), "Dinheiro"
+    )
+
+    parcelas = (
+        database.get_connection()
+        .execute(
+            """
+        SELECT numero_parcela, valor_parcela, valor_parcela_centavos,
+               data_vencimento, status
+        FROM duplicatas WHERE venda_id = 42
+        """
+        )
+        .fetchall()
+    )
+    assert parcelas == [(4, 20.0, 2000, "2026-02-14", "aberto")]
+
+    parcela_paga = (
+        database.get_connection()
+        .execute(
+            """
+        SELECT numero_parcela, valor_original_centavos, valor_recebido_centavos
+        FROM duplicatas_pagas WHERE venda_id = 42
+        """
+        )
+        .fetchone()
+    )
+    assert parcela_paga == (3, 10000, 8000)
+
+
+def test_ajuste_de_ultima_parcela_cria_parcela_para_o_saldo(database):
+    with database.transacao() as cursor:
+        cursor.execute("INSERT INTO clientes (id, nome) VALUES (7, 'Cliente')")
+        cursor.execute("INSERT INTO vendas (id, cliente_id) VALUES (42, 7)")
+        cursor.execute(
+            """
+            INSERT INTO duplicatas
+            (id, venda_id, cliente_id, numero_parcela, valor_parcela,
+             valor_parcela_centavos, data_vencimento, status)
+            VALUES (5, 42, 7, 2, 50, 5000, '2026-03-01', 'aberto')
+            """
+        )
+
+    duplicata_model.Duplicata.ajustar_parcelas_restantes(42, 5, 30)
+
+    parcela = (
+        database.get_connection()
+        .execute(
+            """
+        SELECT numero_parcela, valor_parcela_centavos, data_vencimento
+        FROM duplicatas WHERE id != 5
+        """
+        )
+        .fetchone()
+    )
+    assert parcela == (3, 2000, "2026-03-31")
