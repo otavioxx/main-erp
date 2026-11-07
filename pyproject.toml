@@ -26,3 +26,6 @@ ignore = [
 # (os módulos leem a pasta de dados na importação); instalar.py ajusta o sys.path.
 "main.py" = ["E402"]
 "distribuicao/instalar.py" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

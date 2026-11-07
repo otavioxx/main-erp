@@ -43,6 +43,7 @@ pip install -r requirements-dev.txt
 :: mexe no mesmo banco que você usa no dia a dia.
 set MAINERP_DATA=C:\dev\mainerp-dados
 
+pytest
 python main.py
 ```
 

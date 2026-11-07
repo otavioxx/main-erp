@@ -1,7 +1,7 @@
 # Roadmap do MainERP
 
-Baseado em uma análise estática do código (≈ 25,5 mil linhas, 0 testes). Cada fase deixa o
-sistema funcionando; não faça duas fases ao mesmo tempo.
+Baseado em uma análise estática do código (≈ 25,5 mil linhas; cobertura automatizada
+inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo tempo.
 
 ## Fase 0 — Higiene segura (1 a 2 dias)
 
@@ -20,9 +20,9 @@ sistema funcionando; não faça duas fases ao mesmo tempo.
 - [x] Auditar os 164 `except Exception` amplos: restringir os tipos quando seguro e
       registrar as falhas com o logging central. Seis casos previsíveis foram estreitados;
       os demais permanecem amplos em limites de recuperação/propagação.
-- [ ] **Testes com pytest** começando pelo que mais dói se quebrar:
-      cálculos de venda/duplicata/estoque (`utils/`), regras dos `models/` e as migrações
-      do banco (já testadas manualmente; transformar em testes automáticos).
+- [x] **Testes com pytest** para os principais cálculos de venda, criação de parcelas,
+      operações/verificação de estoque, regras de inativação de produto e exclusão de venda,
+      e migrações do banco novo e legado. Expandir a cobertura conforme novas mudanças.
 - [ ] Script `verificar.bat` que roda ruff + pytest antes de cada release.
 - [ ] Backup automático diário em `dados\backups` com retenção (ex.: 30 dias) e opção de
       cópia para uma pasta externa/nuvem.
