@@ -19,6 +19,7 @@ recebimentos, estoque e relatórios/etiquetas em PDF. Feito em Python com PyQt6 
 3. Na primeira vez, restaure seu backup em *Configurações*.
 
 Detalhes, atualizações e rollback: [`distribuicao/LEIAME.md`](distribuicao/LEIAME.md).
+Histórico de versões: [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Onde ficam as coisas
 

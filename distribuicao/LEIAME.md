@@ -7,7 +7,7 @@
   sistema\                  <- código e ferramentas (pode ser recriado a qualquer momento)
     runtime\                Python + bibliotecas (venv)
     launcher.pyw            o atalho aponta SEMPRE para ele
-    releases\0.06\ 0.07\    uma pasta por versão (as 3 últimas são mantidas)
+    releases\0.07\ 0.08\    uma pasta por versão (as 3 últimas são mantidas)
     current.txt             versão ativa
     atualizacoes\           coloque aqui o .zip de uma nova versão
     launcher.json           {"update_url": ""}  (atualização online, opcional)
