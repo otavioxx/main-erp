@@ -1,44 +1,47 @@
-"""Diálogo de entrada do preço de venda de um produto."""
+"""Diálogo para entrada do preço de venda de um produto."""
 
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (
-    QDialog,
-    QDialogButtonBox,
-    QDoubleSpinBox,
-    QLabel,
-    QVBoxLayout,
-)
-
-from mainerp.domain.utils.helpers import SelectAllDoubleSpinBox
+from PyQt6.QtCore import QLocale, QTimer
+from PyQt6.QtWidgets import QDialog, QDoubleSpinBox, QInputDialog
 
 
-def solicitar_preco_venda(valor_inicial: float, parent=None) -> float | None:
-    """Solicita o preço de venda e retorna None quando o usuário cancela."""
-    dialog = QDialog(parent)
+def solicitar_preco_venda(
+    valor_inicial: float,
+    parent=None,
+) -> float | None:
+
+    dialog = QInputDialog(parent)
+
     dialog.setWindowTitle("Preço de Venda")
+    dialog.setLabelText("Digite o preço de venda:")
+
+    # Configurar entrada numérica decimal
+    dialog.setInputMode(QInputDialog.InputMode.DoubleInput)
+
+    # Configuração regional brasileira
+    dialog.setLocale(
+        QLocale(
+            QLocale.Language.Portuguese,
+            QLocale.Country.Brazil,
+        )
+    )
+
+    # Configurar valores
+    dialog.setDoubleMinimum(0.01)
+    dialog.setDoubleMaximum(9999999.99)
+    dialog.setDoubleDecimals(2)
+    dialog.setDoubleStep(0.01)
+    dialog.setDoubleValue(float(valor_inicial))
+
     dialog.setMinimumWidth(420)
 
-    layout = QVBoxLayout(dialog)
-    layout.addWidget(QLabel("Digite o preço de venda:"))
+    # Selecionar automaticamente todo o valor ao abrir
+    spinbox = dialog.findChild(QDoubleSpinBox)
 
-    campo_preco = SelectAllDoubleSpinBox()
-    campo_preco.setRange(0.01, 9999999.99)
-    campo_preco.setDecimals(2)
-    campo_preco.setValue(valor_inicial)
-    campo_preco.setAlignment(Qt.AlignmentFlag.AlignRight)
-    campo_preco.setGroupSeparatorShown(True)
-    campo_preco.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
-    campo_preco.setMinimumWidth(260)
-    campo_preco.setMinimumHeight(35)
-    layout.addWidget(campo_preco)
+    if spinbox is not None:
+        QTimer.singleShot(100, spinbox.selectAll)
 
-    botoes = QDialogButtonBox(
-        QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-    )
-    botoes.accepted.connect(dialog.accept)
-    botoes.rejected.connect(dialog.reject)
-    layout.addWidget(botoes)
-
+    # Executar diálogo
     if dialog.exec() != QDialog.DialogCode.Accepted:
         return None
-    return campo_preco.value()
+
+    return dialog.doubleValue()
