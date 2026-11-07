@@ -18,7 +18,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from config import obter_config
 from dialogs.backup_dialog import BackupConfig, BackupDialog
+from utils.automatic_backup import BackupAutomatico
 from utils.helpers import aplicar_maiuscula_formulario
 from views.cliente_view import ClienteView
 from views.condicional_view import CondicionalView
@@ -98,6 +100,19 @@ class MainWindow(QMainWindow):
 
         # Selecionar a primeira aba por padrão
         self._selecionar_aba(0)
+
+        self._aguardando_backup_automatico = False
+        self.backup_automatico = BackupAutomatico(
+            obter_config().obter_caminho_banco(), self
+        )
+        self.backup_automatico.backup_concluido.connect(
+            self._backup_automatico_concluido
+        )
+        self.backup_automatico.backup_falhou.connect(self._backup_automatico_falhou)
+        self.backup_automatico.operacao_finalizada.connect(
+            self._retomar_fechamento_apos_backup
+        )
+        self.backup_automatico.iniciar()
 
         self.showMaximized()
 
@@ -240,6 +255,17 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """Fecha o sistema, mostrando diálogo de backup apenas se necessário"""
+        if self.backup_automatico.em_execucao:
+            event.ignore()
+            if not self._aguardando_backup_automatico:
+                self._aguardando_backup_automatico = True
+                self.status_bar.showMessage(
+                    "Aguarde a conclusão do backup automático para fechar..."
+                )
+            return
+
+        self.backup_automatico.parar()
+
         # Limpa timers
         if hasattr(self, "status_widget"):
             timers_to_stop = [
@@ -270,6 +296,21 @@ class MainWindow(QMainWindow):
 
         # Se backup antigo (7+ dias) ou nunca feito, mostra diálogo
         self._mostrar_dialogo_backup()
+
+    def _backup_automatico_concluido(self, caminho: str):
+        self.status_bar.showMessage(
+            f"Backup automático salvo: {caminho}", 10000
+        )
+
+    def _backup_automatico_falhou(self, erro: str):
+        logger.error("Backup automático não foi concluído: %s", erro)
+        self.status_bar.showMessage(f"Falha no backup automático: {erro}", 15000)
+
+    def _retomar_fechamento_apos_backup(self):
+        if not self._aguardando_backup_automatico:
+            return
+        self._aguardando_backup_automatico = False
+        self.close()
 
     def _mostrar_dialogo_backup(self):
         """Mostra o diálogo de backup (apenas quando necessário)"""

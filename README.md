@@ -25,7 +25,9 @@ Detalhes, atualizações e rollback: [`distribuicao/LEIAME.md`](distribuicao/LEI
 | O quê | Onde |
 |---|---|
 | Código instalado e versões | `%LOCALAPPDATA%\MainERP\sistema\releases\<versão>\` |
-| Banco, config, backups e relatórios | `%LOCALAPPDATA%\MainERP\dados\` |
+| Banco e configurações | `%LOCALAPPDATA%\MainERP\dados\` |
+| Backups automáticos e de migração | `%LOCALAPPDATA%\MainERP\dados\backups\` |
+| Relatórios | `%LOCALAPPDATA%\MainERP\dados\relatorios\` |
 | Logs da aplicação | `%LOCALAPPDATA%\MainERP\dados\logs\sistema.log` (rotativo) |
 | Logs do launcher | `%LOCALAPPDATA%\MainERP\sistema\logs\launcher.log` |
 
@@ -78,6 +80,12 @@ O esquema é versionado por `PRAGMA user_version`. Para alterar o banco:
    sistema continue funcionando com o banco já migrado.
 
 Antes de qualquer migração pendente é criado um backup em `dados\backups\pre_migracao_*.db`.
+O sistema também cria snapshots SQLite automáticos nessa pasta, no máximo uma vez por dia
+enquanto estiver aberto, e mantém somente os últimos 30 dias. Se o aplicativo ficar fechado
+por mais de um dia, o backup vencido é feito na próxima inicialização; não há execução
+enquanto o aplicativo e o Windows estiverem fechados. A opção de gerar um backup manual em
+outra pasta (por exemplo, uma pasta sincronizada ou unidade externa) continua disponível no
+fechamento do sistema.
 
 ## Publicar uma nova versão
 

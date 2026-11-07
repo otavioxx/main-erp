@@ -433,7 +433,7 @@ class RestoreBackupDialog(DialogBase):
 
     def _carregar_backups_locais(self):
         """Carrega lista de backups locais"""
-        backups_folder = os.path.join(os.path.dirname(self.current_db), "relatorios")
+        backups_folder = os.path.join(os.path.dirname(self.current_db), "backups")
         if os.path.exists(backups_folder):
             backups = DatabaseManager.list_backups(backups_folder)
 

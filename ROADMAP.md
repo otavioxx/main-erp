@@ -24,8 +24,8 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
       operações/verificação de estoque, regras de inativação de produto e exclusão de venda,
       e migrações do banco novo e legado. Expandir a cobertura conforme novas mudanças.
 - [x] Script `verificar.bat` que roda Ruff e pytest antes de cada release.
-- [ ] Backup automático diário em `dados\backups` com retenção (ex.: 30 dias) e opção de
-      cópia para uma pasta externa/nuvem.
+- [x] Backup automático diário em `dados\backups`, independente do backup manual do usuário,
+      com retenção de 30 dias. A opção de backup manual para pasta externa/nuvem foi mantida.
 
 ## Fase 2 — Camada de dados (2 a 3 semanas)
 
