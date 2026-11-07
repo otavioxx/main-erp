@@ -70,11 +70,12 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
       separador de milhar e prefixo `R$`.
 - [x] Criar o pacote `mainerp/` com núcleo, dados, domínio, UI e relatórios; manter `main.py`
       na raiz para o launcher.
-- [ ] Unificar as 9 cópias de `NumericTableWidgetItem` e as 2 de `BackupConfig`.
+- [x] Unificar as implementações de `NumericTableWidgetItem` em `mainerp/ui/table_items.py`,
+      preservando a ordenação de números, moedas e valores vazios nas telas e diálogos.
 - [x] Quebrar os arquivos grandes de diálogos e telas em componentes separados de
       layout, entrada, operações, filtros, ações e persistência.
-- [ ] Decidir sobre `BaseTableView`: adotar nas 7 telas de listagem (reduz código repetido)
-      ou apagar.
+- [ ] Avaliar um componente compartilhado para as telas de listagem, após comparar os
+      comportamentos existentes; não há atualmente uma classe `BaseTableView` no projeto.
 - [x] Splash: substituir os atrasos artificiais por progresso das etapas reais de
       inicialização e informar o carregamento individual das oito telas.
 
@@ -113,6 +114,93 @@ MainERP/
       `distribuicao/criar_release.py`, e executar Ruff/pytest por `verificar.bat`.
 - [x] Automatizar o pipeline de release no GitHub Actions (Ruff, testes, ZIP e SHA256).
 - [x] Tela "Sobre" mostrando versão, data e histórico.
+
+## Fase 4.1 — Pontos de atenção identificados na revisão
+
+Os itens abaixo são propostas de trabalho, não correções já aplicadas. Priorizar proteção
+dos dados e recuperação antes das melhorias estruturais. Os testes de backup e restauração
+devem usar apenas bancos e instalações temporários, nunca dados de produção.
+
+### Prioridade alta — backup e restauração
+
+- [ ] Criar o backup manual por snapshot SQLite consistente, como já faz
+      `mainerp/data/automatic_backup.py`, e validar a integridade do banco dentro do ZIP
+      antes de informar sucesso. `BackupThread` em `mainerp/ui/dialogs/backup_dialog.py`
+      compacta diretamente o arquivo do banco em uso; com WAL ativo e dados não
+      sincronizados, foi reproduzido um ZIP sem a tabela presente no banco original.
+      Testar WAL, escritas concorrentes, falhas de disco e restauração do ZIP resultante.
+- [ ] Redesenhar a restauração em `mainerp/data/db_utils.py` e
+      `mainerp/ui/dialogs/restore_backup_dialog.py`: coordenar o encerramento das conexões
+      e do backup automático, criar snapshot consistente anterior, validar integridade e
+      esquema do arquivo recebido, instalar de forma recuperável e reiniciar antes de
+      liberar o uso. Hoje o fechamento de conexões depende de `gc.collect()`, a cópia
+      pré-restauração usa `shutil.copy2` com o banco aberto e o reinício é opcional.
+      Testar interrupções, falhas de cópia, rollback e conexões ativas.
+- [ ] Não prometer reversão bem-sucedida quando a recuperação também falhar:
+      `DatabaseManager._restore_from_db` ignora erro ao copiar o backup anterior, enquanto
+      o diálogo informa que o banco foi revertido. Informar o estado real e preservar os
+      arquivos para recuperação; substituir `QThread.terminate()` na restauração por
+      cancelamento seguro ou bloqueio do fechamento durante a etapa crítica.
+- [ ] Preservar todos os campos de `backup_settings.json` ao salvar o caminho e tratar
+      falhas de persistência. `BackupConfig.save_last_path` sobrescreve data, arquivo e
+      hash anteriores; a perda da data foi reproduzida. Testar alterações de destino,
+      arquivo inválido e persistência das configurações.
+- [ ] Testar e corrigir o ciclo de fechamento/backup em `MainWindow`: o timer do backup
+      automático é parado antes de abrir o diálogo de backup, mas não é reiniciado caso
+      o fechamento seja interrompido. Verificar também falhas de agendamento/retenção e
+      tornar visível a idade e o resultado do último backup.
+- [ ] Definir política e testes de recuperação externa: os snapshots diários ficam no
+      mesmo diretório de dados e só são executados com o aplicativo aberto; não substituem
+      uma cópia externa. Validar periodicamente restauração em instalação isolada e
+      documentar quais dados e configurações são incluídos em cada tipo de backup.
+
+### Prioridade alta — atualizações e distribuição
+
+- [ ] Isolar ou recuperar as dependências no rollback: `launcher.pyw` instala dependências
+      no runtime compartilhado antes de ativar a release e o rollback troca apenas o
+      código. Testar falha parcial do pip e versões de dependências incompatíveis com a
+      release anterior; o teste atual de rollback simula a instalação das dependências.
+- [ ] Tornar a trava de atualização resistente a operações demoradas e interrupções:
+      `trava_atualizacao` considera a trava antiga após 900 segundos, enquanto o pip
+      admite 1800 segundos. Testar dois launchers concorrentes, processo finalizado
+      inesperadamente e liberação da trava sem interferir numa atualização ativa.
+- [ ] Restringir os arquivos incluídos no ZIP de release, preferencialmente com lista
+      explícita, e testar a exclusão de caches, dados e arquivos locais. A seleção atual
+      é por exclusão e, nesta revisão, incluiu arquivos de `.pytest_cache` e `.ruff_cache`.
+      Verificar também arquivos temporários e artefatos SQLite como WAL/SHM.
+- [ ] Validar o resultado real da instalação e o destino personalizado: o modo
+      `--somente-atualizar` retorna sucesso após falhas registradas e o instalador aceita
+      a existência prévia de `current.txt`; além disso, `--destino` cria outra pasta de
+      dados, mas o launcher não define `MAINERP_DATA` para ela. Testar reinstalação,
+      falha de pacote/dependências e uso do atalho com destino não padrão.
+- [ ] Planejar a atualização segura do launcher fixo e a rotação da chave de assinatura,
+      com migração de instalações antigas e procedimento de recuperação. Uma release de
+      código não substitui `launcher.pyw`; testar também manifesto indisponível,
+      assinatura ausente/inválida e compatibilidade de rollback com migrações do banco.
+
+### Qualidade e manutenção
+
+- [ ] Aplicar uma política de formatação e integrá-la à verificação automatizada.
+      `ruff check .` passou nesta revisão, mas `ruff format --check .` apontou seis
+      arquivos; formatar separadamente de mudanças funcionais para facilitar a revisão.
+- [ ] Corrigir o diagnóstico Pylance `reportArgumentType` em
+      `tests/test_release_updates.py`, no carregamento de `SourceFileLoader`, mantendo
+      a execução do teste em Windows e Linux. Não havia imports não resolvidos no
+      interpretador selecionado durante esta revisão.
+- [ ] Declarar e validar dependências usadas diretamente: relatórios importam `PIL`,
+      mas Pillow não está listado diretamente em `requirements.txt`. Testar instalação
+      limpa com as versões de Python suportadas e avaliar limites/pinos para builds
+      reproduzíveis e atualizações seguras de dependências.
+- [ ] Adicionar CI em pushes e pull requests, incluindo Windows e testes de instalação,
+      inicialização, backup/restauração e atualização em ambiente isolado. O workflow
+      atual executa Ruff e testes apenas ao enviar tags, em Ubuntu.
+- [ ] Refatorar gradualmente componentes ainda extensos, como `produto_view.py`,
+      `pedido_view.py`, `backup_dialog.py` e `restore_backup_dialog.py`, com testes de
+      comportamento. Em `main_window.py`, reduzir a duplicação entre cadastro de botões,
+      criação de views e atualização por aba, preservando a ordem, sinais e progresso.
+- [ ] Revisar progressivamente os `except Exception` e os caminhos com falha silenciosa,
+      priorizando backup, restauração e atualização; manter exceções amplas apenas em
+      limites de recuperação justificados, com registro e sinalização ao usuário.
 
 ## Fase 5 — Produto (conforme a necessidade)
 

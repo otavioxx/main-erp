@@ -24,30 +24,7 @@ from mainerp.data.models.cliente import Cliente
 from mainerp.domain.utils.helpers import aplicar_maiuscula_formulario
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
 from mainerp.ui.tabela import fixar_altura_linhas
-
-
-# ========== CORREÇÃO: Classe para ordenação numérica ==========
-class NumericTableWidgetItem(QTableWidgetItem):
-    """Item de tabela que ordena numericamente ao invés de alfabeticamente"""
-
-    def __init__(self, text=""):
-        super().__init__(text)
-
-    def __lt__(self, other):
-        """Sobrescreve a comparação para ordenação numérica"""
-        try:
-            # Tenta extrair valor numérico do UserRole primeiro
-            self_value = self.data(Qt.ItemDataRole.UserRole)
-            other_value = other.data(Qt.ItemDataRole.UserRole)
-
-            if self_value is not None and other_value is not None:
-                return float(self_value) < float(other_value)
-
-            # Se não tem UserRole, tenta converter o texto
-            return float(self.text()) < float(other.text())
-        except (ValueError, TypeError):
-            # Se não conseguir converter para número, usa ordenação de string
-            return self.text() < other.text()
+from mainerp.ui.table_items import NumericTableWidgetItem
 
 
 class ClienteDialog(QDialog):
