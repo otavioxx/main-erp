@@ -22,6 +22,7 @@ from mainerp.core.config import obter_config
 from mainerp.data.automatic_backup import BackupAutomatico
 from mainerp.domain.utils.helpers import aplicar_maiuscula_formulario
 from mainerp.ui.dialogs.backup_dialog import BackupConfig, BackupDialog
+from mainerp.ui.dialogs.sobre_atualizacoes_dialog import SobreAtualizacoesDialog
 from mainerp.ui.views.cliente_view import ClienteView
 from mainerp.ui.views.condicional_view import CondicionalView
 from mainerp.ui.views.config_view import ConfigView
@@ -51,7 +52,9 @@ class StatusBarWidget(QWidget):
         layout.setSpacing(15)
 
         # Versão da aplicação
-        self.label_version = QLabel("© Digital Solutions - MainERP v0.09 (07/11/2026)")
+        self.label_version = QLabel(
+            f"© Digital Solutions - MainERP v{obter_config().APP_VERSION}"
+        )
         self.label_version.setProperty("class", "version-label")
         layout.addWidget(self.label_version)
 
@@ -181,7 +184,17 @@ class MainWindow(QMainWindow):
         # Espaço flexível no final
         nav_layout.addStretch()
 
+        self.about_updates_button = QPushButton("ℹ️ SOBRE / ATUALIZAÇÕES")
+        self.about_updates_button.setProperty("class", "nav-button")
+        self.about_updates_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.about_updates_button.clicked.connect(self._mostrar_sobre_atualizacoes)
+        nav_layout.addWidget(self.about_updates_button)
+
         return nav_frame
+
+    def _mostrar_sobre_atualizacoes(self):
+        dialog = SobreAtualizacoesDialog(self)
+        dialog.exec()
 
     def _criar_views(
         self, progress_callback: Callable[[str], None] | None = None
