@@ -1,5 +1,9 @@
 # Histórico de versões
 
+## Não publicado
+
+- Backups manuais criados no mesmo segundo usam nomes distintos, evitando sobrescrita.
+
 ## 0.10.2 - 2026-11-07
 
 - O instalador autocontido usa uma pasta temporária removida após a execução, sem

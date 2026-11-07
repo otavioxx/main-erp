@@ -134,10 +134,12 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
 
 ### Prioridade alta — backup e restauração
 
-- [ ] Validar integralmente o backup manual e sua recuperação. O ZIP agora usa snapshot
-      SQLite com verificação de integridade e testes de WAL, banco inválido e falha do
-      snapshot. Ainda faltam testes de escritas concorrentes, falhas de disco durante
-      publicação e restauração completa do ZIP pelo fluxo da aplicação.
+- [x] Validar o backup manual e sua recuperação nos cenários definidos: snapshot com
+      transação concorrente em WAL, falhas simuladas na compactação e publicação,
+      preservação do backup anterior e restauração do ZIP na inicialização da aplicação.
+      Nomes únicos evitam a sobrescrita de dois backups criados no mesmo segundo.
+      Falhas simuladas não equivalem a testar falhas reais de hardware ou energia;
+      os demais riscos de restauração e recuperação externa permanecem nos itens abaixo.
 - [ ] Redesenhar a restauração em `mainerp/data/db_utils.py` e
       `mainerp/ui/dialogs/restore_backup_dialog.py`: coordenar o encerramento das conexões
       e do backup automático. A restauração agora é preparada e aplicada antes da abertura,

@@ -1,9 +1,23 @@
 import json
+import os
 import sqlite3
+import subprocess
+import sys
+import threading
 import zipfile
+from datetime import datetime
 from types import SimpleNamespace
 
+import pytest
+
+from mainerp.data.automatic_backup import criar_snapshot_sqlite
+from mainerp.data.database import Database
+from mainerp.data.restore import caminho_restauracao_pendente
 from mainerp.ui.dialogs.backup_dialog import BackupConfig, BackupDialog, BackupThread
+from mainerp.ui.dialogs.restore_backup_dialog import (
+    RestoreBackupThread,
+    VerifyBackupThread,
+)
 
 
 def test_backup_manual_inclui_transacoes_do_wal(tmp_path):
@@ -71,6 +85,218 @@ def test_falha_ao_criar_snapshot_nao_publica_backup(tmp_path, monkeypatch):
     assert not concluidos
     assert erros and "disco indisponível" in erros[0]
     assert not list(tmp_path.glob("*.zip"))
+
+
+def test_backups_mesmo_segundo_nao_sobrescrevem_anterior(tmp_path, monkeypatch):
+    class Relogio(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 1, 1, 12, 0, 0)
+
+    monkeypatch.setattr("mainerp.ui.dialogs.backup_dialog.datetime", Relogio)
+    banco = tmp_path / "erp.db"
+    conexao = sqlite3.connect(banco)
+    conexao.execute("CREATE TABLE dados (valor INTEGER)")
+    conexao.execute("INSERT INTO dados VALUES (1)")
+    conexao.commit()
+    saidas = []
+    try:
+        for valor in (1, 2):
+            conexao.execute("UPDATE dados SET valor=?", (valor,))
+            conexao.commit()
+            worker = BackupThread(str(banco), str(tmp_path))
+            erros = []
+            worker.backup_completed.connect(saidas.append)
+            worker.backup_error.connect(erros.append)
+            worker.run()
+            assert not erros
+        assert len(set(saidas)) == 2
+        for indice, (arquivo, esperado) in enumerate(zip(saidas, (1, 2), strict=True)):
+            with zipfile.ZipFile(arquivo) as zf:
+                pasta = tmp_path / f"copia_{indice}"
+                zf.extract("erp.db", pasta)
+            copia = sqlite3.connect(pasta / "erp.db")
+            try:
+                assert copia.execute("SELECT valor FROM dados").fetchone() == (esperado,)
+            finally:
+                copia.close()
+    finally:
+        conexao.close()
+
+
+def test_snapshot_com_transacao_concorrente_em_wal(tmp_path, monkeypatch):
+    banco = tmp_path / "erp.db"
+    conn = sqlite3.connect(banco)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA wal_autocheckpoint=0")
+    conn.execute("CREATE TABLE dados (id INTEGER PRIMARY KEY, valor INTEGER)")
+    conn.executemany("INSERT INTO dados VALUES (?, 0)", [(1,), (2,)])
+    conn.commit()
+    conn.execute("BEGIN IMMEDIATE")
+    conn.execute("UPDATE dados SET valor=1 WHERE id=1")
+
+    def snapshot_enquanto_escreve(origem, destino):
+        criar_snapshot_sqlite(origem, destino)
+        conn.execute("UPDATE dados SET valor=1 WHERE id=2")
+        conn.commit()
+
+    monkeypatch.setattr(
+        "mainerp.ui.dialogs.backup_dialog.criar_snapshot_sqlite",
+        snapshot_enquanto_escreve,
+    )
+    worker = BackupThread(str(banco), str(tmp_path))
+    concluidos, erros = [], []
+    worker.backup_completed.connect(concluidos.append)
+    worker.backup_error.connect(erros.append)
+    try:
+        worker.run()
+        assert not erros
+        assert conn.execute("SELECT valor FROM dados ORDER BY id").fetchall() == [(1,), (1,)]
+        with zipfile.ZipFile(concluidos[0]) as zf:
+            zf.extract("erp.db", tmp_path / "copia")
+        copia = sqlite3.connect(tmp_path / "copia" / "erp.db")
+        try:
+            assert copia.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+            assert copia.execute("SELECT valor FROM dados ORDER BY id").fetchall() == [(0,), (0,)]
+        finally:
+            copia.close()
+    finally:
+        conn.close()
+
+
+def test_backups_simultaneos_usam_arquivos_independentes(tmp_path, monkeypatch):
+    banco = tmp_path / "erp.db"
+    conn = sqlite3.connect(banco)
+    conn.execute("CREATE TABLE dados (valor INTEGER)")
+    conn.execute("INSERT INTO dados VALUES (42)")
+    conn.commit()
+    conn.close()
+    barreira = threading.Barrier(2)
+
+    def snapshot_simultaneo(origem, destino):
+        barreira.wait(timeout=10)
+        criar_snapshot_sqlite(origem, destino)
+
+    monkeypatch.setattr(
+        "mainerp.ui.dialogs.backup_dialog.criar_snapshot_sqlite", snapshot_simultaneo
+    )
+    workers = [BackupThread(str(banco), str(tmp_path)) for _ in range(2)]
+    concluidos, erros = [], []
+    for worker in workers:
+        worker.backup_completed.connect(concluidos.append)
+        worker.backup_error.connect(erros.append)
+    threads = [threading.Thread(target=worker.run) for worker in workers]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=20)
+    assert all(not thread.is_alive() for thread in threads)
+    # Signals emitted on worker threads are queued for the Qt main thread.
+    from PyQt6.QtWidgets import QApplication
+
+    app = QApplication.instance() or QApplication([])
+    app.processEvents()
+    assert not erros
+    assert len(set(concluidos)) == 2
+    for caminho in concluidos:
+        with zipfile.ZipFile(caminho) as arquivo:
+            assert arquivo.testzip() is None
+            assert "erp.db" in arquivo.namelist()
+    assert not list(tmp_path.glob("temp_*.zip"))
+
+
+@pytest.mark.parametrize("etapa", ["compactacao", "publicacao"])
+def test_falha_disco_na_publicacao_preserva_backup_anterior(tmp_path, monkeypatch, etapa):
+    banco = tmp_path / "erp.db"
+    conn = sqlite3.connect(banco)
+    conn.execute("CREATE TABLE dados (valor INTEGER)")
+    conn.commit()
+    conn.close()
+    anterior = tmp_path / "backup_erp_anterior.zip"
+    anterior.write_bytes(b"backup anterior preservado")
+    worker = BackupThread(str(banco), str(tmp_path))
+    concluidos, erros = [], []
+    worker.backup_completed.connect(concluidos.append)
+    worker.backup_error.connect(erros.append)
+
+    def falhar(*args, **kwargs):
+        raise OSError("disco cheio simulado")
+
+    if etapa == "compactacao":
+        monkeypatch.setattr("zipfile.ZipFile.write", falhar)
+    else:
+        monkeypatch.setattr("mainerp.ui.dialogs.backup_dialog.os.replace", falhar)
+    worker.run()
+    assert not concluidos
+    assert erros and "disco cheio simulado" in erros[0]
+    assert anterior.read_bytes() == b"backup anterior preservado"
+    assert list(tmp_path.glob("*.zip")) == [anterior]
+
+
+def test_backup_manual_restaurado_na_inicializacao_da_aplicacao(tmp_path):
+    dados = tmp_path / "dados"
+    dados.mkdir()
+    banco = dados / "erp.db"
+    database = Database(str(banco))
+    conn = database.get_connection()
+    conn.execute("CREATE TABLE teste_ciclo (id INTEGER PRIMARY KEY, valor TEXT)")
+    conn.executemany("INSERT INTO teste_ciclo VALUES (?, ?)", [(1, "um"), (2, "dois")])
+    conn.commit()
+    database.close_connection()
+    worker = BackupThread(str(banco), str(tmp_path))
+    concluidos, erros = [], []
+    worker.backup_completed.connect(concluidos.append)
+    worker.backup_error.connect(erros.append)
+    worker.run()
+    assert len(concluidos) == 1 and not erros
+
+    verificacao = VerifyBackupThread(concluidos[0])
+    assert verificacao._get_zip_info()["is_valid"]
+    conn = sqlite3.connect(banco)
+    conn.execute("UPDATE teste_ciclo SET valor='alterado' WHERE id=1")
+    conn.commit()
+    conn.close()
+    restauracao = RestoreBackupThread(concluidos[0], str(banco))
+    restaurados, falhas = [], []
+    restauracao.restore_complete.connect(restaurados.append)
+    restauracao.restore_error.connect(falhas.append)
+    restauracao.run()
+    assert restaurados and not falhas
+    assert caminho_restauracao_pendente(banco).exists()
+    sinal = tmp_path / "aberto"
+    env = dict(os.environ, MAINERP_DATA=str(dados), MAINERP_OK_FILE=str(sinal),
+               QT_QPA_PLATFORM="offscreen")
+    env.pop("MAINERP_LAUNCHER", None)
+    codigo = """
+from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QApplication, QMessageBox
+import mainerp.app as app
+app.verificar_instancia_unica = lambda nome: True
+QMessageBox.critical = lambda *args: print("ERRO:", args[2], flush=True)
+original = QApplication.exec
+def executar():
+    QTimer.singleShot(1000, lambda: QApplication.exit(0))
+    return original()
+QApplication.exec = staticmethod(executar)
+app.main()
+"""
+    resultado = subprocess.run(
+        [sys.executable, "-c", codigo], env=env, capture_output=True,
+        text=True, errors="replace", timeout=45, check=False,
+    )
+    assert resultado.returncode == 0, resultado.stdout + resultado.stderr
+    assert sinal.is_file(), resultado.stdout + resultado.stderr
+    assert not caminho_restauracao_pendente(banco).exists()
+    anterior, = (dados / "backups").glob("pre_restore_*.db")
+    for arquivo, esperado in ((banco, "um"), (anterior, "alterado")):
+        conn = sqlite3.connect(arquivo)
+        try:
+            assert conn.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+            assert conn.execute("SELECT valor FROM teste_ciclo ORDER BY id").fetchall() == [
+                (esperado,), ("dois",)
+            ]
+        finally:
+            conn.close()
 
 
 def test_salvar_caminho_preserva_metadados(tmp_path, monkeypatch):

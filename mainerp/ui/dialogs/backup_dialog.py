@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import tempfile
+import uuid
 import zipfile
 from datetime import datetime
 
@@ -221,7 +222,7 @@ class BackupThread(QThread):
 
             # Criar nome do arquivo com timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            backup_filename = f"backup_erp_{timestamp}.zip"
+            backup_filename = f"backup_erp_{timestamp}_{uuid.uuid4().hex}.zip"
 
             # Primeiro, criar em um arquivo temporário na mesma unidade
             # para garantir que há espaço suficiente
