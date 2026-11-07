@@ -23,7 +23,7 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
 - [x] **Testes com pytest** para os principais cálculos de venda, criação de parcelas,
       operações/verificação de estoque, regras de inativação de produto e exclusão de venda,
       e migrações do banco novo e legado. Expandir a cobertura conforme novas mudanças.
-- [ ] Script `verificar.bat` que roda ruff + pytest antes de cada release.
+- [x] Script `verificar.bat` que roda Ruff e pytest antes de cada release.
 - [ ] Backup automático diário em `dados\backups` com retenção (ex.: 30 dias) e opção de
       cópia para uma pasta externa/nuvem.
 

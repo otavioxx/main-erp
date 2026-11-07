@@ -47,6 +47,9 @@ pytest
 python main.py
 ```
 
+Antes de gerar uma release, execute `verificar.bat` na raiz do projeto. O script usa
+`.venv` quando disponível e interrompe com código de erro se Ruff ou pytest falhar.
+
 ### Estrutura
 
 ```
