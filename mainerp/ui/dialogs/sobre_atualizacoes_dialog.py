@@ -55,7 +55,7 @@ def format_release_date(value: str | None) -> str:
 class SobreAtualizacoesDialog(DialogBase):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Sobre / Atualizações - MainERP")
+        self.setWindowTitle("Sobre - MainERP")
         self.resize(720, 600)
 
         layout = QVBoxLayout(self)
@@ -68,9 +68,7 @@ class SobreAtualizacoesDialog(DialogBase):
         except OSError as error:
             logger.exception("Não foi possível ler o histórico %s", changelog_path)
             releases = []
-            historico = (
-                f"Não foi possível carregar o histórico de versões.\n{error}"
-            )
+            historico = f"Não foi possível carregar o histórico de versões.\n{error}"
         else:
             releases = parse_changelog(changelog)
             historico = changelog or "O histórico de versões está vazio."

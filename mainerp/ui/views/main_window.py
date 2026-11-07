@@ -63,9 +63,7 @@ class MainWindow(QMainWindow):
     # Sinal para quando backup é realizado
     backup_realizado = pyqtSignal(str)
 
-    def __init__(
-        self, progress_callback: Callable[[str], None] | None = None
-    ):
+    def __init__(self, progress_callback: Callable[[str], None] | None = None):
         super().__init__()
         self.setWindowTitle("MainERP")
         self.setGeometry(100, 100, 1200, 800)
@@ -184,7 +182,7 @@ class MainWindow(QMainWindow):
         # Espaço flexível no final
         nav_layout.addStretch()
 
-        self.about_updates_button = QPushButton("ℹ️ SOBRE / ATUALIZAÇÕES")
+        self.about_updates_button = QPushButton("ℹ️ SOBRE")
         self.about_updates_button.setProperty("class", "nav-button")
         self.about_updates_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.about_updates_button.clicked.connect(self._mostrar_sobre_atualizacoes)
@@ -196,10 +194,9 @@ class MainWindow(QMainWindow):
         dialog = SobreAtualizacoesDialog(self)
         dialog.exec()
 
-    def _criar_views(
-        self, progress_callback: Callable[[str], None] | None = None
-    ):
+    def _criar_views(self, progress_callback: Callable[[str], None] | None = None):
         """Cria e adiciona as views, notificando o progresso de cada tela."""
+
         def informar_progresso(indice: int, nome: str):
             if progress_callback:
                 progress_callback(f"Carregando tela {indice}/8: {nome}...")
@@ -311,9 +308,7 @@ class MainWindow(QMainWindow):
         self._mostrar_dialogo_backup()
 
     def _backup_automatico_concluido(self, caminho: str):
-        self.status_bar.showMessage(
-            f"Backup automático salvo: {caminho}", 10000
-        )
+        self.status_bar.showMessage(f"Backup automático salvo: {caminho}", 10000)
 
     def _backup_automatico_falhou(self, erro: str):
         logger.error("Backup automático não foi concluído: %s", erro)

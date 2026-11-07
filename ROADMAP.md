@@ -112,7 +112,7 @@ MainERP/
 - [x] Gerar manualmente o ZIP e o manifesto `version.json` com SHA256 por
       `distribuicao/criar_release.py`, e executar Ruff/pytest por `verificar.bat`.
 - [x] Automatizar o pipeline de release no GitHub Actions (Ruff, testes, ZIP e SHA256).
-- [x] Tela "Sobre / Atualizações" mostrando versão, data e histórico.
+- [x] Tela "Sobre" mostrando versão, data e histórico.
 
 ## Fase 5 — Produto (conforme a necessidade)
 
