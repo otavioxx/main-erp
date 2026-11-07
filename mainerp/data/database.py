@@ -41,7 +41,11 @@ class Database:
     def __init__(self, db_name=None):
         self.db_name = db_name or config.obter_caminho_banco()
         self.connection = None
-        self.migrar()
+        try:
+            self.migrar()
+        except Exception:
+            self.close_connection()
+            raise
 
     def get_connection(self):
         if self.connection is None:

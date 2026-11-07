@@ -82,7 +82,15 @@ enquanto estiver aberto, e mantém somente os últimos 30 dias. Se o aplicativo 
 por mais de um dia, o backup vencido é feito na próxima inicialização; não há execução
 enquanto o aplicativo e o Windows estiverem fechados. A opção de gerar um backup manual em
 outra pasta (por exemplo, uma pasta sincronizada ou unidade externa) continua disponível no
-fechamento do sistema.
+fechamento do sistema. O ZIP manual contém um snapshot SQLite verificado, inclusive dados
+confirmados em WAL; mantenha cópias externas e verifique periodicamente sua recuperação.
+Uma restauração é preparada enquanto o sistema está aberto e aplicada na próxima
+inicialização, antes de abrir o banco; um snapshot anterior é mantido em `dados\backups`.
+O launcher precisa ser atualizado pelo instalador para usar esse fluxo. Em execução direta
+de `main.py`, abra o sistema novamente após solicitar a restauração. Se ocorrer falha na
+restauração, o sistema não abre; preserve o backup anterior e os arquivos pendentes para
+diagnóstico. A validação verifica integridade, tabelas e nomes de colunas após migrar uma
+cópia temporária; não garante a correção de todos os dados, tipos e restrições.
 
 ## Publicar uma nova versão
 
@@ -107,8 +115,16 @@ fechamento do sistema.
 7. Usuários com o launcher configurado para o manifesto da GitHub Release recebem a versão
    ao fechar e abrir o MainERP pelo atalho.
 
+O launcher atualizado instala cada atualização em um runtime próprio, preservando as
+dependências das versões anteriores para rollback. Isso requer espaço em disco e acesso
+às dependências na instalação. Instalações existentes precisam primeiro atualizar o
+launcher pelo instalador; uma atualização de código não substitui o launcher fixo.
+
 Para gerar e inspecionar o pacote localmente: `python distribuicao/criar_release.py`
 (cria `dist/MainERP-<versão>.zip` e `dist/version.json`; isso não publica a release).
+O gerador inclui os arquivos de runtime da raiz e os arquivos Python dos pacotes listados
+em `PACOTES`; ao criar um pacote novo, atualize essa lista e execute os testes. Não inclua
+arquivos locais ou dados pessoais entre os arquivos Python desses pacotes.
 
 ## Convenções
 

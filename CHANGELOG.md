@@ -1,9 +1,14 @@
 # Histórico de versões
 
-## 0.10.0
+## 0.10.0 - 2026-11-07
 
 - Adotado o formato de versão estável MAJOR.MINOR.PATCH para novas releases.
 - A geração de pacotes e o pipeline verificam o formato da versão e a tag.
+- O backup manual usa um snapshot SQLite consistente, inclusive com WAL ativo.
+- A restauração é validada e aplicada antes da abertura do banco, com snapshot anterior.
+- As atualizações usam ambientes Python separados para preservar o rollback de dependências.
+- O instalador verifica a versão ativa antes de informar que a instalação terminou.
+- A geração de releases restringe os arquivos incluídos e corrige a altura das tabelas.
 
 ## 0.10 - 2026-11-07
 

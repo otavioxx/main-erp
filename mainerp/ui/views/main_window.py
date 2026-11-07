@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
 from mainerp.core.config import obter_config
 from mainerp.data.automatic_backup import BackupAutomatico
 from mainerp.domain.utils.helpers import aplicar_maiuscula_formulario
-from mainerp.ui.dialogs.backup_dialog import BackupConfig, BackupDialog
+from mainerp.ui.dialogs.backup_dialog import BackupDialog
 from mainerp.ui.dialogs.sobre_atualizacoes_dialog import SobreAtualizacoesDialog
 from mainerp.ui.views.cliente_view import ClienteView
 from mainerp.ui.views.condicional_view import CondicionalView
@@ -346,9 +346,6 @@ class MainWindow(QMainWindow):
 
     def _backup_concluido(self, backup_path):
         """Chamado quando o backup é concluído com sucesso"""
-        # Salvar a data do backup
-        BackupConfig.save_last_backup_date()
-
         # Não tenta acessar status_label que não existe
         # Opcional: mostrar mensagem na status bar
         if hasattr(self, "status_bar"):

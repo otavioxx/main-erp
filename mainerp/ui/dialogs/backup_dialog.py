@@ -8,6 +8,7 @@ import hashlib
 import json
 import logging
 import os
+import tempfile
 import zipfile
 from datetime import datetime
 
@@ -27,6 +28,7 @@ from PyQt6.QtWidgets import (
 from mainerp.core.app_logging import registrar_excecao
 from mainerp.core.config import obter_config
 from mainerp.core.paths import caminho_dados
+from mainerp.data.automatic_backup import criar_snapshot_sqlite
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +58,14 @@ class BackupConfig:
     def save_last_path(cls, path):
         """Salva o último caminho usado"""
         try:
-            data = {"last_backup_path": path}
+            if os.path.exists(cls.CONFIG_FILE):
+                with open(cls.CONFIG_FILE, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if not isinstance(data, dict):
+                    raise ValueError("Configurações de backup inválidas")
+            else:
+                data = {}
+            data["last_backup_path"] = path
             with open(cls.CONFIG_FILE, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             return True
@@ -242,27 +251,26 @@ class BackupThread(QThread):
 
             self.progress_changed.emit(10)
 
-            # Criar arquivo zip temporário primeiro
-            with zipfile.ZipFile(temp_zip, "w", zipfile.ZIP_DEFLATED) as zipf:
-                # Adicionar arquivo do banco de dados
-                zipf.write(self.source_db, os.path.basename(self.source_db))
-                self.progress_changed.emit(50)
+            with tempfile.TemporaryDirectory() as pasta_snapshot:
+                snapshot = os.path.join(pasta_snapshot, "snapshot.db")
+                criar_snapshot_sqlite(self.source_db, snapshot)
+                with zipfile.ZipFile(temp_zip, "w", zipfile.ZIP_DEFLATED) as zipf:
+                    zipf.write(snapshot, os.path.basename(self.source_db))
+                    self.progress_changed.emit(50)
 
-                # Adicionar arquivo de configuração se existir
-                config_file = "config.ini"
-                if os.path.exists(config_file):
-                    zipf.write(config_file, os.path.basename(config_file))
+                    config_file = "config.ini"
+                    if os.path.exists(config_file):
+                        zipf.write(config_file, os.path.basename(config_file))
 
-                self.progress_changed.emit(80)
+                    self.progress_changed.emit(80)
 
-                # Adicionar README com informações do backup
-                readme_content = f"""Backup do Sistema ERP
+                    readme_content = f"""Backup do Sistema ERP
 Data: {datetime.now().strftime("%d/%m/%Y %H:%M:%S")}
 Arquivo do banco: {os.path.basename(self.source_db)}
-Tamanho original: {os.path.getsize(self.source_db) / (1024 * 1024):.2f} MB
+Tamanho do snapshot: {os.path.getsize(snapshot) / (1024 * 1024):.2f} MB
 """
-                zipf.writestr("README.txt", readme_content)
-                self.progress_changed.emit(90)
+                    zipf.writestr("README.txt", readme_content)
+                    self.progress_changed.emit(90)
 
             # Verificar se o zip temporário foi criado corretamente
             if not os.path.exists(temp_zip):
@@ -285,9 +293,7 @@ Tamanho original: {os.path.getsize(self.source_db) / (1024 * 1024):.2f} MB
 
             # Renomear o arquivo temporário para o nome final
             try:
-                if os.path.exists(full_backup_path):
-                    os.remove(full_backup_path)
-                os.rename(temp_zip, full_backup_path)
+                os.replace(temp_zip, full_backup_path)
             except Exception as e:
                 registrar_excecao(
                     __name__,
@@ -319,12 +325,13 @@ Tamanho original: {os.path.getsize(self.source_db) / (1024 * 1024):.2f} MB
                 __name__,
                 "Exception handled in BackupThread.run in dialogs/backup_dialog.py",
             )
+            self.backup_error.emit(f"Erro ao criar backup: {e!s}")
+        finally:
             if temp_zip and os.path.exists(temp_zip):
                 try:
                     os.remove(temp_zip)
                 except OSError:
-                    pass
-            self.backup_error.emit(f"Erro ao criar backup: {e!s}")
+                    logger.exception("Falha ao remover arquivo temporário de backup")
 
 
 class BackupDialog(QDialog):
@@ -526,7 +533,13 @@ class BackupDialog(QDialog):
                     f"<b>Pasta selecionada:</b> {self.destination_folder}"
                 )
                 # Salvar o novo caminho
-                BackupConfig.save_last_path(folder)
+                if not BackupConfig.save_last_path(folder):
+                    QMessageBox.warning(
+                        self,
+                        "Configuração não salva",
+                        "A pasta foi selecionada, mas não foi possível salvar "
+                        "essa preferência para a próxima vez.",
+                    )
             except Exception as e:
                 QMessageBox.critical(
                     self,
@@ -575,7 +588,12 @@ class BackupDialog(QDialog):
             return
 
         # Salvar o caminho atual (caso tenha sido alterado mas não salvo)
-        BackupConfig.save_last_path(self.destination_folder)
+        if not BackupConfig.save_last_path(self.destination_folder):
+            QMessageBox.warning(
+                self,
+                "Configuração não salva",
+                "O backup continuará, mas não foi possível salvar a pasta escolhida.",
+            )
 
         # Desabilitar botão durante o backup
         self.btn_backup.setEnabled(False)
@@ -627,7 +645,13 @@ class BackupDialog(QDialog):
             return
 
         # Salvar a data do backup com hash para verificação futura
-        BackupConfig.save_last_backup_date(backup_path=backup_path)
+        if not BackupConfig.save_last_backup_date(backup_path=backup_path):
+            QMessageBox.warning(
+                self,
+                "Configuração não salva",
+                "O arquivo de backup foi criado, mas não foi possível salvar sua "
+                "data e localização. O sistema poderá solicitar outro backup.",
+            )
 
         self.status_label.setText("✅ Backup concluído e verificado com sucesso!")
         self.status_label.setStyleSheet(

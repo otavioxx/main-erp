@@ -188,9 +188,9 @@ class _RecebimentoViewLayout(ComponentMixin):
         # 1. Configurar altura primeiro
         vheader = self.tabela_duplicatas.verticalHeader()
         assert vheader is not None
-        vheader.setDefaultSectionSize(altura_desejada)
         vheader.setMinimumSectionSize(altura_desejada)
         vheader.setMaximumSectionSize(altura_desejada)
+        vheader.setDefaultSectionSize(altura_desejada)
         vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
         vheader.setCascadingSectionResizes(False)
         vheader.setStretchLastSection(False)

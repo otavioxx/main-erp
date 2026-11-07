@@ -9,6 +9,9 @@ import sqlite3
 import tempfile
 import zipfile
 from datetime import datetime
+from pathlib import Path
+
+from mainerp.data.database import Database, MigracaoError
 
 logger = logging.getLogger(__name__)
 
@@ -32,116 +35,63 @@ class DatabaseManager:
         return backup_file
 
     @staticmethod
-    def restore_database(backup_file, target_db):
-        """Restaura banco de dados a partir de um backup"""
-        if not os.path.exists(backup_file):
-            raise FileNotFoundError(f"Backup não encontrado: {backup_file}")
-
-        # Verificar se o backup é um arquivo zip
-        if backup_file.endswith(".zip"):
-            return DatabaseManager._restore_from_zip(backup_file, target_db)
-        else:
-            # É um arquivo .db direto
-            return DatabaseManager._restore_from_db(backup_file, target_db)
-
-    @staticmethod
-    def _restore_from_zip(zip_file, target_db):
-        """Restaura a partir de arquivo ZIP"""
-        with (
-            tempfile.TemporaryDirectory() as temp_dir,
-            zipfile.ZipFile(zip_file, "r") as zipf,
-        ):
-            # Procurar arquivo .db dentro do ZIP
-            db_files = [f for f in zipf.namelist() if f.endswith(".db")]
-            if not db_files:
-                raise ValueError("Nenhum arquivo .db encontrado no backup")
-
-            # Extrair o primeiro arquivo .db
-            db_filename = db_files[0]
-            zipf.extract(db_filename, temp_dir)
-            extracted_db = os.path.join(temp_dir, db_filename)
-
-            # Fazer a restauração
-            return DatabaseManager._restore_from_db(extracted_db, target_db)
-
-    @staticmethod
-    def _restore_from_db(source_db, target_db):
-        """Restaura a partir de arquivo .db"""
-        # Verificar integridade do banco de backup
-        if not DatabaseManager._verify_database(source_db):
-            raise ValueError("Arquivo de backup corrompido ou inválido")
-
-        # Criar backup do banco atual antes de restaurar
-        backup_dir = os.path.join(os.path.dirname(target_db), "backups")
-        os.makedirs(backup_dir, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        pre_restore_backup = os.path.join(backup_dir, f"pre_restore_{timestamp}.db")
-        shutil.copy2(target_db, pre_restore_backup)
-
-        try:
-            # Fechar todas as conexões com o banco atual
-            DatabaseManager._close_all_connections()
-
-            # Fazer cópia do backup para o destino
-            shutil.copy2(source_db, target_db)
-
-            # Verificar se a restauração foi bem-sucedida
-            if not DatabaseManager._verify_database(target_db):
-                # Se falhou, restaurar o backup anterior
-                shutil.copy2(pre_restore_backup, target_db)
-                raise ValueError(
-                    "Falha na restauração - Banco revertido para estado anterior"
-                )
-
-            return True
-
-        except Exception:
-            # Em caso de erro, tentar restaurar o backup anterior
-            try:
-                if os.path.exists(pre_restore_backup):
-                    shutil.copy2(pre_restore_backup, target_db)
-            except OSError:
-                pass
-            raise
-
-    @staticmethod
     def _verify_database(db_path):
         """Verifica se o arquivo do banco é válido"""
         if not os.path.exists(db_path):
             return False
 
         try:
-            # Tentar conectar e executar uma query simples
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-            tables = cursor.fetchall()
-            conn.close()
+            uri = Path(db_path).resolve().as_uri() + "?mode=ro"
+            conn = sqlite3.connect(uri, uri=True)
+            try:
+                if conn.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
+                    return False
+                if conn.execute("PRAGMA user_version").fetchone()[0] > Database.MIGRACOES[-1][0]:
+                    return False
+                with tempfile.TemporaryDirectory() as pasta:
+                    candidato = Path(pasta) / "candidato.db"
+                    copia = sqlite3.connect(candidato)
+                    try:
+                        conn.backup(copia)
+                    finally:
+                        copia.close()
+                    referencia = Database(str(Path(pasta) / "referencia.db"))
+                    try:
+                        referencia_conn = referencia.get_connection()
+                        tabelas = {
+                            row[0] for row in referencia_conn.execute(
+                                "SELECT name FROM sqlite_master WHERE type='table' "
+                                "AND name NOT LIKE 'sqlite_%'"
+                            )
+                        }
+                        existentes = {
+                            row[0] for row in conn.execute(
+                                "SELECT name FROM sqlite_master WHERE type='table'"
+                            )
+                        }
+                        if not tabelas <= existentes:
+                            return False
+                        banco = Database(str(candidato))
+                        try:
+                            for tabela in tabelas:
+                                esperadas = set(referencia._colunas(
+                                    referencia_conn.cursor(), tabela
+                                ))
+                                atuais = set(banco._colunas(
+                                    banco.get_connection().cursor(), tabela
+                                ))
+                                if not esperadas <= atuais:
+                                    return False
+                            return True
+                        finally:
+                            banco.close_connection()
+                    finally:
+                        referencia.close_connection()
+            finally:
+                conn.close()
 
-            # Verificar se há tabelas essenciais
-            essential_tables = ["clientes", "produtos", "vendas", "duplicatas"]
-            existing_tables = [table[0].lower() for table in tables]
-
-            # Verificar se pelo menos algumas tabelas essenciais existem
-            found_essential = any(
-                table in existing_tables for table in essential_tables
-            )
-
-            return len(tables) > 0 and found_essential
-
-        except (sqlite3.Error, OSError):
+        except (sqlite3.Error, OSError, MigracaoError):
             return False
-
-    @staticmethod
-    def _close_all_connections():
-        """Tenta fechar todas as conexões com o banco"""
-        import gc
-
-        # Coletar garbage para liberar conexões
-        gc.collect()
-
-        # SQLite3 não tem uma maneira global de fechar todas as conexões;
-        # dependemos do garbage collector (gc.collect acima).
 
     @staticmethod
     def get_database_info(db_path):

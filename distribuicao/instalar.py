@@ -13,6 +13,7 @@ Uso:  instalar.bat      (ou: python distribuicao/instalar.py [--destino PASTA])
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -93,6 +94,22 @@ foreach ($pasta in $destinos) {{
     )
 
 
+def validar_versao_instalada(sistema: Path, versao_esperada: str) -> None:
+    """Confirma que a versão ativa está íntegra e não é anterior ao instalador."""
+    atual = (sistema / "current.txt").read_text(encoding="utf-8").strip()
+    if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){1,2}", atual):
+        raise ValueError(f"Versão ativa inválida: {atual!r}")
+    if tuple(map(int, atual.split("."))) < tuple(map(int, versao_esperada.split("."))):
+        raise ValueError(f"Versão ativa {atual} é anterior a {versao_esperada}")
+    release = sistema / "releases" / atual
+    if not (release / "main.py").is_file() or (release / ".ruim").exists():
+        raise ValueError(f"Versão ativa {atual} não está disponível")
+    if (release / ".runtime-isolado").exists():
+        runtime = sistema / "runtimes" / atual
+        if not python_do_runtime(runtime).is_file() or not python_do_runtime(runtime, gui=True).is_file():
+            raise ValueError(f"Runtime da versão ativa {atual} não está disponível")
+
+
 def main():
     ap = argparse.ArgumentParser(description="Instala o MainERP sem PyInstaller.")
     ap.add_argument(
@@ -141,8 +158,12 @@ def main():
         [str(python_do_runtime(runtime)), str(launcher), "--somente-atualizar"],
         check=False,
     )
-    if r.returncode != 0 or not (sistema / "current.txt").exists():
-        sys.exit(f"Falha na instalação. Veja {sistema / 'logs' / 'launcher.log'}")
+    try:
+        if r.returncode != 0:
+            raise RuntimeError(f"Launcher retornou código {r.returncode}")
+        validar_versao_instalada(sistema, criar_release.ler_versao())
+    except (OSError, ValueError, RuntimeError) as erro:
+        sys.exit(f"Falha na instalação: {erro}. Veja {sistema / 'logs' / 'launcher.log'}")
 
     # 5) atalhos
     criar_atalhos(sistema, launcher, icone)

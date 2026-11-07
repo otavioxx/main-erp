@@ -13,6 +13,28 @@ BACKUP_INTERVAL = timedelta(days=1)
 BACKUP_RETENTION = timedelta(days=30)
 
 
+def criar_snapshot_sqlite(caminho_banco: str | Path, destino: str | Path) -> None:
+    """Copia o banco ativo, incluindo WAL, e verifica a integridade da cópia."""
+    caminho_banco = Path(caminho_banco)
+    if not caminho_banco.is_file():
+        raise FileNotFoundError(f"Banco de dados não encontrado: {caminho_banco}")
+
+    origem = sqlite3.connect(caminho_banco, timeout=30)
+    try:
+        copia = sqlite3.connect(destino, timeout=30)
+        try:
+            origem.backup(copia)
+            resultado = copia.execute("PRAGMA integrity_check").fetchone()
+            if not resultado or resultado[0] != "ok":
+                raise sqlite3.DatabaseError(
+                    f"Verificação de integridade do backup falhou: {resultado}"
+                )
+        finally:
+            copia.close()
+    finally:
+        origem.close()
+
+
 def criar_backup_automatico(
     caminho_banco: str | Path,
     pasta_backups: str | Path,
@@ -31,20 +53,7 @@ def criar_backup_automatico(
     temporario = pasta_backups / f"{BACKUP_PREFIX}{timestamp}.tmp"
 
     try:
-        origem = sqlite3.connect(caminho_banco, timeout=30)
-        try:
-            copia = sqlite3.connect(temporario, timeout=30)
-            try:
-                origem.backup(copia)
-                resultado = copia.execute("PRAGMA integrity_check").fetchone()
-                if not resultado or resultado[0] != "ok":
-                    raise sqlite3.DatabaseError(
-                        f"Verificação de integridade do backup falhou: {resultado}"
-                    )
-            finally:
-                copia.close()
-        finally:
-            origem.close()
+        criar_snapshot_sqlite(caminho_banco, temporario)
         os.replace(temporario, destino)
         return destino
     except Exception:

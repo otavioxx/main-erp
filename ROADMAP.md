@@ -134,28 +134,26 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
 
 ### Prioridade alta — backup e restauração
 
-- [ ] Criar o backup manual por snapshot SQLite consistente, como já faz
-      `mainerp/data/automatic_backup.py`, e validar a integridade do banco dentro do ZIP
-      antes de informar sucesso. `BackupThread` em `mainerp/ui/dialogs/backup_dialog.py`
-      compacta diretamente o arquivo do banco em uso; com WAL ativo e dados não
-      sincronizados, foi reproduzido um ZIP sem a tabela presente no banco original.
-      Testar WAL, escritas concorrentes, falhas de disco e restauração do ZIP resultante.
+- [ ] Validar integralmente o backup manual e sua recuperação. O ZIP agora usa snapshot
+      SQLite com verificação de integridade e testes de WAL, banco inválido e falha do
+      snapshot. Ainda faltam testes de escritas concorrentes, falhas de disco durante
+      publicação e restauração completa do ZIP pelo fluxo da aplicação.
 - [ ] Redesenhar a restauração em `mainerp/data/db_utils.py` e
       `mainerp/ui/dialogs/restore_backup_dialog.py`: coordenar o encerramento das conexões
-      e do backup automático, criar snapshot consistente anterior, validar integridade e
-      esquema do arquivo recebido, instalar de forma recuperável e reiniciar antes de
-      liberar o uso. Hoje o fechamento de conexões depende de `gc.collect()`, a cópia
-      pré-restauração usa `shutil.copy2` com o banco aberto e o reinício é opcional.
-      Testar interrupções, falhas de cópia, rollback e conexões ativas.
+      e do backup automático. A restauração agora é preparada e aplicada antes da abertura,
+      após snapshot SQLite anterior; falhas bloqueiam a abertura e preservam a pendência.
+      O launcher precisa ser atualizado pelo instalador. A validação verifica integridade,
+      tabelas e nomes de colunas após migrar uma cópia, mas não confere todos os dados,
+      tipos e restrições. Testes terminam
+      o processo durante cópia em WAL e journal padrão e verificam a recuperação.
+      Testar falhas de disco e concorrência de outros processos.
 - [ ] Não prometer reversão bem-sucedida quando a recuperação também falhar:
-      `DatabaseManager._restore_from_db` ignora erro ao copiar o backup anterior, enquanto
-      o diálogo informa que o banco foi revertido. Informar o estado real e preservar os
-      arquivos para recuperação; substituir `QThread.terminate()` na restauração por
-      cancelamento seguro ou bloqueio do fechamento durante a etapa crítica.
-- [ ] Preservar todos os campos de `backup_settings.json` ao salvar o caminho e tratar
-      falhas de persistência. `BackupConfig.save_last_path` sobrescreve data, arquivo e
-      hash anteriores; a perda da data foi reproduzida. Testar alterações de destino,
-      arquivo inválido e persistência das configurações.
+      a nova restauração preserva snapshot anterior e pendência caso a aplicação falhe;
+      o sistema bloqueia a abertura. Validar recuperação e mensagens em falhas e
+      interrupções reais, inclusive durante a confirmação da escrita no SQLite.
+- [x] Tratar falhas de persistência de `backup_settings.json` na interface. Salvar o
+      caminho preserva os demais campos e rejeita configurações inválidas; falhas ao
+      salvar o caminho ou metadados do backup são informadas ao usuário.
 - [ ] Testar e corrigir o ciclo de fechamento/backup em `MainWindow`: o timer do backup
       automático é parado antes de abrir o diálogo de backup, mas não é reiniciado caso
       o fechamento seja interrompido. Verificar também falhas de agendamento/retenção e
@@ -168,21 +166,22 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
 ### Prioridade alta — atualizações e distribuição
 
 - [ ] Isolar ou recuperar as dependências no rollback: `launcher.pyw` instala dependências
-      no runtime compartilhado antes de ativar a release e o rollback troca apenas o
-      código. Testar falha parcial do pip e versões de dependências incompatíveis com a
-      release anterior; o teste atual de rollback simula a instalação das dependências.
+      no runtime compartilhado na instalação inicial e o rollback troca apenas o código.
+      O launcher atualizado cria runtimes por release; testes usam dependências locais
+      incompatíveis, falha parcial do pip e rollback. Instalações existentes precisam do
+      bootstrap. Validar o fluxo completo de distribuição no ambiente do cliente.
 - [ ] Tornar a trava de atualização resistente a operações demoradas e interrupções:
-      `trava_atualizacao` considera a trava antiga após 900 segundos, enquanto o pip
-      admite 1800 segundos. Testar dois launchers concorrentes, processo finalizado
-      inesperadamente e liberação da trava sem interferir numa atualização ativa.
-- [ ] Restringir os arquivos incluídos no ZIP de release, preferencialmente com lista
-      explícita, e testar a exclusão de caches, dados e arquivos locais. A seleção atual
-      é por exclusão e, nesta revisão, incluiu arquivos de `.pytest_cache` e `.ruff_cache`.
-      Verificar também arquivos temporários e artefatos SQLite como WAL/SHM.
-- [ ] Validar o resultado real da instalação e o destino personalizado: o modo
-      `--somente-atualizar` retorna sucesso após falhas registradas e o instalador aceita
-      a existência prévia de `current.txt`; além disso, `--destino` cria outra pasta de
-      dados, mas o launcher não define `MAINERP_DATA` para ela. Testar reinstalação,
+      o launcher atualizado usa trava do sistema operacional, sem prazo de expiração;
+      teste com processos concorrentes verifica que uma trava antiga permanece ativa.
+      Testar interrupção abrupta do processo e tratar o diretório de trava legado.
+- [ ] Revisar o conteúdo de cada release antes da publicação. O gerador agora limita
+      arquivos da raiz e pacotes Python, com testes de exclusão de caches e dados; ele
+      ainda inclui arquivos Python locais presentes nos diretórios permitidos.
+- [ ] Corrigir o destino personalizado: o instalador agora confere se a versão ativa é
+      válida e não é anterior à versão solicitada, mesmo se o launcher ocultar uma falha.
+      A opção `--destino` cria outra pasta de dados, mas o launcher não define
+      `MAINERP_DATA` para ela; para novas instalações, usar o destino padrão. Uma correção deve
+      preservar o local de dados de instalações existentes. Testar reinstalação,
       falha de pacote/dependências e uso do atalho com destino não padrão.
 - [ ] Planejar a atualização segura do launcher fixo e a rotação da chave de assinatura,
       com migração de instalações antigas e procedimento de recuperação. Uma release de
@@ -191,6 +190,9 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
 
 ### Qualidade e manutenção
 
+- [ ] Confirmar as alturas das listagens com diferentes fontes e escalas no Windows.
+      A altura padrão agora é definida após os limites mínimo e máximo, evitando que
+      o Qt nativo a limite ao mínimo anterior de 24 pixels.
 - [ ] Aplicar uma política de formatação e integrá-la à verificação automatizada.
       `ruff check .` passou nesta revisão, mas `ruff format --check .` apontou seis
       arquivos; formatar separadamente de mudanças funcionais para facilitar a revisão.

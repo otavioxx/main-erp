@@ -22,28 +22,21 @@ from pathlib import Path
 
 PROJETO = Path(__file__).resolve().parent.parent
 
-# Nada disso entra no release: são dados do usuário, caches e ferramentas.
-EXCLUIR_PASTAS = {
-    "__pycache__",
-    ".git",
-    ".venv",
-    "venv",
-    ".idea",
-    ".vscode",
-    ".github",
-    "dist",
-    "distribuicao",
-    "relatorios",
-    "backups",
-}
-EXCLUIR_PASTAS_RAIZ = EXCLUIR_PASTAS | {"data", "tests"}
-EXCLUIR_NOMES = {
-    ".gitignore",
-    "config.json",
-    "backup_settings.json",
-    "backup_config.json",
-}
-EXCLUIR_EXTENSOES = {".pyc", ".pyo", ".db", ".db-journal", ".zip", ".log"}
+# A release contém apenas código Python da aplicação e os arquivos de runtime.
+ARQUIVOS_RAIZ = ("main.py", "requirements.txt", "icon.ico", "CHANGELOG.md")
+PACOTES = (
+    "mainerp",
+    "mainerp/core",
+    "mainerp/data",
+    "mainerp/data/models",
+    "mainerp/domain",
+    "mainerp/domain/utils",
+    "mainerp/reports",
+    "mainerp/ui",
+    "mainerp/ui/dialogs",
+    "mainerp/ui/mixins",
+    "mainerp/ui/views",
+)
 VERSAO_ESTAVEL = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
 
 
@@ -69,15 +62,21 @@ def verificar_tag(tag: str) -> None:
 
 
 def arquivos_do_release():
-    for pasta, subpastas, arquivos in os.walk(PROJETO):
-        relativa = Path(pasta).relative_to(PROJETO)
-        exclusoes = EXCLUIR_PASTAS_RAIZ if not relativa.parts else EXCLUIR_PASTAS
-        subpastas[:] = sorted(d for d in subpastas if d not in exclusoes)
-        for nome in sorted(arquivos):
-            caminho = Path(pasta) / nome
-            if nome in EXCLUIR_NOMES or caminho.suffix.lower() in EXCLUIR_EXTENSOES:
-                continue
+    for nome in ARQUIVOS_RAIZ:
+        caminho = PROJETO / nome
+        if caminho.is_file() and not caminho.is_symlink():
             yield caminho
+
+    for pacote in PACOTES:
+        pasta = PROJETO.joinpath(*pacote.split("/"))
+        if not pasta.is_dir() or any(
+            (PROJETO.joinpath(*Path(pacote).parts[:i])).is_symlink()
+            for i in range(1, len(Path(pacote).parts) + 1)
+        ):
+            continue
+        for caminho in sorted(pasta.glob("*.py")):
+            if caminho.is_file() and not caminho.is_symlink():
+                yield caminho
 
 
 def sha256_arquivo(caminho: Path) -> str:

@@ -250,9 +250,9 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         altura_desejada = 22
 
         if vheader is not None:
-            vheader.setDefaultSectionSize(altura_desejada)
             vheader.setMinimumSectionSize(altura_desejada)
             vheader.setMaximumSectionSize(altura_desejada)
+            vheader.setDefaultSectionSize(altura_desejada)
             vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
             vheader.setCascadingSectionResizes(False)
             vheader.setStretchLastSection(False)

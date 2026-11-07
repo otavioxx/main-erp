@@ -3,6 +3,9 @@ import hashlib
 import importlib.machinery
 import importlib.util
 import json
+import os
+import subprocess
+import sys
 import zipfile
 from pathlib import Path
 
@@ -45,6 +48,80 @@ def criador():
     return _carregar_modulo(
         PROJECT_ROOT / "distribuicao" / "criar_release.py", "criador_test"
     )
+
+
+@pytest.mark.parametrize("atual", ["0.10.0", "0.10.1", "0.11.0", "1.0.0"])
+def test_installer_accepts_active_expected_or_newer_release(instalador, tmp_path, atual):
+    (tmp_path / "current.txt").write_text(atual, encoding="utf-8")
+    release = tmp_path / "releases" / atual
+    release.mkdir(parents=True)
+    (release / "main.py").touch()
+
+    instalador.validar_versao_instalada(tmp_path, "0.10.0")
+
+
+@pytest.mark.parametrize("atual", ["0.10", "0.9.9", "../x", "", "1.0.0/extra"])
+def test_installer_rejects_older_or_invalid_active_release(instalador, tmp_path, atual):
+    (tmp_path / "current.txt").write_text(atual, encoding="utf-8")
+    with pytest.raises(ValueError):
+        instalador.validar_versao_instalada(tmp_path, "0.10.0")
+
+
+def test_installer_rejects_missing_or_bad_active_release(instalador, tmp_path):
+    (tmp_path / "current.txt").write_text("0.10.0", encoding="utf-8")
+    release = tmp_path / "releases" / "0.10.0"
+    release.mkdir(parents=True)
+    with pytest.raises(ValueError, match="não está disponível"):
+        instalador.validar_versao_instalada(tmp_path, "0.10.0")
+    (release / "main.py").touch()
+    (release / ".ruim").touch()
+    with pytest.raises(ValueError, match="não está disponível"):
+        instalador.validar_versao_instalada(tmp_path, "0.10.0")
+    (release / ".ruim").unlink()
+    (release / ".runtime-isolado").touch()
+    with pytest.raises(ValueError, match="Runtime"):
+        instalador.validar_versao_instalada(tmp_path, "0.10.0")
+    runtime = tmp_path / "runtimes" / "0.10.0"
+    for gui in (False, True):
+        executavel = instalador.python_do_runtime(runtime, gui=gui)
+        executavel.parent.mkdir(parents=True, exist_ok=True)
+        executavel.touch()
+    instalador.validar_versao_instalada(tmp_path, "0.10.0")
+
+
+@pytest.mark.parametrize(
+    ("atual", "returncode", "sucesso"),
+    [("0.10", 0, False), ("0.10.0", 1, False), ("0.10.0", 0, True),
+     ("0.11.0", 0, True)],
+)
+def test_installer_main_checks_launcher_result_and_active_release(
+    instalador, tmp_path, monkeypatch, atual, returncode, sucesso
+):
+    sistema = tmp_path / "sistema"
+    python = instalador.python_do_runtime(sistema / "runtime")
+    python.parent.mkdir(parents=True)
+    python.touch()
+    release = sistema / "releases" / atual
+    release.mkdir(parents=True)
+    (release / "main.py").touch()
+    (sistema / "current.txt").write_text(atual, encoding="utf-8")
+    monkeypatch.setattr("sys.argv", ["instalar.py", "--destino", str(tmp_path)])
+    monkeypatch.setattr(instalador.criar_release, "construir_zip", lambda _: None)
+    monkeypatch.setattr(instalador.criar_release, "ler_versao", lambda: "0.10.0")
+    monkeypatch.setattr(
+        instalador.subprocess, "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args, returncode),
+    )
+    atalhos = []
+    monkeypatch.setattr(instalador, "criar_atalhos", lambda *args: atalhos.append(args))
+
+    if sucesso:
+        instalador.main()
+        assert len(atalhos) == 1
+    else:
+        with pytest.raises(SystemExit, match="Falha na instalação"):
+            instalador.main()
+        assert not atalhos
 
 
 @pytest.mark.parametrize("versao", ["0.0.0", "0.10.0", "1.20.300"])
@@ -104,6 +181,40 @@ def test_builds_current_project_with_consistent_version(criador, tmp_path, monke
             "mainerp/core/config.py"
         ).decode("utf-8")
         assert "main.py" in archive.namelist()
+        codigo = {
+            caminho.relative_to(PROJECT_ROOT).as_posix()
+            for caminho in (PROJECT_ROOT / "mainerp").rglob("*.py")
+            if "__pycache__" not in caminho.parts
+        }
+        assert codigo <= set(archive.namelist())
+
+
+def test_release_exclui_arquivos_locais_e_caches(criador, tmp_path, monkeypatch):
+    projeto = tmp_path / "projeto"
+    config = projeto / "mainerp" / "core" / "config.py"
+    config.parent.mkdir(parents=True)
+    config.write_text('APP_VERSION = "0.10.0"\n', encoding="utf-8")
+    (projeto / "main.py").write_text("", encoding="utf-8")
+    for nome in (
+        ".pytest_cache/cache",
+        ".ruff_cache/cache",
+        "segredo.txt",
+        "mainerp/core/erp.db-wal",
+        "mainerp/core/config.json",
+        "mainerp/core/__pycache__/config.pyc",
+        "mainerp/venv/nao_incluir.py",
+    ):
+        caminho = projeto / nome
+        caminho.parent.mkdir(parents=True, exist_ok=True)
+        caminho.write_text("local", encoding="utf-8")
+    monkeypatch.setattr(criador, "PROJETO", projeto)
+
+    package = criador.construir_zip(tmp_path / "saida")
+
+    with zipfile.ZipFile(package) as archive:
+        assert set(archive.namelist()) == {
+            "release.json", "main.py", "mainerp/core/config.py"
+        }
 
 
 def test_signed_semver_update_from_legacy_release(
@@ -159,7 +270,7 @@ def test_signed_semver_update_from_legacy_release(
     monkeypatch.setattr(
         launcher, "CHAVE_PUBLICA_ED25519_B64", base64.b64encode(public_key).decode("ascii")
     )
-    monkeypatch.setattr(launcher, "garantir_dependencias", lambda pasta: None)
+    monkeypatch.setattr(launcher, "garantir_dependencias", lambda pasta, versao: None)
 
     class AvisoFalso:
         def mostrar(self, texto):
@@ -183,6 +294,377 @@ def test_resolve_asset_relative_to_github_latest_manifest(launcher):
         == "https://github.com/otavioxx/main-erp/releases/latest/download/"
         "MainERP-0.09.zip"
     )
+
+
+def test_launcher_nao_faz_rollback_quando_restauracao_falha(launcher, monkeypatch):
+    monkeypatch.setattr(launcher, "atualizar", lambda aviso: None)
+    monkeypatch.setattr(launcher, "escolher_versao", lambda: "0.10.0")
+    monkeypatch.setattr(launcher, "executar", lambda versao: (4, 0))
+    monkeypatch.setattr(
+        launcher, "marcar_ruim_e_voltar",
+        lambda versao: pytest.fail("Não deve abrir uma versão antiga"),
+    )
+    monkeypatch.setattr(launcher, "log", lambda mensagem: None)
+    assert launcher.main([]) == 4
+
+
+def test_launcher_informa_suporte_a_restauracao(launcher, tmp_path, monkeypatch):
+    monkeypatch.setattr(launcher, "RELEASES", tmp_path / "releases")
+    monkeypatch.setattr(launcher, "LOGS", tmp_path / "logs")
+    monkeypatch.setattr(launcher, "marcar_ok", lambda versao: None)
+    ambientes = []
+
+    class Processo:
+        def wait(self):
+            return 0
+
+    def executar(*args, **kwargs):
+        ambientes.append(kwargs["env"])
+        return Processo()
+
+    monkeypatch.setattr(launcher.subprocess, "Popen", executar)
+    launcher.executar("0.10.0")
+    assert ambientes[0]["MAINERP_RESTORE_PROTOCOL"] == "1"
+
+
+def test_falha_dependencias_nao_altera_runtime_anterior(
+    launcher, tmp_path, monkeypatch
+):
+    releases = tmp_path / "releases"
+    anterior = releases / "0.10.0"
+    anterior.mkdir(parents=True)
+    (anterior / "main.py").write_text("", encoding="utf-8")
+    (anterior / "requirements.txt").write_text("pacote==1\n", encoding="utf-8")
+    current = tmp_path / "current.txt"
+    current.write_text("0.10.0", encoding="utf-8")
+    pacote = tmp_path / "atualizacao.zip"
+    with zipfile.ZipFile(pacote, "w") as archive:
+        archive.writestr("release.json", json.dumps({"version": "0.10.1"}))
+        archive.writestr("main.py", "")
+        archive.writestr("requirements.txt", "pacote==2\n")
+    monkeypatch.setattr(launcher, "RELEASES", releases)
+    monkeypatch.setattr(launcher, "CURRENT", current)
+    monkeypatch.setattr(launcher, "ROOT", tmp_path)
+    def falhar(*args, **kwargs):
+        raise OSError("pip falhou")
+
+    monkeypatch.setattr(
+        launcher.subprocess, "run", falhar,
+    )
+
+    with pytest.raises(OSError, match="pip falhou"):
+        launcher.instalar_zip(pacote)
+    assert current.read_text(encoding="utf-8") == "0.10.0"
+    assert not (releases / "0.10.1").exists()
+    assert (anterior / "requirements.txt").read_text(encoding="utf-8") == "pacote==1\n"
+
+
+def test_falha_parcial_pip_remove_apenas_runtime_novo(launcher, tmp_path, monkeypatch):
+    releases = tmp_path / "releases"
+    anterior = releases / "0.10.0"
+    anterior.mkdir(parents=True)
+    (anterior / "main.py").write_text("", encoding="utf-8")
+    current = tmp_path / "current.txt"
+    current.write_text("0.10.0", encoding="utf-8")
+    antigo = tmp_path / "runtime" / "dados"
+    antigo.parent.mkdir()
+    antigo.write_text("preservado", encoding="utf-8")
+    pacote = tmp_path / "pacote.zip"
+    with zipfile.ZipFile(pacote, "w") as archive:
+        archive.writestr("release.json", json.dumps({"version": "0.10.1"}))
+        archive.writestr("main.py", "")
+        archive.writestr("requirements.txt", "pacote==2\n")
+    monkeypatch.setattr(launcher, "ROOT", tmp_path)
+    monkeypatch.setattr(launcher, "RELEASES", releases)
+    monkeypatch.setattr(launcher, "CURRENT", current)
+
+    def criar_runtime(args, **kwargs):
+        pasta = Path(args[-1])
+        pasta.mkdir(parents=True)
+        (pasta / "parcial").write_text("parcial", encoding="utf-8")
+
+    def falhar(*args):
+        raise RuntimeError("instalação parcial")
+
+    monkeypatch.setattr(launcher.subprocess, "run", criar_runtime)
+    monkeypatch.setattr(launcher, "instalar_dependencias", falhar)
+    with pytest.raises(RuntimeError, match="instalação parcial"):
+        launcher.instalar_zip(pacote)
+    assert not (tmp_path / "runtimes" / "0.10.1").exists()
+    assert antigo.read_text(encoding="utf-8") == "preservado"
+    assert current.read_text(encoding="utf-8") == "0.10.0"
+
+
+def test_falha_ativacao_nao_deixa_release_ou_runtime_orfao(
+    launcher, tmp_path, monkeypatch
+):
+    releases = tmp_path / "releases"
+    anterior = releases / "0.10.0"
+    anterior.mkdir(parents=True)
+    (anterior / "main.py").write_text("", encoding="utf-8")
+    current = tmp_path / "current.txt"
+    current.write_text("0.10.0", encoding="utf-8")
+    pacote = tmp_path / "pacote.zip"
+    with zipfile.ZipFile(pacote, "w") as archive:
+        archive.writestr("release.json", json.dumps({"version": "0.10.1"}))
+        archive.writestr("main.py", "")
+        archive.writestr("requirements.txt", "")
+    monkeypatch.setattr(launcher, "ROOT", tmp_path)
+    monkeypatch.setattr(launcher, "RELEASES", releases)
+    monkeypatch.setattr(launcher, "CURRENT", current)
+
+    def preparar(pasta, versao):
+        (tmp_path / "runtimes" / versao).mkdir(parents=True)
+        (pasta / ".runtime-isolado").write_text("1", encoding="ascii")
+
+    def falhar(versao):
+        raise OSError("falha ao ativar")
+
+    monkeypatch.setattr(launcher, "garantir_dependencias", preparar)
+    monkeypatch.setattr(launcher, "definir_atual", falhar)
+    with pytest.raises(OSError, match="falha ao ativar"):
+        launcher.instalar_zip(pacote)
+    assert not (releases / "0.10.1").exists()
+    assert not (tmp_path / "runtimes" / "0.10.1").exists()
+    assert current.read_text(encoding="utf-8") == "0.10.0"
+
+
+def test_runtime_inexistente_causa_rollback(launcher, tmp_path, monkeypatch):
+    releases = tmp_path / "releases"
+    for version in ("1.0.0", "2.0.0"):
+        pasta = releases / version
+        pasta.mkdir(parents=True)
+        (pasta / "main.py").write_text("", encoding="utf-8")
+    (releases / "2.0.0" / ".runtime-isolado").write_text("1", encoding="ascii")
+    current = tmp_path / "current.txt"
+    current.write_text("2.0.0", encoding="utf-8")
+    monkeypatch.setattr(launcher, "ROOT", tmp_path)
+    monkeypatch.setattr(launcher, "RELEASES", releases)
+    monkeypatch.setattr(launcher, "CURRENT", current)
+    monkeypatch.setattr(launcher, "LOGS", tmp_path / "logs")
+    monkeypatch.setattr(launcher, "atualizar", lambda aviso: None)
+    monkeypatch.setattr(launcher, "mensagem", lambda *args: None)
+
+    def executar(version):
+        if version == "2.0.0":
+            launcher.python_da_release(version)
+        return 0, 0
+
+    monkeypatch.setattr(launcher, "executar", executar)
+    assert launcher.main([]) == 0
+    assert current.read_text(encoding="utf-8") == "1.0.0"
+
+
+def test_atualizacao_usa_runtime_isolado(
+    launcher, tmp_path, monkeypatch
+):
+    releases = tmp_path / "releases"
+    anterior = releases / "0.10.0"
+    anterior.mkdir(parents=True)
+    (anterior / "main.py").write_text("", encoding="utf-8")
+    (anterior / "requirements.txt").write_text("pacote==1\n", encoding="utf-8")
+    current = tmp_path / "current.txt"
+    current.write_text("0.10.0", encoding="utf-8")
+    pacote = tmp_path / "atualizacao.zip"
+    with zipfile.ZipFile(pacote, "w") as archive:
+        archive.writestr("release.json", json.dumps({"version": "0.10.1"}))
+        archive.writestr("main.py", "")
+        archive.writestr("requirements.txt", "pacote==1\n")
+    monkeypatch.setattr(launcher, "ROOT", tmp_path)
+    monkeypatch.setattr(launcher, "RELEASES", releases)
+    monkeypatch.setattr(launcher, "CURRENT", current)
+    monkeypatch.setattr(launcher, "LOGS", tmp_path / "logs")
+    def criar_runtime(args, **kwargs):
+        Path(args[-1]).mkdir(parents=True)
+
+    instalacoes = []
+    monkeypatch.setattr(launcher.subprocess, "run", criar_runtime)
+    monkeypatch.setattr(
+        launcher, "instalar_dependencias",
+        lambda python, req: instalacoes.append((python, req.read_text(encoding="utf-8"))),
+    )
+
+    assert launcher.instalar_zip(pacote) == "0.10.1"
+    assert current.read_text(encoding="utf-8") == "0.10.1"
+    assert (releases / "0.10.1" / ".runtime-isolado").exists()
+    assert str(tmp_path / "runtimes" / "0.10.1") in instalacoes[0][0]
+    assert instalacoes[0][1] == "pacote==1\n"
+
+
+def test_atualizacao_online_mantem_versao_anterior_em_falha_de_dependencias(
+    launcher, tmp_path, monkeypatch
+):
+    releases = tmp_path / "releases"
+    anterior = releases / "0.10.0"
+    anterior.mkdir(parents=True)
+    (anterior / "main.py").write_text("", encoding="utf-8")
+    (anterior / "requirements.txt").write_text("pacote==1\n", encoding="utf-8")
+    current = tmp_path / "current.txt"
+    current.write_text("0.10.0", encoding="utf-8")
+    publicado = tmp_path / "publicado"
+    publicado.mkdir()
+    pacote = publicado / "MainERP-0.10.1.zip"
+    with zipfile.ZipFile(pacote, "w") as archive:
+        archive.writestr("release.json", json.dumps({"version": "0.10.1"}))
+        archive.writestr("main.py", "")
+        archive.writestr("requirements.txt", "pacote==2\n")
+    chave = Ed25519PrivateKey.generate()
+    publica = chave.public_key().public_bytes(
+        encoding=serialization.Encoding.Raw,
+        format=serialization.PublicFormat.Raw,
+    )
+    pacote.with_suffix(".zip.sig").write_text(
+        base64.b64encode(chave.sign(pacote.read_bytes())).decode("ascii"),
+        encoding="ascii",
+    )
+    manifesto = publicado / "version.json"
+    manifesto.write_text(json.dumps({
+        "version": "0.10.1",
+        "url": pacote.name,
+        "sha256": hashlib.sha256(pacote.read_bytes()).hexdigest(),
+    }), encoding="utf-8")
+    config = tmp_path / "launcher.json"
+    config.write_text(json.dumps({"update_url": str(manifesto)}), encoding="utf-8")
+    avisos = []
+    monkeypatch.setattr(launcher, "CONFIG", config)
+    monkeypatch.setattr(launcher, "ROOT", tmp_path)
+    monkeypatch.setattr(launcher, "RELEASES", releases)
+    monkeypatch.setattr(launcher, "CURRENT", current)
+    monkeypatch.setattr(launcher, "ATUALIZACOES", tmp_path / "atualizacoes")
+    monkeypatch.setattr(launcher, "LOGS", tmp_path / "logs")
+    monkeypatch.setattr(
+        launcher, "CHAVE_PUBLICA_ED25519_B64", base64.b64encode(publica).decode()
+    )
+    monkeypatch.setattr(launcher, "mensagem", lambda titulo, texto: avisos.append(texto))
+    def falhar(*args, **kwargs):
+        raise OSError("falha simulada")
+
+    monkeypatch.setattr(launcher.subprocess, "run", falhar)
+
+    class Aviso:
+        def mostrar(self, texto):
+            pass
+
+    launcher.atualizar_online(Aviso())
+
+    assert len(avisos) == 1
+    assert "falha simulada" in avisos[0]
+    assert current.read_text(encoding="utf-8") == "0.10.0"
+    assert not (releases / "0.10.1").exists()
+
+
+def test_runtime_por_release_com_dependencias_reais_e_rollback(
+    launcher, tmp_path, monkeypatch
+):
+    releases = tmp_path / "releases"
+    legado = releases / "0.9.0"
+    legado.mkdir(parents=True)
+    (legado / "main.py").write_text("", encoding="utf-8")
+    current = tmp_path / "current.txt"
+    current.write_text("0.9.0", encoding="utf-8")
+    monkeypatch.setattr(launcher, "ROOT", tmp_path)
+    monkeypatch.setattr(launcher, "RELEASES", releases)
+    monkeypatch.setattr(launcher, "CURRENT", current)
+    monkeypatch.setattr(launcher, "LOGS", tmp_path / "logs")
+    monkeypatch.setattr(launcher, "python_console", lambda: sys.executable)
+
+    for version in ("1.0", "2.0"):
+        wheel = tmp_path / f"mainerp_teste-{version}-py3-none-any.whl"
+        dist = f"mainerp_teste-{version}.dist-info"
+        with zipfile.ZipFile(wheel, "w") as archive:
+            archive.writestr("mainerp_teste.py", f"VERSION = '{version}'\n")
+            archive.writestr(
+                f"{dist}/METADATA",
+                f"Metadata-Version: 2.1\nName: mainerp-teste\nVersion: {version}\n",
+            )
+            archive.writestr(
+                f"{dist}/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\n"
+                "Tag: py3-none-any\n",
+            )
+            archive.writestr(
+                f"{dist}/RECORD",
+                f"mainerp_teste.py,,\n{dist}/METADATA,,\n{dist}/WHEEL,,\n"
+                f"{dist}/RECORD,,\n",
+            )
+        pacote = tmp_path / f"release-{version}.zip"
+        with zipfile.ZipFile(pacote, "w") as archive:
+            archive.writestr("release.json", json.dumps({"version": f"{version}.0"}))
+            archive.writestr("main.py", "")
+            archive.writestr("requirements.txt", str(wheel))
+        assert launcher.instalar_zip(pacote) == f"{version}.0"
+
+    def versao_modulo(version):
+        python = Path(launcher.python_da_release(version))
+        if os.name == "nt":
+            python = python.with_name("python.exe")
+        resultado = subprocess.run(
+            [str(python), "-c", "import mainerp_teste; print(mainerp_teste.VERSION)"],
+            capture_output=True, text=True, timeout=30, check=True,
+        )
+        return resultado.stdout.strip()
+
+    assert versao_modulo("1.0.0") == "1.0"
+    assert versao_modulo("2.0.0") == "2.0"
+    assert launcher.marcar_ruim_e_voltar("2.0.0") == "1.0.0"
+    assert current.read_text(encoding="utf-8") == "1.0.0"
+    assert versao_modulo("1.0.0") == "1.0"
+
+
+def test_trava_nao_expira_e_recupera_apos_saida(launcher, tmp_path, monkeypatch):
+    monkeypatch.setattr(launcher, "ROOT", tmp_path)
+    script = """
+import importlib.machinery, importlib.util, pathlib, sys
+loader = importlib.machinery.SourceFileLoader('lock_test', sys.argv[1])
+spec = importlib.util.spec_from_loader('lock_test', loader)
+module = importlib.util.module_from_spec(spec)
+loader.exec_module(module)
+module.ROOT = pathlib.Path(sys.argv[2])
+with module.trava_atualizacao() as ok:
+    print('obtida' if ok else 'ocupada')
+"""
+    cmd = [sys.executable, "-c", script, str(PROJECT_ROOT / "distribuicao" / "launcher.pyw"),
+           str(tmp_path)]
+    with launcher.trava_atualizacao() as obtida:
+        assert obtida
+        antigo = (tmp_path / ".update.lockfile").stat().st_mtime - 7200
+        os.utime(tmp_path / ".update.lockfile", (antigo, antigo))
+        resultado = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=20)
+        assert resultado.stdout.strip() == "ocupada"
+    resultado = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=20)
+    assert resultado.stdout.strip() == "obtida"
+
+
+def test_trava_liberada_pelo_sistema_apos_saida_abrupta(launcher, tmp_path, monkeypatch):
+    monkeypatch.setattr(launcher, "ROOT", tmp_path)
+    script = """
+import importlib.machinery, importlib.util, os, pathlib, sys
+loader = importlib.machinery.SourceFileLoader('lock_test', sys.argv[1])
+spec = importlib.util.spec_from_loader('lock_test', loader)
+module = importlib.util.module_from_spec(spec)
+loader.exec_module(module)
+module.ROOT = pathlib.Path(sys.argv[2])
+with module.trava_atualizacao() as ok:
+    os._exit(73 if ok else 1)
+"""
+    resultado = subprocess.run(
+        [sys.executable, "-c", script,
+         str(PROJECT_ROOT / "distribuicao" / "launcher.pyw"), str(tmp_path)],
+        capture_output=True, text=True, check=False, timeout=20,
+    )
+    assert resultado.returncode == 73
+    with launcher.trava_atualizacao() as obtida:
+        assert obtida
+
+
+def test_reinicio_nao_atualiza_antes_de_aplicar_restauracao(launcher, monkeypatch):
+    atualizacoes = []
+    resultados = iter([(100, 0), (0, 0)])
+    monkeypatch.setattr(launcher, "atualizar", lambda aviso: atualizacoes.append(True))
+    monkeypatch.setattr(launcher, "escolher_versao", lambda: "1.0.0")
+    monkeypatch.setattr(launcher, "executar", lambda versao: next(resultados))
+    monkeypatch.setattr(launcher, "log", lambda texto: None)
+    assert launcher.main([]) == 0
+    assert atualizacoes == [True]
 
 
 def test_installer_configures_default_and_migrates_empty_update_url(
@@ -406,6 +888,10 @@ def test_online_update_rejects_package_without_signature(
         lambda path, folder: archived.append((path.name, folder)),
     )
     monkeypatch.setattr(launcher, "log", lambda message: None)
+    mensagens = []
+    monkeypatch.setattr(
+        launcher, "mensagem", lambda titulo, texto: mensagens.append(texto)
+    )
 
     class AvisoFalso:
         def mostrar(self, texto):
@@ -415,6 +901,7 @@ def test_online_update_rejects_package_without_signature(
 
     assert installed == []
     assert archived == [("MainERP-0.09.zip", "invalidas")]
+    assert len(mensagens) == 1
 
 
 def test_online_update_can_be_disabled(launcher, tmp_path, monkeypatch):

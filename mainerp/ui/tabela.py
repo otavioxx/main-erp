@@ -25,9 +25,9 @@ def fixar_altura_linhas(tabela: QTableWidget, altura: int = 22) -> None:
     """
     vheader = tabela.verticalHeader()
     assert vheader is not None
-    vheader.setDefaultSectionSize(altura)
     vheader.setMinimumSectionSize(altura)
     vheader.setMaximumSectionSize(altura)
+    vheader.setDefaultSectionSize(altura)
     vheader.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
     vheader.setCascadingSectionResizes(False)
     vheader.setStretchLastSection(False)

@@ -3,10 +3,9 @@ Diálogo para Restauração de Backup
 """
 
 import os
-import shutil
 from datetime import datetime
 
-from PyQt6.QtCore import Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtWidgets import (
     QFileDialog,
@@ -28,6 +27,7 @@ from PyQt6.QtWidgets import (
 from mainerp.core.app_logging import registrar_excecao
 from mainerp.core.config import obter_config
 from mainerp.data.db_utils import DatabaseManager
+from mainerp.data.restore import preparar_restauracao
 from mainerp.ui.dialog_base import DialogBase
 
 
@@ -50,7 +50,7 @@ class VerifyBackupThread(QThread):
                 return
 
             # Obter informações do backup
-            if self.backup_path.endswith(".zip"):
+            if self.backup_path.lower().endswith(".zip"):
                 info = self._get_zip_info()
             else:
                 info = self._get_db_info()
@@ -66,6 +66,7 @@ class VerifyBackupThread(QThread):
 
     def _get_zip_info(self):
         """Obtém informações de arquivo ZIP"""
+        import shutil
         import tempfile
         import zipfile
 
@@ -86,23 +87,28 @@ class VerifyBackupThread(QThread):
                 info["files"] = zipf.namelist()
 
                 # Procurar arquivo .db
-                db_files = [f for f in zipf.namelist() if f.endswith(".db")]
-                info["db_files"] = db_files
+                db_files = [
+                    item for item in zipf.infolist()
+                    if not item.is_dir() and item.filename.lower().endswith(".db")
+                ]
+                info["db_files"] = [item.filename for item in db_files]
 
-                if db_files:
-                    # Extrair e verificar o primeiro arquivo .db
+                if len(db_files) == 1:
                     with tempfile.TemporaryDirectory() as temp_dir:
-                        db_filename = db_files[0]
-                        zipf.extract(db_filename, temp_dir)
-                        extracted_db = os.path.join(temp_dir, db_filename)
+                        db_filename = db_files[0].filename
+                        extracted_db = os.path.join(temp_dir, "backup.db")
+                        with zipf.open(db_files[0]) as origem, open(extracted_db, "wb") as destino:
+                            shutil.copyfileobj(origem, destino)
 
                         # Verificar o banco extraído
                         db_info = DatabaseManager.get_database_info(extracted_db)
-                        if db_info:
+                        if db_info and DatabaseManager._verify_database(extracted_db):
                             info["is_valid"] = True
                             info["tables"] = db_info["tables"]
                             info["record_counts"] = db_info["record_counts"]
                             info["db_name"] = db_filename
+                else:
+                    info["error"] = "O backup ZIP deve conter exatamente um banco .db"
         except Exception as e:
             registrar_excecao(
                 __name__,
@@ -115,7 +121,7 @@ class VerifyBackupThread(QThread):
     def _get_db_info(self):
         """Obtém informações de arquivo .db"""
         info = DatabaseManager.get_database_info(self.backup_path)
-        if info:
+        if info and DatabaseManager._verify_database(self.backup_path):
             info["type"] = "db"
             info["is_valid"] = True
         else:
@@ -130,7 +136,7 @@ class VerifyBackupThread(QThread):
 
 
 class RestoreBackupThread(QThread):
-    """Thread para restaurar backup em segundo plano"""
+    """Prepara o backup; a restauração é feita na próxima inicialização."""
 
     progress_changed = pyqtSignal(int)
     restore_complete = pyqtSignal(str)
@@ -152,29 +158,11 @@ class RestoreBackupThread(QThread):
 
             self.progress_changed.emit(30)
 
-            # Criar backup do estado atual
-            backup_dir = os.path.join(os.path.dirname(self.target_db), "backups")
-            os.makedirs(backup_dir, exist_ok=True)
-
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            pre_restore = os.path.join(backup_dir, f"pre_restore_{timestamp}.db")
-
-            # Criar backup do banco atual
-            if os.path.exists(self.target_db):
-                shutil.copy2(self.target_db, pre_restore)
-
-            self.progress_changed.emit(40)
-
-            # Restaurar
-            success = DatabaseManager.restore_database(self.backup_path, self.target_db)
-
-            if success:
-                self.progress_changed.emit(100)
-                self.restore_complete.emit(
-                    f"Backup restaurado com sucesso!\n\nArquivo: {os.path.basename(self.backup_path)}"
-                )
-            else:
-                self.restore_error.emit("Falha na restauração do backup")
+            preparar_restauracao(self.backup_path, self.target_db)
+            self.progress_changed.emit(100)
+            self.restore_complete.emit(
+                f"Backup preparado: {os.path.basename(self.backup_path)}"
+            )
 
         except Exception as e:
             registrar_excecao(
@@ -608,14 +596,26 @@ class RestoreBackupDialog(DialogBase):
             QMessageBox.warning(self, "Aviso", "Verifique o backup antes de restaurar.")
             return
 
+        if (
+            os.environ.get("MAINERP_LAUNCHER") == "1"
+            and os.environ.get("MAINERP_RESTORE_PROTOCOL") != "1"
+        ):
+            QMessageBox.critical(
+                self,
+                "Atualização do launcher necessária",
+                "Atualize o launcher com o instalador antes de restaurar um backup. "
+                "Nenhum dado foi alterado.",
+            )
+            return
+
         # Confirmar restauração
         reply = QMessageBox.warning(
             self,
             "⚠️ CONFIRMAR RESTAURAÇÃO",
             "ATENÇÃO: Esta ação irá SUBSTITUIR o banco de dados atual!\n\n"
             "• Todos os dados atuais serão perdidos\n"
-            "• O sistema será reiniciado após a restauração\n"
-            "• Um backup do estado atual será criado automaticamente\n\n"
+            "• O sistema será fechado e a restauração ocorrerá na próxima abertura\n"
+            "• Um backup do estado atual será criado antes da restauração\n\n"
             "Deseja continuar?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
@@ -656,24 +656,27 @@ class RestoreBackupDialog(DialogBase):
         if valor < 30:
             self.status_label.setText("Preparando restauração...")
         elif valor < 60:
-            self.status_label.setText("Criando backup do estado atual...")
+            self.status_label.setText("Validando backup...")
         elif valor < 90:
-            self.status_label.setText("Restaurando dados...")
+            self.status_label.setText("Preparando restauração...")
         else:
             self.status_label.setText("Finalizando restauração...")
 
     def _restauracao_concluida(self, mensagem):
-        """Chamado quando a restauração é concluída com sucesso"""
+        """Chamado quando o backup foi preparado com sucesso."""
+        if self.restore_thread is not None:
+            self.restore_thread.wait()
         self.progress_bar.setValue(100)
 
-        self.status_label.setText("✅ Restauração concluída com sucesso!")
+        self.status_label.setText("✅ Restauração preparada!")
         self.status_label.setStyleSheet("color: #28a745; font-weight: bold;")
 
         # Mostrar mensagem de sucesso
         QMessageBox.information(
             self,
-            "✅ Restauração Concluída",
-            f"{mensagem}\n\nO sistema será reiniciado para aplicar as alterações.",
+            "Restauração preparada",
+            f"{mensagem}\n\nO sistema será fechado; a restauração será aplicada "
+            "antes da próxima abertura.",
         )
 
         # Emitir sinal de restauração concluída
@@ -698,36 +701,35 @@ class RestoreBackupDialog(DialogBase):
             self,
             "❌ Erro na Restauração",
             f"Ocorreu um erro durante a restauração:\n\n{mensagem_erro}\n\n"
-            "O banco de dados foi revertido para o estado anterior.",
+            "A preparação falhou; nenhum dado atual foi substituído.",
         )
+
+    def _pode_fechar(self):
+        if self.restore_thread and self.restore_thread.isRunning():
+            QMessageBox.warning(
+                self,
+                "Restauração em Andamento",
+                "Aguarde a conclusão da restauração antes de fechar esta janela.",
+            )
+            return False
+
+        if self.verify_thread and self.verify_thread.isRunning():
+            QMessageBox.warning(
+                self,
+                "Verificação em Andamento",
+                "Aguarde a conclusão da verificação antes de fechar esta janela.",
+            )
+            return False
+
+        return True
+
+    def reject(self):
+        if self._pode_fechar():
+            super().reject()
 
     def closeEvent(self, event):
         """Intercepta o fechamento da janela"""
-        # Verificar se há threads em execução
-        threads_running = False
-
-        if self.verify_thread and self.verify_thread.isRunning():
-            self.verify_thread.terminate()
-            threads_running = True
-
-        if self.restore_thread and self.restore_thread.isRunning():
-            reply = QMessageBox.question(
-                self,
-                "Restauração em Andamento",
-                "A restauração ainda está em andamento. Deseja cancelar?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No,
-            )
-
-            if reply == QMessageBox.StandardButton.Yes:
-                self.restore_thread.terminate()
-                threads_running = True
-            else:
-                event.ignore()
-                return
-
-        if threads_running:
-            # Aguardar threads terminarem
-            QTimer.singleShot(100, self.close)
-
-        event.accept()
+        if self._pode_fechar():
+            event.accept()
+        else:
+            event.ignore()

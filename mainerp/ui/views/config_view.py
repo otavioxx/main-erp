@@ -459,19 +459,8 @@ class ConfigView(QWidget):
             )
 
     def _restauracao_concluida(self):
-        """Chamado quando restauração é concluída"""
-        reply = QMessageBox.question(
-            self,
-            "🔄 Reinício Necessário",
-            "A restauração foi concluída com sucesso!\n\n"
-            "O sistema precisa ser reiniciado para aplicar as alterações.\n"
-            "Deseja reiniciar agora?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.Yes,
-        )
-
-        if reply == QMessageBox.StandardButton.Yes:
-            self._reiniciar_sistema()
+        """Fecha o sistema para aplicar a restauração na próxima inicialização."""
+        self._reiniciar_sistema()
 
     def _reiniciar_sistema(self):
         """Reinicia o sistema após restauração"""

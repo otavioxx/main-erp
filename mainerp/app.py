@@ -17,6 +17,7 @@ from mainerp.core.config import obter_config
 
 # Importações movidas para o topo para evitar problemas
 from mainerp.data.database import obter_database
+from mainerp.data.restore import aplicar_restauracao_pendente
 from mainerp.ui.styles import aplicar_tema_dark  # Alterado para aplicar_tema_dark
 from mainerp.ui.views.main_window import MainWindow
 
@@ -25,6 +26,7 @@ logger = logging.getLogger(__name__)
 # Códigos de saída entendidos pelo launcher (distribuicao/launcher.pyw)
 EXIT_REINICIAR = 100  # o sistema pediu reinício (ex.: após restaurar backup)
 EXIT_JA_EM_EXECUCAO = 3  # outra instância já está aberta (não é uma falha)
+EXIT_RESTAURACAO_FALHOU = 4  # não iniciar versão antiga com restauração pendente
 
 
 def obter_caminho_base():
@@ -303,24 +305,11 @@ def reiniciar_aplicacao():
     if os.environ.get("MAINERP_LAUNCHER") == "1":
         return
 
-    import subprocess
-    import time
-
-    logger.info("Reiniciando aplicação")
-    time.sleep(1)  # garante que tudo foi fechado (mutex, banco)
-
-    try:
-        subprocess.Popen(
-            [sys.executable, str(paths.CODE_DIR / "main.py")], cwd=os.getcwd()
-        )
-    except Exception:
-        logger.exception("Erro ao reiniciar aplicação")
-        QMessageBox.information(
-            None,
-            "Reinício Necessário",
-            "Por favor, reinicie o sistema manualmente para completar a restauração.",
-        )
-        sys.exit(0)
+    QMessageBox.information(
+        None,
+        "Reinício Necessário",
+        "Abra o sistema novamente para concluir a restauração.",
+    )
 
 
 def erro_fatal(titulo, detalhe):
@@ -388,6 +377,22 @@ def main():
         app.processEvents()
 
     try:
+        update_splash_message("Verificando restauração pendente...")
+        anterior = aplicar_restauracao_pendente(config.obter_caminho_banco())
+        if anterior:
+            logger.info("Restauração aplicada; backup anterior: %s", anterior)
+    except Exception as erro:
+        logger.exception("Falha ao aplicar restauração pendente")
+        splash.close()
+        QMessageBox.critical(
+            None,
+            "Erro na restauração",
+            "O sistema não será aberto para proteger os dados. A restauração "
+            f"pendente e os backups foram preservados.\n\n{erro!s}",
+        )
+        sys.exit(EXIT_RESTAURACAO_FALHOU)
+
+    try:
         update_splash_message("Preparando diretórios do sistema...")
         config.criar_pastas_necessarias()
 
@@ -420,9 +425,15 @@ def main():
 
         # Verificar se é um código de reinício (100)
         if result == EXIT_REINICIAR:
-            # Fechar tudo e reiniciar
+            window.backup_automatico.parar()
+            worker = window.backup_automatico._worker
+            if worker is not None:
+                worker.wait()
+            obter_database().close_connection()
             reiniciar_aplicacao()
 
+        if result == EXIT_REINICIAR and os.environ.get("MAINERP_LAUNCHER") != "1":
+            result = 0
         sys.exit(result)
     except Exception as e:
         erro_fatal(

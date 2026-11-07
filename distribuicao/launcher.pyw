@@ -44,7 +44,7 @@ UPDATE_MANIFEST_URL = (
 CHAVE_PUBLICA_ED25519_B64 = "H9gLoB9JOf7ca1NHIfbGeuCOh71sG/h5CjhoivGz8KA="
 
 EXIT_REINICIAR = 100  # o sistema pediu reinício
-CODIGOS_NORMAIS = {0, 3}  # 0 = saiu normal, 3 = já havia outra instância aberta
+CODIGOS_NORMAIS = {0, 3, 4}  # 4 = restauração falhou; não abrir versão anterior
 MANTER_RELEASES = 3
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 
@@ -145,6 +145,17 @@ def python_console():
     return str(c) if c.exists() else python_runtime()
 
 
+def python_da_release(versao):
+    pasta = RELEASES / versao
+    if not (pasta / ".runtime-isolado").exists():
+        return python_runtime()
+    runtime = ROOT / "runtimes" / versao
+    python = runtime / ("Scripts/pythonw.exe" if os.name == "nt" else "bin/python")
+    if not python.is_file():
+        raise RuntimeError(f"Runtime isolado da versão {versao} não encontrado: {python}")
+    return str(python)
+
+
 # ----------------------------------------------------------------------
 # Releases
 # ----------------------------------------------------------------------
@@ -233,7 +244,11 @@ def limpar_releases():
         manter.add(CURRENT.read_text(encoding="utf-8").strip())
     for v in validas:
         if v not in manter:
-            shutil.rmtree(RELEASES / v, ignore_errors=True)
+            pasta_release = RELEASES / v
+            shutil.rmtree(pasta_release)
+            runtime = ROOT / "runtimes" / v
+            if runtime.exists():
+                shutil.rmtree(runtime)
     if RELEASES.is_dir():
         for p in RELEASES.glob(".tmp-*"):
             shutil.rmtree(p, ignore_errors=True)
@@ -246,7 +261,7 @@ def limpar_releases():
 def ler_versao_do_zip(zf):
     info = json.loads(zf.read("release.json").decode("utf-8"))
     versao = str(info["version"])
-    if not re.fullmatch(r"[0-9A-Za-z._-]+", versao):
+    if not re.fullmatch(r"[0-9]+(?:\.[0-9]+){1,2}", versao):
         raise ValueError(f"versão inválida no pacote: {versao!r}")
     return versao
 
@@ -260,19 +275,46 @@ def extrair_seguro(zf, destino):
     zf.extractall(destino)
 
 
-def garantir_dependencias(pasta_release):
-    """Roda pip só quando o requirements.txt mudou desde a última vez."""
+def garantir_dependencias(pasta_release, versao=None):
+    """Instala atualizações em runtime isolado, preservando versões anteriores."""
     req = pasta_release / "requirements.txt"
     if not req.is_file():
+        raise RuntimeError("Pacote sem requirements.txt; instalação recusada.")
+    if CURRENT.exists():
+        versao_atual = CURRENT.read_text(encoding="utf-8").strip()
+        if versao_atual not in releases_validas() or versao is None:
+            raise RuntimeError("Versão ativa inválida; instalação recusada.")
+        runtime = ROOT / "runtimes" / versao
+        if runtime.exists():
+            shutil.rmtree(runtime)
+        runtime.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            subprocess.run(
+                [python_console(), "-m", "venv", str(runtime)],
+                check=True, capture_output=True, encoding="utf-8", errors="replace",
+                stdin=subprocess.DEVNULL, creationflags=NO_WINDOW, timeout=300,
+            )
+            python = runtime / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+            instalar_dependencias(str(python), req)
+            (pasta_release / ".runtime-isolado").write_text("1", encoding="ascii")
+        except Exception:
+            if runtime.exists():
+                shutil.rmtree(runtime)
+            raise
         return
     atual = sha256_arquivo(req)
     if HASH_REQUISITOS.exists() and HASH_REQUISITOS.read_text(encoding="utf-8").strip() == atual:
         return
+    instalar_dependencias(python_console(), req)
+    HASH_REQUISITOS.write_text(atual, encoding="utf-8")
+
+
+def instalar_dependencias(python, req):
     log("Instalando dependências (pip)...")
     r = subprocess.run(
-        [python_console(), "-m", "pip", "install", "-r", str(req),
+        [python, "-m", "pip", "install", "-r", str(req),
          "--disable-pip-version-check", "--no-input"],
-        capture_output=True, encoding="utf-8", errors="replace",
+        check=False, capture_output=True, encoding="utf-8", errors="replace",
         stdin=subprocess.DEVNULL, creationflags=NO_WINDOW, timeout=1800,
     )
     if r.returncode != 0:
@@ -281,7 +323,6 @@ def garantir_dependencias(pasta_release):
             "Não foi possível instalar as dependências da nova versão "
             "(verifique a conexão com a internet). Detalhes em logs\\launcher.log."
         )
-    HASH_REQUISITOS.write_text(atual, encoding="utf-8")
 
 
 def instalar_zip(caminho, sha256=None):
@@ -305,15 +346,26 @@ def instalar_zip(caminho, sha256=None):
         tmp = RELEASES / f".tmp-{versao}-{os.getpid()}"
         shutil.rmtree(tmp, ignore_errors=True)
         tmp.mkdir(parents=True)
+        instalada = False
         try:
             extrair_seguro(zf, tmp)
-            garantir_dependencias(tmp)
+            garantir_dependencias(tmp, versao)
             os.replace(tmp, destino)
+            instalada = True
+            definir_atual(versao)
         except Exception:
+            runtime_isolado = (tmp / ".runtime-isolado").exists() or (
+                instalada and (destino / ".runtime-isolado").exists()
+            )
             shutil.rmtree(tmp, ignore_errors=True)
+            if instalada:
+                shutil.rmtree(destino)
+            if runtime_isolado:
+                runtime = ROOT / "runtimes" / versao
+                if runtime.exists():
+                    shutil.rmtree(runtime)
             raise
 
-    definir_atual(versao)
     log(f"Versão {versao} instalada e definida como atual.")
     return versao
 
@@ -461,11 +513,16 @@ def atualizar_online(aviso):
             instalar_zip(zip_path, sha256=sha)
             mover_zip(zip_path, "aplicadas")
             mover_zip(assinatura_path, "aplicadas")
-        except Exception:
+        except Exception as erro:
             if zip_path.exists():
                 mover_zip(zip_path, "invalidas")
             if assinatura_path.exists():
                 mover_zip(assinatura_path, "invalidas")
+            mensagem(
+                "MainERP - atualização",
+                f"Não foi possível instalar a atualização {versao}. "
+                f"A versão atual será mantida.\n\n{erro}",
+            )
             raise
     except Exception as e:
         # sem rede ou servidor fora do ar é normal: segue com a versão instalada
@@ -474,26 +531,35 @@ def atualizar_online(aviso):
 
 @contextlib.contextmanager
 def trava_atualizacao():
-    """Evita dois launchers instalando ao mesmo tempo (clique duplo no atalho)."""
-    pasta = ROOT / ".update.lock"
-    obtida = False
-    try:
+    """Usa trava liberada pelo sistema operacional mesmo após falha do processo."""
+    if (ROOT / ".update.lock").exists():
+        log("Trava de launcher antigo encontrada; atualização adiada.")
+        yield False
+        return
+    with open(ROOT / ".update.lockfile", "a+b") as arquivo:
+        arquivo.seek(0, os.SEEK_END)
+        if arquivo.tell() == 0:
+            arquivo.write(b"\0")
+            arquivo.flush()
+        arquivo.seek(0)
         try:
-            pasta.mkdir()
-            obtida = True
-        except FileExistsError:
-            try:
-                velha = time.time() - pasta.stat().st_mtime > 900
-            except OSError:
-                velha = False
-            if velha:
-                shutil.rmtree(pasta, ignore_errors=True)
-                pasta.mkdir()
-                obtida = True
-        yield obtida
-    finally:
-        if obtida:
-            shutil.rmtree(pasta, ignore_errors=True)
+            if os.name == "nt":
+                import msvcrt
+                msvcrt.locking(arquivo.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(arquivo.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            yield False
+            return
+        try:
+            yield True
+        finally:
+            if os.name == "nt":
+                arquivo.seek(0)
+                msvcrt.locking(arquivo.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(arquivo.fileno(), fcntl.LOCK_UN)
 
 
 def atualizar(aviso):
@@ -522,6 +588,7 @@ def executar(versao):
 
     env = dict(os.environ)
     env["MAINERP_LAUNCHER"] = "1"
+    env["MAINERP_RESTORE_PROTOCOL"] = "1"
     env["MAINERP_OK_FILE"] = str(pasta / ".ok")  # o sistema cria ao abrir a janela
     env["PYTHONIOENCODING"] = "utf-8:backslashreplace"  # prints com emoji no log
 
@@ -530,7 +597,7 @@ def executar(versao):
         saida.write(f"\n===== {datetime.now():%Y-%m-%d %H:%M:%S} - iniciando {versao} =====\n")
         saida.flush()
         proc = subprocess.Popen(
-            [python_runtime(), "main.py"], cwd=str(pasta), env=env,
+            [python_da_release(versao), "main.py"], cwd=str(pasta), env=env,
             stdin=subprocess.DEVNULL, stdout=saida, stderr=saida,
         )
         codigo = proc.wait()
@@ -560,14 +627,14 @@ def main(argv):
                      "Execute o instalador novamente (distribuicao\\instalar.bat).")
             return 1
 
-        codigo, duracao = executar(versao)
+        try:
+            codigo, duracao = executar(versao)
+        except (OSError, RuntimeError) as erro:
+            log(f"Não foi possível iniciar a versão {versao}: {erro}")
+            codigo, duracao = 1, 0
         log(f"Versão {versao} terminou com código {codigo} após {duracao:.0f}s.")
 
         if codigo == EXIT_REINICIAR:
-            try:
-                atualizar(aviso)  # aproveita o reinício para aplicar atualizações
-            except Exception as e:
-                log(f"Erro ao atualizar: {e}")
             continue
 
         if codigo in CODIGOS_NORMAIS:

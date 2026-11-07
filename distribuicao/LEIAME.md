@@ -49,12 +49,18 @@ backups e relatórios ficam em `dados\`.
 ## Primeira instalação
 
 1. Python 3.10 ou superior instalado (recomendado: 3.12), com o "py launcher".
-2. Dê dois cliques em `distribuicao\instalar.bat`.
+2. Baixe e extraia o **Source code (zip)** da release correspondente no GitHub;
+   o ZIP `MainERP-<versão>.zip` é somente para atualização e não contém o instalador.
+   Na pasta extraída, dê dois cliques em `distribuicao\instalar.bat`.
 3. Abra o MainERP pelo atalho (Área de Trabalho / Menu Iniciar).
 4. Em uma instalação nova, restaure seu backup pela tela de Configurações; o sistema
    reinicia sozinho. A instalação não apaga uma pasta `dados\` que já exista.
 5. Se estiver migrando do executável antigo (PyInstaller), confira a restauração e os
    dados no novo sistema antes de remover a instalação antiga.
+
+Use o destino padrão. A opção `--destino` altera a pasta do sistema, mas não altera
+automaticamente o local de dados usado pelo aplicativo; instalações existentes podem
+depender desse comportamento. Não use essa opção para uma instalação nova do cliente.
 
 ## Preparar uma nova release
 
@@ -131,8 +137,11 @@ launcher tenta abrir a versão anterior válida. Esse rollback cobre falha de in
 não é um rollback do banco e não reverte migrações. Se o aplicativo já abriu e falhar
 depois, o launcher não volta automaticamente à versão anterior.
 
-Se `requirements.txt` mudar, o launcher atualiza as dependências no ambiente isolado
-`sistema\runtime\` durante a instalação (é necessária conexão com a internet). Não apague
+O launcher atualizado cria um ambiente Python em `sistema\runtimes\<versão>` para cada
+atualização, instala nele as dependências antes de ativar a release e preserva o runtime
+das versões anteriores para rollback. Versões antigas continuam usando `sistema\runtime`.
+Instalações existentes precisam receber o launcher atualizado pelo instalador; a mudança
+requer espaço em disco e acesso às dependências. Não apague
 nem substitua esse ambiente durante uma atualização normal.
 
 ## Mudanças no banco (migrações)
