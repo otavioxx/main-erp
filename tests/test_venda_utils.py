@@ -1,7 +1,12 @@
 import pytest
 
+from mainerp.data.database import Database
 from mainerp.data.money import para_centavos
-from mainerp.domain.utils.venda_utils import VendaCalculator, VendaValidator
+from mainerp.domain.utils.venda_utils import (
+    VendaCalculator,
+    VendaRepository,
+    VendaValidator,
+)
 
 
 @pytest.mark.parametrize(
@@ -99,3 +104,48 @@ def test_validar_quantidade_disponivel(quantidade, estoque, ja_selecionada, vali
 
     assert resultado is valido
     assert (mensagem == "") is valido
+
+
+def test_repository_itens_venda_grava_centavos_e_retorna_reais(tmp_path, monkeypatch):
+    database = Database(str(tmp_path / "itens_venda_centavos.db"))
+    monkeypatch.setattr("mainerp.data.database_utils.obter_database", lambda: database)
+
+    try:
+        with database.transacao() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO produtos (id, nome, preco_custo, preco_venda)
+                VALUES (1, 'Produto', 0, 0)
+                """
+            )
+            cursor.execute("PRAGMA table_info(produtos)")
+            colunas_produto = {coluna[1] for coluna in cursor.fetchall()}
+            for coluna in ("codigo_barras", "referencia", "cor", "tamanho"):
+                if coluna not in colunas_produto:
+                    cursor.execute(f"ALTER TABLE produtos ADD COLUMN {coluna} TEXT")
+            cursor.execute("INSERT INTO vendas (id, total) VALUES (1, 10.01)")
+
+        assert VendaRepository.salvar_itens_venda(
+            1,
+            [
+                {
+                    "id": 1,
+                    "quantidade": 2,
+                    "preco": 5.005,
+                    "desconto": 0.015,
+                }
+            ],
+        )
+
+        assert database.get_connection().execute(
+            """
+            SELECT preco_unitario_centavos, desconto_centavos
+            FROM itens_venda WHERE venda_id = 1
+            """
+        ).fetchone() == (501, 2)
+
+        item = VendaRepository.buscar_itens_venda_detalhados(1)[0]
+        assert item[:6] == (1, 1, 1, 2, 5.01, 0.02)
+        assert item[6] == "Produto"
+    finally:
+        database.close_connection()

@@ -225,16 +225,21 @@ class VendaRepository:
             for produto in produtos:
                 query = """
                     INSERT INTO itens_venda
-                    (venda_id, produto_id, quantidade, preco_unitario, desconto)
-                    VALUES (?, ?, ?, ?, ?)
+                    (venda_id, produto_id, quantidade, preco_unitario, desconto,
+                     preco_unitario_centavos, desconto_centavos)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 """
                 desconto_produto = produto.get("desconto", 0)
+                preco_centavos = para_centavos(produto["preco"])
+                desconto_centavos = para_centavos(desconto_produto)
                 params = (
                     venda_id,
                     produto["id"],
                     produto["quantidade"],
                     produto["preco"],
                     desconto_produto,
+                    preco_centavos,
+                    desconto_centavos,
                 )
                 DatabaseUtils.executar_query(query, params)
 
@@ -247,14 +252,24 @@ class VendaRepository:
         """Busca itens da venda com informações detalhadas"""
         query = """
             SELECT iv.id, iv.venda_id, iv.produto_id, iv.quantidade,
-                   iv.preco_unitario, iv.desconto, p.nome as produto_nome,
+                   iv.preco_unitario_centavos, iv.desconto_centavos,
+                   p.nome as produto_nome,
                    p.codigo_barras, p.referencia, p.cor, p.tamanho
             FROM itens_venda iv
             JOIN produtos p ON iv.produto_id = p.id
             WHERE iv.venda_id = ?
             ORDER BY p.nome
         """
-        return DatabaseUtils.executar_query(query, (venda_id,))
+        resultados = DatabaseUtils.executar_query(query, (venda_id,))
+        return [
+            (
+                *dados[:4],
+                float(de_centavos(dados[4])),
+                float(de_centavos(dados[5])),
+                *dados[6:],
+            )
+            for dados in resultados
+        ]
 
     @staticmethod
     def verificar_parcelas_pagas(venda_id: int) -> bool:

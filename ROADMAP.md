@@ -44,6 +44,8 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
             continuam retornando valores em reais para preservar os contratos da UI.
       - [x] O model de venda grava e recarrega os valores monetários pelos campos
             `*_centavos`, mantendo as colunas antigas preenchidas para compatibilidade.
+      - [x] Itens de venda são gravados em centavos e lidos pelo repositório inteiro,
+            convertendo para reais apenas na interface legada de tuplas.
 - [x] Índices nas colunas mais filtradas (cliente, data, status); `PRAGMA foreign_keys`
       permanece ativo.
 
