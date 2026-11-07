@@ -21,6 +21,7 @@ from mainerp.domain.utils.helpers import (
 )
 from mainerp.ui.dialogs.cliente_selection_dialog import ClienteSelectionDialog
 from mainerp.ui.dialogs.observacao_dialog import ObservacaoDialog
+from mainerp.ui.dialogs.preco_venda_dialog import solicitar_preco_venda
 from mainerp.ui.dialogs.produto_selection_dialog import ProdutoSelectionDialog
 from mainerp.ui.mixins.component_mixin import ComponentMixin
 
@@ -145,85 +146,25 @@ class _CondicionalDialogOperations(ComponentMixin):
                 )
                 return
 
-            # Diálogo de preço - VERSÃO CORRIGIDA COM VALOR MÁXIMO ALTO E SELEÇÃO TOTAL
-            preco_dialog = QInputDialog(self)
-            preco_dialog.setWindowTitle("Preço de Venda")
-            preco_dialog.setLabelText("Digite o preço de venda:")
+            preco_venda = solicitar_preco_venda(produto.preco_venda, self)
+            if preco_venda is not None:
+                from mainerp.data.models.produto import Produto
 
-            # CORREÇÃO: Configurar o valor máximo para um número alto
-            VALOR_MAXIMO = 9999999.99
+                produto_condicional = Produto(
+                    id=produto.id,
+                    nome=produto.nome,
+                    preco_custo=produto.preco_custo,
+                    preco_venda=preco_venda,
+                    estoque=produto.estoque,
+                    fornecedor_id=produto.fornecedor_id,
+                    ativo=produto.ativo,
+                    tamanho=produto.tamanho,
+                    cor=produto.cor,
+                    ea=produto.ea,
+                    referencia=produto.referencia,
+                )
 
-            # Configurar o QDoubleSpinBox diretamente
-            preco_dialog.setDoubleValue(produto.preco_venda)
-            preco_dialog.setDoubleMinimum(0.01)
-            preco_dialog.setDoubleMaximum(VALOR_MAXIMO)  # <-- CORREÇÃO PRINCIPAL
-            preco_dialog.setDoubleDecimals(2)
-
-            preco_dialog.setWindowFlags(
-                Qt.WindowType.Dialog
-                | Qt.WindowType.CustomizeWindowHint
-                | Qt.WindowType.WindowTitleHint
-                | Qt.WindowType.WindowCloseButtonHint
-                | Qt.WindowType.MSWindowsFixedSizeDialogHint
-            )
-
-            preco_dialog.setFixedSize(450, 220)
-
-            from PyQt6.QtCore import QTimer
-            from PyQt6.QtWidgets import QDoubleSpinBox
-
-            def configurar_spinbox():
-                spinboxes = preco_dialog.findChildren(QDoubleSpinBox)
-                for spinbox in spinboxes:
-                    spinbox.setRange(0.01, VALOR_MAXIMO)  # <-- CORREÇÃO TAMBÉM AQUI
-                    spinbox.setFixedWidth(220)
-                    spinbox.setGroupSeparatorShown(True)
-                    spinbox.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
-                    # Garantir que o valor inicial seja mostrado corretamente
-                    spinbox.setValue(produto.preco_venda)
-
-                    # CORREÇÃO: Forçar seleção total do texto quando o spinbox receber foco
-                    spinbox.selectAll()
-
-                    # Usar um timer para garantir que a seleção ocorra após o diálogo ser totalmente exibido
-                    QTimer.singleShot(100, spinbox.selectAll)
-
-                    # Conectar ao sinal de foco para sempre selecionar tudo quando ganhar foco
-                    def selecionar_tudo_ao_focar(event, spinbox=spinbox) -> None:
-                        QDoubleSpinBox.focusInEvent(spinbox, event)
-                        spinbox.selectAll()
-
-                    spinbox.focusInEvent = selecionar_tudo_ao_focar
-
-                    break
-
-            QTimer.singleShot(50, configurar_spinbox)
-
-            if preco_dialog.exec() == QDialog.DialogCode.Accepted:
-                preco_venda = preco_dialog.doubleValue()
-
-                if preco_venda > 0:
-                    from mainerp.data.models.produto import Produto
-
-                    produto_condicional = Produto(
-                        id=produto.id,
-                        nome=produto.nome,
-                        preco_custo=produto.preco_custo,
-                        preco_venda=preco_venda,
-                        estoque=produto.estoque,
-                        fornecedor_id=produto.fornecedor_id,
-                        ativo=produto.ativo,
-                        tamanho=produto.tamanho,
-                        cor=produto.cor,
-                        ea=produto.ea,
-                        referencia=produto.referencia,
-                    )
-
-                    self._adicionar_produto(produto_condicional, quantidade)
-                else:
-                    QMessageBox.warning(
-                        self, "Aviso", "O preço de venda deve ser maior que zero."
-                    )
+                self._adicionar_produto(produto_condicional, quantidade)
 
     def _adicionar_produto(self, produto, quantidade):
         """Adiciona produto à condicional"""
