@@ -30,6 +30,7 @@
 ```
 %LOCALAPPDATA%\MainERP\
   sistema\                  <- launcher, runtime e releases
+    MainERP.lnk             atalho de reserva
     runtime\                Python + bibliotecas (venv)
     launcher.pyw            o atalho aponta SEMPRE para ele
     releases\<versão>\      uma pasta por versão (as 3 últimas são mantidas)
@@ -49,10 +50,22 @@ backups e relatórios ficam em `dados\`.
 ## Primeira instalação
 
 1. Python 3.10 ou superior instalado (recomendado: 3.12), com o "py launcher".
-2. Baixe e extraia o **Source code (zip)** da release correspondente no GitHub;
-   o ZIP `MainERP-<versão>.zip` é somente para atualização e não contém o instalador.
-   Na pasta extraída, dê dois cliques em `distribuicao\instalar.bat`.
-3. Abra o MainERP pelo atalho (Área de Trabalho / Menu Iniciar).
+2. Baixe `MainERP-Instalador-<versão>.pyz` nos assets da release. Execute
+   `py -3 MainERP-Instalador-<versão>.pyz` no PowerShell. O instalador extrai os
+   arquivos necessários em uma pasta temporária própria, removida ao terminar,
+   inclusive em falhas normais. Interrupções abruptas podem deixar resíduos temporários.
+   O arquivo baixado permanece e pode ser apagado manualmente após a instalação.
+   O ZIP `MainERP-<versão>.zip` é somente para atualização.
+   Alternativamente, ao usar `distribuicao\instalar.bat` do ZIP completo do código,
+   após a instalação bem-sucedida o instalador remove da pasta extraída arquivos
+   de desenvolvimento conhecidos, como `ROADMAP.md`, `verificar.bat` e testes
+   listados no instalador. O ZIP original, outros arquivos, pastas e dados são
+   preservados. Em repositórios Git ou quando origem e destino se sobrepõem, a
+   limpeza é ignorada. O histórico instalado permanece disponível em Sobre. Para
+   reinstalar a partir do código-fonte, extraia novamente o ZIP completo: a pasta
+   já limpa não contém mais todos os arquivos originais.
+3. Abra o MainERP pelo atalho (Área de Trabalho / Menu Iniciar). Há também uma cópia
+   em `%LOCALAPPDATA%\MainERP\sistema\MainERP.lnk`.
 4. Em uma instalação nova, restaure seu backup pela tela de Configurações; o sistema
    reinicia sozinho. A instalação não apaga uma pasta `dados\` que já exista.
 5. Se estiver migrando do executável antigo (PyInstaller), confira a restauração e os
@@ -89,7 +102,8 @@ Antes de distribuir uma versão:
 5. Crie e envie uma tag anotada igual à versão, por exemplo `git tag -a v0.10.1 -m "MainERP 0.10.1"`
    e `git push origin v0.10.1`. O GitHub Actions confere a tag com `APP_VERSION`,
    executa Ruff e pytest, gera ZIP e manifesto SHA256, assina o ZIP com Ed25519 e publica
-   os três assets (`.zip`, `.zip.sig` e `version.json`) na GitHub Release mais recente.
+   o ZIP de atualização, o instalador `.pyz`, suas assinaturas, `instalador.sha256`
+   e `version.json` na GitHub Release mais recente.
 
 Não reutilize uma tag já publicada. Se o workflow falhar, corrija o problema em um novo
 commit e publique uma nova versão/tag; a release não deve ser montada manualmente com

@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 0.10.2 - 2026-11-07
+
+- O instalador autocontido usa uma pasta temporária removida após a execução, sem
+  apagar arquivos do usuário, e cria um atalho adicional na pasta do sistema.
+- Na instalação pelo ZIP de código, arquivos de desenvolvimento conhecidos são
+  removidos da pasta extraída após o sucesso, sem alterar checkouts Git ou dados.
+
 ## 0.10.1 - 2026-11-07
 
 - O instalador atribui aos atalhos a mesma identidade usada pela janela do MainERP,

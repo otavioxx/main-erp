@@ -85,7 +85,7 @@ public static class MainErpShortcutIdentity
 '@
 
 $ws = New-Object -ComObject WScript.Shell
-foreach ($pasta in $Destinos) {
+foreach ($pasta in @($Destinos + $Sistema) | Select-Object -Unique) {
     $caminho = Join-Path $pasta 'MainERP.lnk'
     $lnk = $ws.CreateShortcut($caminho)
     $lnk.TargetPath = $Alvo

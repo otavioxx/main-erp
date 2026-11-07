@@ -42,13 +42,18 @@ jobs:
         run: python -m pytest
 
       - name: Build ZIP and SHA256 manifest
-        run: python distribuicao/criar_release.py
+        run: |
+          python distribuicao/criar_release.py
+          python distribuicao/criar_instalador.py
+          (cd dist && sha256sum "MainERP-Instalador-${GITHUB_REF_NAME#v}.pyz" > instalador.sha256)
 
-      - name: Sign release ZIP with Ed25519
+      - name: Sign release packages with Ed25519
         env:
           MAINERP_ED25519_PRIVATE_KEY: ${{ secrets.MAINERP_ED25519_PRIVATE_KEY }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: python distribuicao/assinar_release.py "dist/MainERP-${RELEASE_TAG#v}.zip"
+        run: |
+          python distribuicao/assinar_release.py "dist/MainERP-${RELEASE_TAG#v}.zip"
+          python distribuicao/assinar_release.py "dist/MainERP-Instalador-${RELEASE_TAG#v}.pyz"
 
       - name: Publish GitHub Release
         env:
@@ -58,6 +63,9 @@ jobs:
           gh release create "$RELEASE_TAG" \
             "dist/MainERP-${RELEASE_TAG#v}.zip" \
             "dist/MainERP-${RELEASE_TAG#v}.zip.sig" \
+            "dist/MainERP-Instalador-${RELEASE_TAG#v}.pyz" \
+            "dist/MainERP-Instalador-${RELEASE_TAG#v}.pyz.sig" \
+            dist/instalador.sha256 \
             dist/version.json \
             --verify-tag \
             --title "MainERP ${RELEASE_TAG#v}" \

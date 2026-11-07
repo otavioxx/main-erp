@@ -108,17 +108,18 @@ def test_windows_shortcut_has_identity_icon_and_launcher(tmp_path):
         "directory=$l.WorkingDirectory; id=$i.ExtendedProperty('System.AppUserModel.ID')}"
         "| ConvertTo-Json -Compress"
     )
-    resultado = subprocess.run(
-        ["powershell", "-NoProfile", "-Command", verificar],
-        check=True, capture_output=True, encoding="utf-8",
-        env={**os.environ, "MAINERP_TEST_SHORTCUT": str(pasta / "MainERP.lnk")},
-    )
-    propriedades = json.loads(resultado.stdout)
-    assert propriedades["target"] == str(alvo)
-    assert propriedades["arguments"] == f'"{launcher}"'
-    assert propriedades["directory"] == str(sistema)
-    assert propriedades["icon"].rsplit(",", 1)[0] == str(icone)
-    assert propriedades["id"] == "DigitalSolutions.MainERP"
+    for diretorio in (pasta, sistema):
+        resultado = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", verificar],
+            check=True, capture_output=True, encoding="utf-8",
+            env={**os.environ, "MAINERP_TEST_SHORTCUT": str(diretorio / "MainERP.lnk")},
+        )
+        propriedades = json.loads(resultado.stdout)
+        assert propriedades["target"] == str(alvo)
+        assert propriedades["arguments"] == f'"{launcher}"'
+        assert propriedades["directory"] == str(sistema)
+        assert propriedades["icon"].rsplit(",", 1)[0] == str(icone)
+        assert propriedades["id"] == "DigitalSolutions.MainERP"
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Requer Windows Shell")
@@ -206,6 +207,121 @@ def test_installer_main_checks_launcher_result_and_active_release(
         with pytest.raises(SystemExit, match="Falha na instalação"):
             instalador.main()
         assert not atalhos
+
+
+def test_installer_can_skip_shortcuts_for_isolated_install(instalador, tmp_path, monkeypatch):
+    sistema = tmp_path / "sistema"
+    python = instalador.python_do_runtime(sistema / "runtime")
+    python.parent.mkdir(parents=True)
+    python.touch()
+    release = sistema / "releases" / "0.10.0"
+    release.mkdir(parents=True)
+    (release / "main.py").touch()
+    (sistema / "current.txt").write_text("0.10.0", encoding="utf-8")
+    monkeypatch.setattr(
+        "sys.argv", ["instalar.py", "--destino", str(tmp_path), "--sem-atalhos"]
+    )
+    monkeypatch.setattr(instalador.criar_release, "construir_zip", lambda _: None)
+    monkeypatch.setattr(instalador.criar_release, "ler_versao", lambda: "0.10.0")
+    monkeypatch.setattr(
+        instalador.subprocess, "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args, 0),
+    )
+    atalhos = []
+    monkeypatch.setattr(instalador, "criar_atalhos", lambda *args: atalhos.append(args))
+    instalador.main()
+    assert not atalhos
+
+
+@pytest.mark.parametrize("falha", [None, "launcher", "atalhos"])
+def test_installer_cleans_source_only_after_success(
+    instalador, tmp_path, monkeypatch, falha
+):
+    origem = tmp_path / "fonte"
+    distribuicao = origem / "distribuicao"
+    distribuicao.mkdir(parents=True)
+    for nome in ("launcher.pyw",):
+        (distribuicao / nome).write_text("launcher", encoding="utf-8")
+    (origem / "icon.ico").write_bytes(b"icone")
+    for nome in ("CHANGELOG.md", "ROADMAP.md", "verificar.bat", "tests/test_money.py"):
+        arquivo = origem / nome
+        arquivo.parent.mkdir(parents=True, exist_ok=True)
+        arquivo.write_text("origem", encoding="utf-8")
+    (origem / "tests" / "outro.txt").write_text("preservado", encoding="utf-8")
+    destino = tmp_path / "instalacao"
+    sistema = destino / "sistema"
+    python = instalador.python_do_runtime(sistema / "runtime")
+    python.parent.mkdir(parents=True)
+    python.touch()
+    release = sistema / "releases" / "0.10.0"
+    release.mkdir(parents=True)
+    (release / "main.py").touch()
+    (release / "CHANGELOG.md").write_text("historico", encoding="utf-8")
+    (sistema / "current.txt").write_text("0.10.0", encoding="utf-8")
+    dados = destino / "dados"
+    dados.mkdir()
+    (dados / "erp.db").write_text("dados", encoding="utf-8")
+    monkeypatch.setattr(instalador, "PROJETO", origem)
+    monkeypatch.setattr(instalador, "AQUI", distribuicao)
+    monkeypatch.setattr("sys.argv", ["instalar.py", "--destino", str(destino)])
+    monkeypatch.setattr(instalador.criar_release, "construir_zip", lambda _: None)
+    monkeypatch.setattr(instalador.criar_release, "ler_versao", lambda: "0.10.0")
+    monkeypatch.setattr(
+        instalador.subprocess, "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args, int(falha == "launcher")),
+    )
+
+    def atalhos(*args):
+        if falha == "atalhos":
+            raise OSError("Falha ao criar atalho")
+
+    monkeypatch.setattr(instalador, "criar_atalhos", atalhos)
+    if falha == "launcher":
+        with pytest.raises(SystemExit):
+            instalador.main()
+    elif falha == "atalhos":
+        with pytest.raises(OSError):
+            instalador.main()
+    else:
+        instalador.main()
+    for nome in ("CHANGELOG.md", "ROADMAP.md", "verificar.bat", "tests/test_money.py"):
+        assert (origem / nome).exists() == (falha is not None)
+    assert (origem / "tests" / "outro.txt").read_text(encoding="utf-8") == "preservado"
+    assert (release / "CHANGELOG.md").read_text(encoding="utf-8") == "historico"
+    assert (dados / "erp.db").read_text(encoding="utf-8") == "dados"
+
+
+@pytest.mark.parametrize("protecao", ["git", "git-pai", "destino-interno", "origem-interna"])
+def test_source_cleanup_refuses_git_or_overlapping_paths(instalador, tmp_path, protecao):
+    origem = tmp_path / "origem"
+    origem.mkdir()
+    arquivo = origem / "ROADMAP.md"
+    arquivo.write_text("preservado", encoding="utf-8")
+    destino = tmp_path / "instalacao"
+    if protecao == "git":
+        (origem / ".git").mkdir()
+    elif protecao == "git-pai":
+        (tmp_path / ".git").mkdir()
+    elif protecao == "destino-interno":
+        destino = origem / "instalacao"
+    else:
+        destino = tmp_path
+    instalador.limpar_arquivos_desenvolvimento(origem, destino)
+    assert arquivo.read_text(encoding="utf-8") == "preservado"
+
+
+def test_source_cleanup_does_not_follow_symlink(instalador, tmp_path):
+    origem = tmp_path / "origem"
+    origem.mkdir()
+    externo = tmp_path / "exterior"
+    externo.mkdir()
+    (externo / "test_money.py").write_text("preservado", encoding="utf-8")
+    try:
+        (origem / "tests").symlink_to(externo, target_is_directory=True)
+    except OSError:
+        pytest.skip("Criação de links simbólicos indisponível")
+    instalador.limpar_arquivos_desenvolvimento(origem, tmp_path / "instalacao")
+    assert (externo / "test_money.py").read_text(encoding="utf-8") == "preservado"
 
 
 @pytest.mark.parametrize("versao", ["0.0.0", "0.10.0", "1.20.300"])
