@@ -18,7 +18,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class PrintRelatVenda:
     def _buscar_vendas_com_cliente():
         """Busca vendas com JOIN para incluir o nome do cliente"""
         try:
-            conn = Database().get_connection()
+            conn = obter_database().get_connection()
             cursor = conn.cursor()
 
             # Query com JOIN para trazer o nome do cliente
@@ -70,7 +70,6 @@ class PrintRelatVenda:
             """)
 
             vendas = cursor.fetchall()
-            conn.close()
             return vendas
 
         except Exception as e:
@@ -390,13 +389,12 @@ class PrintRelatVenda:
 
             if cliente_id:
                 # Buscar nome do cliente para os filtros
-                conn = Database().get_connection()
+                conn = obter_database().get_connection()
                 cursor = conn.cursor()
                 cursor.execute("SELECT nome FROM clientes WHERE id = ?", (cliente_id,))
                 cliente = cursor.fetchone()
                 if cliente:
                     filtros["cliente"] = cliente[0]
-                conn.close()
 
             # Adicionar outros filtros
             if status:

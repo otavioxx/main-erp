@@ -4,26 +4,18 @@ from collections.abc import Sequence
 from typing import Any
 
 from mainerp.core.app_logging import registrar_excecao
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 
 
 class DatabaseUtils:
     @staticmethod
     def executar_query(query: str, params: Sequence[Any] | None = None) -> Any:
         """Executa query genérica"""
-        conn = Database().get_connection()
-        cursor = conn.cursor()
-        try:
+        with obter_database().transacao() as cursor:
             cursor.execute(query, params or ())
             if query.strip().upper().startswith("SELECT"):
                 return cursor.fetchall()
-            conn.commit()
             return cursor.lastrowid
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            pass
 
     @staticmethod
     def buscar_por_tabela(tabela: str, id: int) -> tuple | None:
@@ -50,17 +42,10 @@ class DatabaseUtils:
         tentativa = 0
         while tentativa < max_tentativas:
             try:
-                db = Database()
-                conn = db.get_connection()
-                cursor = conn.cursor()
-
-                cursor.execute(query, params or ())
-
-                if query.strip().upper().startswith("SELECT"):
-                    resultado = cursor.fetchall()
-                    return resultado
-                else:
-                    conn.commit()
+                with obter_database().transacao() as cursor:
+                    cursor.execute(query, params or ())
+                    if query.strip().upper().startswith("SELECT"):
+                        return cursor.fetchall()
                     return cursor.lastrowid
 
             except sqlite3.OperationalError as e:
@@ -70,8 +55,6 @@ class DatabaseUtils:
                     continue
                 else:
                     raise
-            finally:
-                pass
 
     @staticmethod
     def buscar_com_filtros(
@@ -134,10 +117,6 @@ class DatabaseUtils:
             WHERE pi.pedido_id = ?
             ORDER BY p.nome
         """
-        db = Database()
-        try:
-            cursor = db.get_connection().cursor()
+        with obter_database().transacao() as cursor:
             cursor.execute(query, (pedido_id,))
             return cursor.fetchall()
-        finally:
-            db.close_connection()

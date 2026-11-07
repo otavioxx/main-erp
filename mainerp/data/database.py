@@ -1,8 +1,10 @@
 # \erp\database.py
 import sqlite3
+import threading
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, Iterator
 
 from mainerp.core.config import config
 
@@ -32,6 +34,7 @@ class Database:
     ]
 
     MANTER_BACKUPS_MIGRACAO = 10
+    _savepoint_ids = iter(range(1, 2**63))
 
     def __init__(self, db_name=None):
         self.db_name = db_name or config.obter_caminho_banco()
@@ -48,6 +51,39 @@ class Database:
         if self.connection:
             self.connection.close()
             self.connection = None
+
+    @contextmanager
+    def transacao(self) -> Iterator[sqlite3.Cursor]:
+        """Executa operações em uma transação e reverte tudo se houver falha.
+
+        Uma chamada dentro de outra transação usa SAVEPOINT, para que operações
+        compostas possam reutilizar este gerenciador sem confirmar parcialmente.
+        """
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        savepoint = None
+        try:
+            if conn.in_transaction:
+                savepoint = f"mainerp_sp_{next(self._savepoint_ids)}"
+                cursor.execute(f"SAVEPOINT {savepoint}")
+            else:
+                cursor.execute("BEGIN")
+
+            yield cursor
+
+            if savepoint:
+                cursor.execute(f"RELEASE SAVEPOINT {savepoint}")
+            else:
+                conn.commit()
+        except Exception:
+            if savepoint:
+                cursor.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+                cursor.execute(f"RELEASE SAVEPOINT {savepoint}")
+            else:
+                conn.rollback()
+            raise
+        finally:
+            cursor.close()
 
     # ------------------------------------------------------------------
     # Motor de migrações
@@ -350,3 +386,15 @@ class Database:
                 FOREIGN KEY (produto_id) REFERENCES produtos (id)
             )
         """)
+
+
+_database_por_thread = threading.local()
+
+
+def obter_database() -> Database:
+    """Retorna o gerenciador único do banco para a thread atual."""
+    database = getattr(_database_por_thread, "database", None)
+    if database is None:
+        database = Database()
+        _database_por_thread.database = database
+    return database

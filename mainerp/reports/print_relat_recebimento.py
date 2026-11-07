@@ -19,7 +19,7 @@ from reportlab.platypus import (
 )
 
 from mainerp.core.exceptions import ErroERP
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
 from mainerp.domain.utils.helpers import formatar_moeda, validar_data
 
@@ -62,7 +62,7 @@ class PrintRelatRecebimento:
                 os.makedirs(pasta_destino)
 
             # Buscar dados filtrados
-            conn = Database().get_connection()
+            conn = obter_database().get_connection()
             cursor = conn.cursor()
 
             duplicatas = []
@@ -168,8 +168,6 @@ class PrintRelatRecebimento:
                     duplicatas.extend(duplicatas_pagas)
                 except Exception as e:
                     logger.error(f"Erro ao buscar duplicatas pagas: {e}")
-
-            conn.close()
 
             # Ordenar resultados finais
             if duplicatas:
@@ -329,13 +327,12 @@ class PrintRelatRecebimento:
             if cliente_id:
                 # Buscar nome do cliente
                 try:
-                    conn = Database().get_connection()
+                    conn = obter_database().get_connection()
                     cursor = conn.cursor()
                     cursor.execute(
                         "SELECT nome FROM clientes WHERE id = ?", (cliente_id,)
                     )
                     cliente = cursor.fetchone()
-                    conn.close()
                     if cliente:
                         filtros_texto.append(f"Cliente: {cliente[0]}")
                 except Exception as e:

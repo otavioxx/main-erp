@@ -1,7 +1,5 @@
 # \erp\models\base_model.py
-import sqlite3
-
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 
 
 class BaseModel:
@@ -12,24 +10,17 @@ class BaseModel:
 
     @classmethod
     def get_connection(cls):
-        return Database().get_connection()
+        return obter_database().get_connection()
 
     @classmethod
     def executar_query(cls, query, params=None):
         """Executa query e retorna resultados"""
-        conn = cls.get_connection()
-        cursor = conn.cursor()
-        try:
+        database = obter_database()
+        with database.transacao() as cursor:
             cursor.execute(query, params or ())
             if query.strip().upper().startswith("SELECT"):
                 return cursor.fetchall()
-            conn.commit()
             return cursor.lastrowid
-        except sqlite3.Error:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
 
     @classmethod
     def buscar_por_id(cls, id):

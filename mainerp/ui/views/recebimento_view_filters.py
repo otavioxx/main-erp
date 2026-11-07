@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 )
 
 from mainerp.core.app_logging import registrar_excecao
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 from mainerp.domain.utils.helpers import (
     formatar_data,
     formatar_moeda,
@@ -32,9 +32,6 @@ class _RecebimentoViewFilters(ComponentMixin):
         try:
             # Mostrar estado de carregamento
             self.label_info.setText("(Carregando...)")
-
-            conn = Database().get_connection()
-            cursor = conn.cursor()
 
             # CONSULTA ÚNICA OTIMIZADA com UNION ALL
             query = """
@@ -81,8 +78,9 @@ class _RecebimentoViewFilters(ComponentMixin):
                 ORDER BY status, data_vencimento
             """
 
-            cursor.execute(query)
-            self.todas_duplicatas = cursor.fetchall()
+            with obter_database().transacao() as cursor:
+                cursor.execute(query)
+                self.todas_duplicatas = cursor.fetchall()
 
             # Inicializar cache de parcelas
             self._inicializar_cache_parcelas()
@@ -93,9 +91,6 @@ class _RecebimentoViewFilters(ComponentMixin):
         except Exception as e:
             self.label_info.setText("(Erro ao carregar)")
             QMessageBox.critical(self, "Erro", f"Erro ao carregar duplicatas: {e!s}")
-        finally:
-            if "conn" in locals():
-                conn.close()
 
     def _inicializar_cache_parcelas(self):
         """Inicializa cache de total de parcelas por venda"""
@@ -112,31 +107,27 @@ class _RecebimentoViewFilters(ComponentMixin):
             return
 
         try:
-            conn = Database().get_connection()
-            cursor = conn.cursor()
-
-            # Buscar totais para todas as vendas de uma vez
-            for venda_id in venda_ids:
-                cursor.execute(
-                    """
+            with obter_database().transacao() as cursor:
+                # Buscar totais para todas as vendas de uma vez
+                for venda_id in venda_ids:
+                    cursor.execute(
+                        """
                     SELECT COUNT(*) FROM duplicatas WHERE venda_id = ? AND status = 'aberto'
                 """,
-                    (venda_id,),
-                )
-                count_abertas = cursor.fetchone()[0] or 0
+                        (venda_id,),
+                    )
+                    count_abertas = cursor.fetchone()[0] or 0
 
-                cursor.execute(
-                    """
+                    cursor.execute(
+                        """
                     SELECT COUNT(*) FROM duplicatas_pagas WHERE venda_id = ?
                 """,
-                    (venda_id,),
-                )
-                count_pagas = cursor.fetchone()[0] or 0
+                        (venda_id,),
+                    )
+                    count_pagas = cursor.fetchone()[0] or 0
 
-                total = count_abertas + count_pagas
-                self._parcelas_cache[venda_id] = total if total > 0 else 1
-
-            conn.close()
+                    total = count_abertas + count_pagas
+                    self._parcelas_cache[venda_id] = total if total > 0 else 1
 
         except Exception:
             logger.exception("Erro ao inicializar cache de parcelas")

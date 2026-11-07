@@ -1,11 +1,9 @@
 # \erp\model\duplicata.py
 import logging
-import sqlite3
 from datetime import timedelta
 
 from mainerp.core.exceptions import ErroERP
-from mainerp.data.database import Database
-from mainerp.data.database_utils import DatabaseUtils
+from mainerp.data.database import obter_database
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +30,7 @@ class Duplicata:
         self.status = status
 
     def salvar(self):
-        db = Database()
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        try:
+        with obter_database().transacao() as cursor:
             if self.id:
                 cursor.execute(
                     """
@@ -74,13 +68,7 @@ class Duplicata:
                 )
                 self.id = cursor.lastrowid
 
-            conn.commit()
             return self.id
-        except sqlite3.Error:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
 
     @staticmethod
     def criar_parcelas(
@@ -90,53 +78,45 @@ class Duplicata:
         valor_parcela = valor_financiado / parcelas
         duplicatas = []
 
-        for i in range(parcelas):
-            data_vencimento = data_primeiro_vencimento + timedelta(days=30 * i)
+        with obter_database().transacao() as cursor:
+            for i in range(parcelas):
+                data_vencimento = data_primeiro_vencimento + timedelta(days=30 * i)
 
-            resultado = DatabaseUtils.executar_com_retry(
-                """
+                cursor.execute(
+                    """
                 INSERT INTO duplicatas
                 (venda_id, cliente_id, numero_parcela, valor_parcela, data_vencimento, status)
                 VALUES (?, ?, ?, ?, ?, 'aberto')
                 """,
-                (venda_id, cliente_id, i + 1, valor_parcela, data_vencimento),
-            )
+                    (venda_id, cliente_id, i + 1, valor_parcela, data_vencimento),
+                )
 
-            duplicata = Duplicata(
-                id=resultado,
-                venda_id=venda_id,
-                cliente_id=cliente_id,
-                numero_parcela=i + 1,
-                valor_parcela=valor_parcela,
-                data_vencimento=data_vencimento,
-                status="aberto",
-            )
-            duplicatas.append(duplicata)
+                duplicata = Duplicata(
+                    id=cursor.lastrowid,
+                    venda_id=venda_id,
+                    cliente_id=cliente_id,
+                    numero_parcela=i + 1,
+                    valor_parcela=valor_parcela,
+                    data_vencimento=data_vencimento,
+                    status="aberto",
+                )
+                duplicatas.append(duplicata)
 
         return duplicatas
 
     @staticmethod
     def buscar_por_venda(venda_id):
-        db = Database()
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute(
-            "SELECT * FROM duplicatas WHERE venda_id = ? ORDER BY numero_parcela",
-            (venda_id,),
-        )
-        duplicatas = cursor.fetchall()
-        conn.close()
-        return duplicatas
+        with obter_database().transacao() as cursor:
+            cursor.execute(
+                "SELECT * FROM duplicatas WHERE venda_id = ? ORDER BY numero_parcela",
+                (venda_id,),
+            )
+            return cursor.fetchall()
 
     @staticmethod
     def buscar_todas_com_cliente():
         """Busca todas as duplicatas abertas com informações do cliente"""
-        db = Database()
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        try:
+        with obter_database().transacao() as cursor:
             cursor.execute("""
                 SELECT d.*, c.nome as cliente_nome
                 FROM duplicatas d
@@ -145,17 +125,11 @@ class Duplicata:
                 ORDER BY d.data_vencimento
             """)
             return cursor.fetchall()
-        finally:
-            conn.close()
 
     @staticmethod
     def buscar_por_status(status):
         """Busca duplicatas por status"""
-        db = Database()
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        try:
+        with obter_database().transacao() as cursor:
             if status == "aberto":
                 cursor.execute("""
                     SELECT d.*, c.nome as cliente_nome
@@ -172,17 +146,11 @@ class Duplicata:
                     ORDER BY dp.data_pagamento DESC
                 """)
             return cursor.fetchall()
-        finally:
-            conn.close()
 
     @staticmethod
     def buscar_por_cliente(cliente_id):
         """Busca duplicatas por cliente"""
-        db = Database()
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        try:
+        with obter_database().transacao() as cursor:
             cursor.execute(
                 """
                 SELECT d.*, c.nome as cliente_nome
@@ -210,14 +178,10 @@ class Duplicata:
             pagas = cursor.fetchall()
 
             return abertas + pagas
-        finally:
-            conn.close()
 
     @staticmethod
     def marcar_como_paga(duplicata_id, valor_recebido, data_pagamento, forma_pagamento):
-        conn = Database().get_connection()
-        cursor = conn.cursor()
-        try:
+        with obter_database().transacao() as cursor:
             # Buscar duplicata
             cursor.execute(
                 "SELECT id, venda_id, cliente_id, numero_parcela, valor_parcela, data_vencimento FROM duplicatas WHERE id = ?",
@@ -362,17 +326,22 @@ class Duplicata:
             # Remover da tabela duplicatas
             cursor.execute("DELETE FROM duplicatas WHERE id = ?", (duplicata_id,))
 
-            conn.commit()
             return True
-
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
 
     @staticmethod
     def ajustar_parcelas_restantes(
+        venda_id, duplicata_id, valor_pago, valor_original=None
+    ):
+        try:
+            return Duplicata._ajustar_parcelas_restantes(
+                venda_id, duplicata_id, valor_pago, valor_original
+            )
+        except Exception:
+            logger.exception("Erro ao redistribuir diferença de pagamento")
+            raise
+
+    @staticmethod
+    def _ajustar_parcelas_restantes(
         venda_id, duplicata_id, valor_pago, valor_original=None
     ):
         """
@@ -382,13 +351,7 @@ class Duplicata:
         """
         from datetime import datetime
 
-        from mainerp.data.database import Database
-
-        db = Database()
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        try:
+        with obter_database().transacao() as cursor:
             # Obter valor original se não foi passado
             if valor_original is None:
                 cursor.execute(
@@ -479,13 +442,4 @@ class Duplicata:
                         novo_valor,
                     )
 
-            conn.commit()
             logger.debug("Redistribuição concluída e commitada")
-
-        except Exception:
-            if conn:
-                conn.rollback()
-            logger.exception("Erro ao redistribuir diferença de pagamento")
-            raise
-        finally:
-            conn.close()

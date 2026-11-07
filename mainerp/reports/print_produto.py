@@ -18,7 +18,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
 from mainerp.data.models.fornecedor import Fornecedor
 from mainerp.data.models.produto import Produto
@@ -54,7 +54,7 @@ class PrintProduto:
     def _get_fornecedor_por_id(fornecedor_id) -> Fornecedor | None:
         """Obtém o fornecedor pelo ID"""
         try:
-            with Database().get_connection() as conn:
+            with obter_database().get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute(
                     "SELECT id, nome FROM fornecedores WHERE id = ?", (fornecedor_id,)

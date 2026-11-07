@@ -1,7 +1,6 @@
 import io
 import logging
 import os
-import sqlite3
 from datetime import datetime
 
 from PIL import Image as PILImage
@@ -19,7 +18,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 from mainerp.data.models.condicional import Condicional
 from mainerp.data.models.empresa import Empresa
 
@@ -64,7 +63,7 @@ class PrintCondicional:
             return "Cliente não informado"
 
         try:
-            with Database().get_connection() as conn:
+            with obter_database().get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT nome FROM clientes WHERE id = ?", (cliente_id,))
                 result = cursor.fetchone()
@@ -77,7 +76,7 @@ class PrintCondicional:
     def buscar_itens_condicional_detalhados(condicional_id):
         """Busca itens da condicional incluindo campos do produto (cor, tamanho)"""
         try:
-            db = Database()
+            db = obter_database()
             conn = db.get_connection()
             cursor = conn.cursor()
 
@@ -103,11 +102,6 @@ class PrintCondicional:
         except Exception as e:
             logger.error(f"Erro ao buscar itens da condicional: {e!s}")
             return []
-        finally:
-            try:
-                conn.close()
-            except sqlite3.Error:
-                pass
 
     @staticmethod
     def _limpar_nome_arquivo(nome):

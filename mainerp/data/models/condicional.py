@@ -2,7 +2,7 @@
 import logging
 from datetime import datetime
 
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +28,7 @@ class Condicional:
         self.itens = []
 
     def salvar(self):
-        conn = Database().get_connection()
-        cursor = conn.cursor()
-
-        try:
+        with obter_database().transacao() as cursor:
             cliente_id = self.cliente_id
             data_condicional = self.data_condicional
             data_prevista_devolucao = self.data_prevista_devolucao
@@ -76,14 +73,7 @@ class Condicional:
                 self.id = cursor.lastrowid
 
             self.salvar_itens(cursor)
-            conn.commit()
             return self.id
-
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
 
     def salvar_itens(self, cursor):
         cursor.execute(
@@ -113,13 +103,10 @@ class Condicional:
             except (ValueError, TypeError):
                 return None
 
-        db = Database()
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
         try:
-            cursor.execute(
-                """
+            with obter_database().transacao() as cursor:
+                cursor.execute(
+                    """
                 SELECT c.id, c.cliente_id, c.data_condicional,
                     c.data_prevista_devolucao, c.status, c.observacao, c.desconto,
                     cli.nome as cliente_nome
@@ -127,43 +114,43 @@ class Condicional:
                 LEFT JOIN clientes cli ON c.cliente_id = cli.id
                 WHERE c.id = ?
             """,
-                (condicional_id,),
-            )
-            condicional_data = cursor.fetchone()
+                    (condicional_id,),
+                )
+                condicional_data = cursor.fetchone()
 
-            if not condicional_data:
-                return None
+                if not condicional_data:
+                    return None
 
-            condicional = Condicional(
-                id=condicional_data[0],
-                cliente_id=condicional_data[1],
-                data_condicional=datetime.strptime(
-                    condicional_data[2], "%Y-%m-%d"
-                ).date()
-                if condicional_data[2]
-                else None,
-                data_prevista_devolucao=datetime.strptime(
-                    condicional_data[3], "%Y-%m-%d"
-                ).date()
-                if condicional_data[3]
-                else None,
-                status=condicional_data[4],
-                observacao=condicional_data[5],
-                desconto=float(condicional_data[6]) if condicional_data[6] else 0.0,
-            )
+                condicional = Condicional(
+                    id=condicional_data[0],
+                    cliente_id=condicional_data[1],
+                    data_condicional=datetime.strptime(
+                        condicional_data[2], "%Y-%m-%d"
+                    ).date()
+                    if condicional_data[2]
+                    else None,
+                    data_prevista_devolucao=datetime.strptime(
+                        condicional_data[3], "%Y-%m-%d"
+                    ).date()
+                    if condicional_data[3]
+                    else None,
+                    status=condicional_data[4],
+                    observacao=condicional_data[5],
+                    desconto=float(condicional_data[6]) if condicional_data[6] else 0.0,
+                )
 
-            cursor.execute(
-                """
+                cursor.execute(
+                    """
                 SELECT ic.id, ic.condicional_id, ic.produto_id, ic.quantidade,
                     ic.preco_unitario, p.nome as produto_nome, p.estoque
                 FROM itens_condicional ic
                 JOIN produtos p ON ic.produto_id = p.id
                 WHERE ic.condicional_id = ?
             """,
-                (condicional_id,),
-            )
+                    (condicional_id,),
+                )
 
-            itens = cursor.fetchall()
+                itens = cursor.fetchall()
             for item in itens:
                 condicional.itens.append(
                     {
@@ -181,17 +168,12 @@ class Condicional:
         except Exception:
             logger.exception("Erro ao buscar condicional")
             return None
-        finally:
-            conn.close()
 
     @staticmethod
     def buscar_todas():
-        db = Database()
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
         try:
-            cursor.execute("""
+            with obter_database().transacao() as cursor:
+                cursor.execute("""
                 SELECT c.id, c.cliente_id, c.data_condicional,
                     c.data_prevista_devolucao, c.status, c.observacao, c.desconto,
                     cli.nome as cliente_nome,
@@ -201,14 +183,12 @@ class Condicional:
                 ORDER BY c.data_condicional DESC
             """)
 
-            condicionais = cursor.fetchall()
+                condicionais = cursor.fetchall()
             return condicionais
 
         except Exception:
             logger.exception("Erro ao buscar todas as condicionais")
             return []
-        finally:
-            conn.close()
 
     def marcar_como_devolvida(self):
         self.status = "devolvida"
@@ -240,11 +220,8 @@ class Condicional:
     def criar_tabelas():
         """Cria as tabelas necessárias para o sistema de condicionais"""
         try:
-            db = Database()
-            conn = db.get_connection()
-            cursor = conn.cursor()
-
-            cursor.execute("""
+            with obter_database().transacao() as cursor:
+                cursor.execute("""
                 CREATE TABLE IF NOT EXISTS condicionais (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     cliente_id INTEGER NOT NULL,
@@ -257,7 +234,7 @@ class Condicional:
                 )
             """)
 
-            cursor.execute("""
+                cursor.execute("""
                 CREATE TABLE IF NOT EXISTS itens_condicional (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     condicional_id INTEGER NOT NULL,
@@ -270,11 +247,8 @@ class Condicional:
                 )
             """)
 
-            conn.commit()
             logger.debug("Tabelas de condicionais criadas/verificadas com sucesso")
 
         except Exception:
             logger.exception("Erro ao criar tabelas de condicionais")
             raise
-        finally:
-            pass

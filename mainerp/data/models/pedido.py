@@ -1,9 +1,8 @@
 # \erp\models\pedido.py
 import logging
-import sqlite3
 from datetime import datetime
 
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 
 from .base_model import BaseModel
 
@@ -36,10 +35,8 @@ class Pedido(BaseModel):
         self.status = status
 
     def salvar(self):
-        conn = Database().get_connection()
-        cursor = conn.cursor()
-
-        try:
+        database = obter_database()
+        with database.transacao() as cursor:
             if self.id:
                 query = """
                     UPDATE pedidos
@@ -77,23 +74,15 @@ class Pedido(BaseModel):
                 )
 
             cursor.execute(query, params)
-            conn.commit()
-
             if not self.id:
                 self.id = cursor.lastrowid
 
             return self.id
-        except Exception:
-            conn.rollback()
-            raise
 
     @classmethod
     def buscar_por_id(cls, id):
         """MÉTODO CORRIGIDO: Query explícita para garantir ordem correta dos campos"""
         try:
-            conn = Database().get_connection()
-            cursor = conn.cursor()
-
             # Query explícita com nomes dos campos para evitar problemas de ordem
             query = """
                 SELECT
@@ -109,8 +98,9 @@ class Pedido(BaseModel):
                 FROM pedidos
                 WHERE id = ?
             """
-            cursor.execute(query, (id,))
-            result = cursor.fetchone()
+            with obter_database().transacao() as cursor:
+                cursor.execute(query, (id,))
+                result = cursor.fetchone()
 
             if result:
                 # Mapear explicitamente cada campo para evitar confusão
@@ -129,19 +119,11 @@ class Pedido(BaseModel):
         except Exception:
             logger.exception("Erro ao buscar pedido por ID")
             return None
-        finally:
-            try:
-                conn.close()
-            except sqlite3.Error:
-                pass
 
     @classmethod
     def buscar_todos(cls, status=None):
         """MÉTODO CORRIGIDO: Query explícita para garantir ordem correta dos campos"""
         try:
-            conn = Database().get_connection()
-            cursor = conn.cursor()
-
             # Query explícita com nomes dos campos
             query = """
                 SELECT
@@ -164,8 +146,9 @@ class Pedido(BaseModel):
 
             query += " ORDER BY data_pedido DESC"
 
-            cursor.execute(query, params)
-            results = cursor.fetchall()
+            with obter_database().transacao() as cursor:
+                cursor.execute(query, params)
+                results = cursor.fetchall()
 
             pedidos = []
             for result in results:
@@ -187,11 +170,6 @@ class Pedido(BaseModel):
         except Exception:
             logger.exception("Erro ao buscar todos os pedidos")
             return []
-        finally:
-            try:
-                conn.close()
-            except sqlite3.Error:
-                pass
 
     def marcar_como_recebido(self):
         self.status = "recebido"
@@ -212,9 +190,6 @@ class Pedido(BaseModel):
     def obter_itens(self):
         """MÉTODO MODIFICADO para incluir valor de venda"""
         try:
-            conn = Database().get_connection()
-            cursor = conn.cursor()
-
             query = """
                 SELECT
                     ip.id,           -- 0
@@ -230,17 +205,13 @@ class Pedido(BaseModel):
                 JOIN produtos p ON ip.produto_id = p.id
                 WHERE ip.pedido_id = ?
             """
-            cursor.execute(query, (self.id,))
-            results = cursor.fetchall()
+            with obter_database().transacao() as cursor:
+                cursor.execute(query, (self.id,))
+                results = cursor.fetchall()
             return results if results else []
         except Exception:
             logger.exception("Erro ao obter itens do pedido %s", self.id)
             return []
-        finally:
-            try:
-                conn.close()
-            except sqlite3.Error:
-                pass
 
     def calcular_subtotal_produtos(self):
         """Calcula o subtotal apenas dos produtos (sem frete e desconto)"""

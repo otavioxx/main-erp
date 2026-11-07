@@ -1,5 +1,5 @@
 # \erp\model\empresa.py
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 
 
 class Empresa:
@@ -16,14 +16,10 @@ class Empresa:
 
     @classmethod
     def buscar(cls):
-        db = Database()
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("SELECT * FROM empresa LIMIT 1")
-        row = cursor.fetchone()
-
-        conn.close()
+        db = obter_database()
+        with db.transacao() as cursor:
+            cursor.execute("SELECT * FROM empresa LIMIT 1")
+            row = cursor.fetchone()
 
         if row:
             return cls(*row)
@@ -31,42 +27,37 @@ class Empresa:
             return cls()
 
     def salvar(self):
-        db = Database()
-        conn = db.get_connection()
-        cursor = conn.cursor()
-
-        if self.id:
-            cursor.execute(
-                """
-                UPDATE empresa SET nome=?, cnpj=?, endereco=?, telefone=?, email=?, logo=?
-                WHERE id=?
-            """,
-                (
-                    self.nome,
-                    self.cnpj,
-                    self.endereco,
-                    self.telefone,
-                    self.email,
-                    self.logo,
-                    self.id,
-                ),
-            )
-        else:
-            cursor.execute(
-                """
-                INSERT INTO empresa (nome, cnpj, endereco, telefone, email, logo)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """,
-                (
-                    self.nome,
-                    self.cnpj,
-                    self.endereco,
-                    self.telefone,
-                    self.email,
-                    self.logo,
-                ),
-            )
-            self.id = cursor.lastrowid
-
-        conn.commit()
-        conn.close()
+        db = obter_database()
+        with db.transacao() as cursor:
+            if self.id:
+                cursor.execute(
+                    """
+                    UPDATE empresa SET nome=?, cnpj=?, endereco=?, telefone=?, email=?, logo=?
+                    WHERE id=?
+                """,
+                    (
+                        self.nome,
+                        self.cnpj,
+                        self.endereco,
+                        self.telefone,
+                        self.email,
+                        self.logo,
+                        self.id,
+                    ),
+                )
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO empresa (nome, cnpj, endereco, telefone, email, logo)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                    (
+                        self.nome,
+                        self.cnpj,
+                        self.endereco,
+                        self.telefone,
+                        self.email,
+                        self.logo,
+                    ),
+                )
+                self.id = cursor.lastrowid

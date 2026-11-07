@@ -30,9 +30,9 @@ inicial). Cada fase deixa o sistema funcionando; não faça duas fases ao mesmo 
 
 ## Fase 2 — Camada de dados (2 a 3 semanas)
 
-- [ ] Hoje há 56 `Database()` espalhados (cada um abre sua própria conexão). Criar um
-      gerenciador único (`with db.transacao() as cur:`) em `mainerp/data/database.py` e
-      migrar um model por vez.
+- [x] Centralizar as conexões SQLite em `obter_database()` (gerenciador por thread) e
+      adicionar transações com commit/rollback e savepoints em `mainerp/data/database.py`.
+      Models, utilitários, telas e relatórios usam o gerenciador compartilhado.
 - [ ] Tirar o SQL das telas (`mainerp/ui/views/recebimento_view`, `condicional_view`,
       `venda_view`, `pedido_view`) para `mainerp/data/models/` e repositórios.
 - [ ] **Dinheiro**: 23 colunas `REAL` (float) acumulam erro de arredondamento. Migrar para

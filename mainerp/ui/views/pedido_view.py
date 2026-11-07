@@ -3,7 +3,6 @@ View de Pedidos - Otimizada com correções de ordenação e layout reorganizado
 """
 
 import logging
-import sqlite3
 from datetime import datetime, timedelta
 
 from PyQt6.QtCore import Qt
@@ -326,11 +325,9 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
     ):
         """NOVO MÉTODO: Busca pedidos com estrutura explícita para evitar problemas de índice"""
         try:
-            from mainerp.data.database import Database
+            from mainerp.data.database import obter_database
 
-            db = Database()
-            conn = db.get_connection()
-            cursor = conn.cursor()
+            database = obter_database()
 
             # Query explícita que inclui todos os campos em ordem conhecida
             query = """
@@ -382,20 +379,15 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
 
             query += " ORDER BY p.data_pedido DESC, p.id DESC"
 
-            cursor.execute(query, params)
-            resultados = cursor.fetchall()
+            with database.transacao() as cursor:
+                cursor.execute(query, params)
+                resultados = cursor.fetchall()
 
             return resultados
 
         except Exception:
             logger.exception("Erro ao buscar pedidos")
             return []
-        finally:
-            try:
-                if hasattr(db, "close_connection"):
-                    db.close_connection()
-            except sqlite3.Error:
-                pass
 
     def _carregar_dados(
         self, data_inicio_str=None, data_fim_str=None, fornecedor_id=None, status=None

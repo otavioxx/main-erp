@@ -18,7 +18,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ class PrintRelatCondicional:
     def _buscar_condicionais_com_cliente():
         """Busca condicionais com JOIN para incluir o nome do cliente e contar itens"""
         try:
-            conn = Database().get_connection()
+            conn = obter_database().get_connection()
             cursor = conn.cursor()
 
             # Query com JOIN para trazer o nome do cliente e contar itens
@@ -72,7 +72,6 @@ class PrintRelatCondicional:
             """)
 
             condicionais = cursor.fetchall()
-            conn.close()
             return condicionais
 
         except Exception as e:
@@ -83,7 +82,7 @@ class PrintRelatCondicional:
     def _calcular_total_condicional(condicional_id):
         """Calcula o total de uma condicional"""
         try:
-            conn = Database().get_connection()
+            conn = obter_database().get_connection()
             cursor = conn.cursor()
 
             # Buscar todos os itens da condicional
@@ -97,7 +96,6 @@ class PrintRelatCondicional:
             )
 
             itens = cursor.fetchall()
-            conn.close()
 
             total = 0
             for item in itens:
@@ -539,7 +537,7 @@ class PrintRelatCondicional:
             # Buscar nome do cliente se filtro aplicado
             if cliente_id:
                 try:
-                    conn = Database().get_connection()
+                    conn = obter_database().get_connection()
                     cursor = conn.cursor()
                     cursor.execute(
                         "SELECT nome FROM clientes WHERE id = ?", (cliente_id,)
@@ -547,7 +545,6 @@ class PrintRelatCondicional:
                     cliente = cursor.fetchone()
                     if cliente:
                         filtros["cliente_nome"] = cliente[0]
-                    conn.close()
                 except Exception as e:
                     logger.error(f"Erro ao buscar nome do cliente {cliente_id}: {e}")
 

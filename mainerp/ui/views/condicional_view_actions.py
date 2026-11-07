@@ -1,14 +1,11 @@
 """Componentes de CondicionalView."""
 
-
-
-
 from PyQt6.QtWidgets import (
     QMessageBox,
 )
 
 from mainerp.core.app_logging import registrar_excecao
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 from mainerp.data.models.condicional import Condicional
 from mainerp.domain.utils.helpers import (
     formatar_moeda,
@@ -211,22 +208,14 @@ class _CondicionalViewActions(ComponentMixin):
 
         if resposta == QMessageBox.StandardButton.Yes:
             try:
-                conn = Database().get_connection()
-                cursor = conn.cursor()
-
-                # Excluir itens da condicional
-                cursor.execute(
-                    "DELETE FROM itens_condicional WHERE condicional_id = ?",
-                    (condicional.id,),
-                )
-
-                # Excluir a condicional
-                cursor.execute(
-                    "DELETE FROM condicionais WHERE id = ?", (condicional.id,)
-                )
-
-                conn.commit()
-                conn.close()
+                with obter_database().transacao() as cursor:
+                    cursor.execute(
+                        "DELETE FROM itens_condicional WHERE condicional_id = ?",
+                        (condicional.id,),
+                    )
+                    cursor.execute(
+                        "DELETE FROM condicionais WHERE id = ?", (condicional.id,)
+                    )
 
                 self._carregar_condicionais()
                 self.tabela_condicionais.clearSelection()

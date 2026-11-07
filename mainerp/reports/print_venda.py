@@ -1,7 +1,6 @@
 import io
 import logging
 import os
-import sqlite3
 from datetime import datetime
 
 from PIL import Image as PILImage
@@ -20,7 +19,7 @@ from reportlab.platypus import (
 )
 
 from mainerp.core.app_logging import registrar_excecao
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
 from mainerp.data.models.venda import Venda
 
@@ -41,7 +40,7 @@ class PrintVenda:
     def buscar_itens_venda_detalhados(venda_id):
         """Busca itens da venda incluindo campos do produto (cor, tamanho)"""
         try:
-            db = Database()
+            db = obter_database()
             conn = db.get_connection()
             cursor = conn.cursor()
 
@@ -67,17 +66,12 @@ class PrintVenda:
         except Exception:
             logger.exception("Erro ao buscar itens da venda %s", venda_id)
             return []
-        finally:
-            try:
-                conn.close()
-            except sqlite3.Error:
-                pass
 
     @staticmethod
     def buscar_parcelas_venda(venda_id):
         """Busca as parcelas/duplicatas da venda"""
         try:
-            db = Database()
+            db = obter_database()
             conn = db.get_connection()
             cursor = conn.cursor()
 
@@ -116,11 +110,6 @@ class PrintVenda:
         except Exception:
             logger.exception("Erro ao buscar parcelas da venda %s", venda_id)
             return []
-        finally:
-            try:
-                conn.close()
-            except sqlite3.Error:
-                pass
 
     @staticmethod
     def _limpar_nome_arquivo(nome):
@@ -139,7 +128,7 @@ class PrintVenda:
         if not cliente_id:
             return "Cliente não informado"
 
-        conn = Database().get_connection()
+        conn = obter_database().get_connection()
         cursor = conn.cursor()
         try:
             cursor.execute("SELECT nome FROM clientes WHERE id = ?", (cliente_id,))
@@ -151,8 +140,6 @@ class PrintVenda:
                 "Exception handled in PrintVenda._get_nome_cliente in imprecoes/print_venda.py",
             )
             return f"Erro: {e!s}"
-        finally:
-            conn.close()
 
     @staticmethod
     def gerar_comprovante(venda_id, pasta_destino="imprecoes"):

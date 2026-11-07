@@ -1,7 +1,6 @@
 import io
 import logging
 import os
-import sqlite3
 from datetime import datetime
 
 from PIL import Image as PILImage
@@ -20,7 +19,7 @@ from reportlab.platypus import (
 )
 
 from mainerp.core.app_logging import registrar_excecao
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
 from mainerp.data.models.pedido import Pedido
 
@@ -34,7 +33,7 @@ class PrintPedido:
         Busca todos os itens de um pedido específico - MODIFICADO para incluir campos do produto
         """
         try:
-            db = Database()
+            db = obter_database()
             conn = db.get_connection()
             cursor = conn.cursor()
 
@@ -64,15 +63,6 @@ class PrintPedido:
         except Exception:
             logger.exception("Erro ao buscar itens do pedido %s", pedido_id)
             return []
-        finally:
-            # Tentar fechar a conexão de forma segura
-            try:
-                if hasattr(db, "close_connection"):
-                    db.close_connection()
-                elif hasattr(db, "connection") and db.connection:
-                    db.connection.close()
-            except sqlite3.Error:
-                pass
 
     @staticmethod
     def gerar_comprovante(pedido_id, pasta_destino="relatorios"):
@@ -495,7 +485,7 @@ class PrintPedido:
             return "Fornecedor não informado"
 
         try:
-            db = Database()
+            db = obter_database()
             conn = db.get_connection()
             cursor = conn.cursor()
 
@@ -511,12 +501,3 @@ class PrintPedido:
                 "Exception handled in PrintPedido._get_nome_fornecedor in imprecoes/print_pedido.py",
             )
             return f"Erro: {e!s}"
-        finally:
-            # Tentar fechar a conexão de forma segura
-            try:
-                if hasattr(db, "close_connection"):
-                    db.close_connection()
-                elif hasattr(db, "connection") and db.connection:
-                    db.connection.close()
-            except sqlite3.Error:
-                pass

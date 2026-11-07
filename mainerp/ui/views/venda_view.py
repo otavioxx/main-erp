@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
 )
 
 from mainerp.core.app_logging import registrar_excecao
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 from mainerp.data.models.venda import Venda
 from mainerp.domain.utils.export_utils import ExportUtils
 from mainerp.domain.utils.helpers import (
@@ -578,18 +578,16 @@ class VendaView(TableScrollNavigationMixin, QWidget):
     def _tem_parcelas_pagas(self, venda_id):
         """Verifica se a venda tem parcelas pagas"""
         try:
-            conn = Database().get_connection()
-            cursor = conn.cursor()
-            cursor.execute(
-                """
+            with obter_database().transacao() as cursor:
+                cursor.execute(
+                    """
                 SELECT COUNT(*)
                 FROM duplicatas_pagas
                 WHERE venda_id = ?
             """,
-                (venda_id,),
-            )
-            parcelas_pagas = cursor.fetchone()[0]
-            conn.close()
+                    (venda_id,),
+                )
+                parcelas_pagas = cursor.fetchone()[0]
             return parcelas_pagas > 0
         except Exception as e:
             registrar_excecao(

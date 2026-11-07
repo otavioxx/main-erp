@@ -1,7 +1,6 @@
 import io
 import logging
 import os
-import sqlite3
 from datetime import datetime
 
 from PIL import Image as PILImage
@@ -19,7 +18,7 @@ from reportlab.platypus import (
     TableStyle,
 )
 
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 from mainerp.data.models.empresa import Empresa
 
 logger = logging.getLogger(__name__)
@@ -59,7 +58,7 @@ class PrintRelatPedido:
     ):
         """Busca pedidos com JOIN explícito para evitar problemas de índice - MÉTODO CORRIGIDO"""
         try:
-            db = Database()
+            db = obter_database()
             conn = db.get_connection()
             cursor = conn.cursor()
 
@@ -121,12 +120,6 @@ class PrintRelatPedido:
         except Exception as e:
             logger.error(f"Erro ao buscar pedidos: {e}")
             return []
-        finally:
-            try:
-                if conn:
-                    conn.close()
-            except sqlite3.Error:
-                pass
 
     @staticmethod
     def gerar_relatorio(pedidos_data, filtros=None, pasta_destino="relatorios"):
@@ -554,7 +547,7 @@ class PrintRelatPedido:
 
             if fornecedor_id:
                 try:
-                    conn = Database().get_connection()
+                    conn = obter_database().get_connection()
                     cursor = conn.cursor()
                     cursor.execute(
                         "SELECT nome FROM fornecedores WHERE id = ?", (fornecedor_id,)
@@ -562,7 +555,6 @@ class PrintRelatPedido:
                     fornecedor = cursor.fetchone()
                     if fornecedor:
                         filtros["fornecedor"] = fornecedor[0]
-                    conn.close()
                 except Exception as e:
                     logger.error(f"Erro ao buscar nome do fornecedor: {e}")
 

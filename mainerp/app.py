@@ -16,7 +16,7 @@ from mainerp.core.app_logging import configurar_logging, registrar_excecao
 from mainerp.core.config import obter_config
 
 # Importações movidas para o topo para evitar problemas
-from mainerp.data.database import Database
+from mainerp.data.database import obter_database
 from mainerp.ui.styles import aplicar_tema_dark  # Alterado para aplicar_tema_dark
 from mainerp.ui.views.main_window import MainWindow
 
@@ -83,25 +83,17 @@ def limpar_pasta_relatorios():
 
 
 def verificar_banco_dados():
-    db = Database()
-    conn = db.get_connection()
-    cursor = conn.cursor()
-
+    db = obter_database()
     try:
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
-
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='duplicatas'"
-        )
-        if cursor.fetchone():
-            cursor.execute("PRAGMA table_info(duplicatas)")
-        else:
-            pass
-
+        with db.transacao() as cursor:
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='duplicatas'"
+            )
+            if cursor.fetchone():
+                cursor.execute("PRAGMA table_info(duplicatas)")
     except sqlite3.Error:
         logger.exception("Erro ao verificar banco")
-    finally:
-        conn.close()
 
     return db
 
