@@ -174,6 +174,16 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
       Falhas de agendamento e retenção são informadas; a barra de status mostra a idade
       do último arquivo automático e o resultado nesta sessão. Arquivos encontrados na
       inicialização não são apresentados como novamente verificados.
+- [ ] Orientar uma rotina simples de cópia externa e teste periódico de restauração
+      em instalação isolada: os backups automáticos ficam no mesmo dispositivo do banco
+      e não protegem contra perda do computador ou disco. Documentar quais dados e
+      configurações cada backup inclui e quais a restauração efetivamente recupera.
+- [ ] Evitar que um backup manual recente ausente ou corrompido dispense o aviso ao
+      fechar: atualmente a decisão usa a data registrada, sem verificar o arquivo.
+      Testar remoção, corrupção e destino externo indisponível, com aviso claro.
+- [ ] Avaliar como detectar um backup automático recente corrompido ou um relógio
+      incorreto sem impedir o uso do ERP: o agendamento usa a data do arquivo, não sua
+      integridade. Testar avisos e repetição sem sobrescrever backups anteriores.
 
 ### Prioridade alta — atualizações e distribuição
 
