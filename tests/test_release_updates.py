@@ -21,12 +21,21 @@ UPDATE_MANIFEST_URL = (
 
 
 def _carregar_modulo(caminho: Path, nome: str):
-    spec = importlib.util.spec_from_file_location(nome, caminho)
+    loader = importlib.machinery.SourceFileLoader(nome, str(caminho))
+    spec = importlib.util.spec_from_file_location(nome, caminho, loader=loader)
     if spec is None or spec.loader is None:
         raise ImportError(f"Não foi possível carregar {caminho}")
     modulo = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(modulo)
     return modulo
+
+
+def test_carregar_pyw_sem_suporte_nativo_a_extensao(tmp_path, monkeypatch):
+    caminho = tmp_path / "modulo.pyw"
+    caminho.write_text("valor = 42\n", encoding="utf-8")
+    extensoes = [ext for ext in importlib.machinery.SOURCE_SUFFIXES if ext != ".pyw"]
+    monkeypatch.setattr(importlib.machinery, "SOURCE_SUFFIXES", extensoes)
+    assert _carregar_modulo(caminho, "modulo_teste_pyw").valor == 42
 
 
 @pytest.fixture

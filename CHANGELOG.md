@@ -1,7 +1,8 @@
 # Histórico de versões
 
-## 0.10.3 - 2026-11-08
+## 0.10.4 - 2026-11-08
 
+- Corrigida a execução dos testes de atualização no Linux usado pelo pipeline.
 - Backups automáticos recentes são verificados em segundo plano; arquivos inválidos ou
   inacessíveis geram alerta e nova tentativa. Datas futuras suspendem a retenção e
   geram aviso, sem impedir novos backups; cópias não sobrescrevem arquivos existentes.
