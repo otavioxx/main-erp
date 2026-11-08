@@ -6,8 +6,9 @@ import sys
 from pathlib import Path
 
 import pytest
-from PyQt6.QtGui import QPalette
-from PyQt6.QtWidgets import QApplication, QMessageBox, QPushButton
+from PyQt6.QtCore import QBuffer, QByteArray, QIODevice, QSize
+from PyQt6.QtGui import QColor, QIcon, QPalette, QPixmap
+from PyQt6.QtWidgets import QApplication, QLabel, QMessageBox, QPushButton
 
 from mainerp.core.config import Config
 from mainerp.ui.styles import aplicar_tema
@@ -15,6 +16,100 @@ from mainerp.ui.theme_tokens import CLARO, ESCURO
 from mainerp.ui.views import config_view
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@pytest.mark.parametrize("tema,cores", [("light", CLARO), ("dark", ESCURO)])
+def test_estado_visual_atualiza_cores_do_widget_em_tempo_real(tema, cores):
+    from mainerp.ui.styles import definir_estado_visual
+
+    app = QApplication.instance() or QApplication([])
+    aplicar_tema(app, tema)
+    label = QLabel("Estado")
+    label.show()
+    app.processEvents()
+    for estado, cor in (
+        ("acento", cores.accent_text),
+        ("sucesso", cores.success_text),
+        ("erro", cores.danger_text),
+        ("acento", cores.accent_text),
+    ):
+        definir_estado_visual(label, estado)
+        app.processEvents()
+        assert label.palette().color(QPalette.ColorRole.WindowText) == QColor(cor)
+        assert label.font().bold()
+    with pytest.raises(ValueError, match="Estado visual desconhecido"):
+        definir_estado_visual(label, "invalido")
+    label.close()
+
+
+@pytest.mark.parametrize("tema,cores", [("light", CLARO), ("dark", ESCURO)])
+def test_icones_monocromaticos_por_tema_e_estado(tema, cores):
+    from mainerp.ui.icones import icone
+
+    app = QApplication.instance() or QApplication([])
+    aplicar_tema(app, tema)
+    nomes = (
+        "shopping-cart", "clipboard-check", "clipboard-list", "wallet", "users",
+        "package", "truck", "settings", "info", "hard-drive-download",
+        "folder-open", "building-2",
+    )
+    for nome in nomes:
+        simbolo = icone(nome, cores.nav_text, cores.button_semantic_text)
+        assert not simbolo.isNull()
+        for modo, estado, cor in (
+            (QIcon.Mode.Normal, QIcon.State.Off, cores.nav_text),
+            (QIcon.Mode.Normal, QIcon.State.On, cores.button_semantic_text),
+            (QIcon.Mode.Disabled, QIcon.State.Off, cores.text_disabled),
+        ):
+            imagem = simbolo.pixmap(QSize(24, 24), modo, estado).toImage()
+            pixels = [
+                imagem.pixelColor(x, y)
+                for y in range(imagem.height())
+                for x in range(imagem.width())
+                if imagem.pixelColor(x, y).alpha() == 255
+            ]
+            assert pixels, (nome, modo, estado)
+            assert all(pixel == QColor(cor) for pixel in pixels), (nome, modo, estado)
+
+
+def test_icone_ausente_ou_invalido_nao_e_silenciado(tmp_path, monkeypatch):
+    from mainerp.ui import icones
+
+    app = QApplication.instance() or QApplication([])
+    aplicar_tema(app, "light")
+    monkeypatch.setattr(icones, "PASTA_ICONES", tmp_path)
+    with pytest.raises(FileNotFoundError):
+        icones.icone("inexistente", "#ffffff")
+    with pytest.raises(ValueError, match="Nome de ícone inválido"):
+        icones.icone("../fora", "#ffffff")
+    (tmp_path / "invalido.svg").write_text("currentColor", encoding="utf-8")
+    with pytest.raises(ValueError, match="SVG inválido"):
+        icones.icone("invalido", "#ffffff")
+
+
+def test_icone_padrao_e_logo_da_empresa_no_cabecalho(monkeypatch):
+    app = QApplication.instance() or QApplication([])
+    aplicar_tema(app, "light")
+    empresa = config_view.Empresa()
+    monkeypatch.setattr(config_view.Empresa, "buscar", lambda: empresa)
+    view = config_view.ConfigView()
+    assert view.header_logo.pixmap() is not None
+    imagem = QPixmap(10, 10)
+    imagem.fill(QColor("#A82019"))
+    dados = QByteArray()
+    buffer = QBuffer(dados)
+    assert buffer.open(QIODevice.OpenModeFlag.WriteOnly)
+    assert imagem.save(buffer, "PNG")
+    buffer.close()
+    empresa.logo = bytes(dados)
+    view.atualizar_header_logo()
+    assert view.header_logo.pixmap().toImage().pixelColor(5, 5) == QColor("#A82019")
+    empresa.logo = None
+    view.atualizar_header_logo()
+    assert view.header_logo.pixmap() is not None
+    assert view.header_logo.pixmap().toImage().pixelColor(5, 5) != QColor("#A82019")
+    view.deleteLater()
+    app.processEvents()
 
 
 def test_preferencia_nova_antiga_invalida_e_persistencia(tmp_path, caplog):
@@ -65,13 +160,12 @@ def test_tema_aplica_paleta_raio_e_estado_desabilitado(tema, cores):
     app = QApplication.instance() or QApplication([])
     aplicar_tema(app, tema)
     assert app.palette().color(QPalette.ColorRole.Window).name().upper() == cores.background_window
-    assert re.findall(r"border(?:-(?:top|bottom)-(?:left|right))?-radius:\s*(\d+)px", app.styleSheet())
-    assert all(
-        valor == "0"
-        for valor in re.findall(
-            r"border(?:-(?:top|bottom)-(?:left|right))?-radius:\s*(\d+)px", app.styleSheet()
-        )
+    raios = re.findall(
+        r"border(?:-(?:top|bottom)-(?:left|right))?-radius\s*:\s*([^;}]+)",
+        app.styleSheet(),
     )
+    assert raios
+    assert all(re.fullmatch(r"0(?:px)?", valor.strip()) for valor in raios), raios
     button = QPushButton("Editar")
     button.setProperty("class", "secondary")
     button.resize(120, 40)
@@ -222,7 +316,7 @@ def test_telas_e_dialogos_abrem_em_tema_isolado(tmp_path, tema):
     }
     script = r"""
 import sys
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QPushButton
 from mainerp.ui.styles import aplicar_tema
 from mainerp.ui.views.cliente_view import ClienteDialog, ClienteView
 from mainerp.ui.views.config_view import ConfigView
@@ -271,6 +365,17 @@ for create in constructors:
     widget = create()
     widget.show()
     app.processEvents()
+    if isinstance(widget, MainWindow):
+        assert len(widget.nav_buttons) == 8
+        assert all(not botao.icon().isNull() for botao in widget.nav_buttons)
+        assert not widget.about_updates_button.icon().isNull()
+        widget.nav_buttons[1].click()
+        assert widget.stacked_widget.currentIndex() == 1
+        botoes = widget.config_view.findChildren(QPushButton)
+        for texto in ("Criar Backup", "Restaurar Backup"):
+            assert any(botao.text() == texto and not botao.icon().isNull() for botao in botoes)
+        assert any(botao.accessibleName() == "Configurações avançadas" and
+                   not botao.icon().isNull() for botao in botoes)
     print(type(widget).__name__, flush=True)
     widget.hide()
     widget.deleteLater()

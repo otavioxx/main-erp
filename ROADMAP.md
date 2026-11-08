@@ -304,8 +304,7 @@ estilo e melhoria geral de usabilidade. A referência é o padrão visual de ERP
 consolidados (como o TOTVS): aparência plana, sóbria e densa, bordas retas e hierarquia por
 contraste. É inspiração de padrão de uso; não copiar logotipos, ícones, textos ou outros
 ativos de terceiros. A fundação dos temas claro e escuro já foi aplicada, mas a
-validação visual e a migração de estilos locais continuam pendentes. Ainda há emojis
-como ícones (barra lateral em `main_window.py`, botões em `config_view.py`).
+validação visual e a migração de estilos locais continuam pendentes.
 
 - [x] Registrar os princípios de design em `docs/identidade_visual.md`: raio de borda zero, bordas de 1 px,
       sem sombras nem gradientes, controles e linhas compactos, cor usada para significado
@@ -318,25 +317,66 @@ como ícones (barra lateral em `main_window.py`, botões em `config_view.py`).
       escolha nas configurações. Testes Qt aplicam cada tema e instanciam cada tela e
       diálogo sem erro. A escolha passa a valer na próxima abertura; configurações
       antigas sem preferência mantêm o escuro.
-- [ ] Consolidar os `setStyleSheet` locais no tema central, incluindo os de backup e
-      restauração. Suas cores já usam os tokens, mas ainda existem estilos locais de
-      formatação e altura. Adicionar um teste contra raios diferentes de zero ou cores
-      fixas fora de `styles.py` e `theme_tokens.py`.
+- [x] Consolidar os `setStyleSheet` locais no tema central, incluindo backup,
+      restauração e itens das tabelas de vendas e produtos. Estados dinâmicos são
+      repolidos ao mudar; testes verificam cores, altura das linhas e ausência de
+      estilos locais, cores hexadecimais fixas e raios fora dos módulos de tema.
 - [x] Adotar Fusion e raio zero no QSS dos controles, abas, tabelas, barras, menus e
       conteúdo dos diálogos. Testes cobrem temas, interação e escalas Qt simuladas;
       inspeção de controles em Windows foi feita a 100%. A seta das listas usa Fusion.
-  - [ ] Validar visualmente em 125% e 150% no Windows. Bordas externas de janelas e
+  - [x] Validar visualmente em 125% e 150% no Windows. Bordas externas de janelas e
         diálogos nativos de arquivos são controladas pelo sistema operacional e podem
         continuar arredondadas; não trocar por janelas sem moldura sem avaliar o impacto.
-- [ ] Substituir os emojis por ícones SVG monocromáticos de um conjunto livre (conferir a
-      licença; Lucide, Phosphor e Material Symbols são opções), em `mainerp/ui/icons/`,
-      coloridos pelo tema. Conferir se o gerador de release empacota esses arquivos.
+        Em 125% reais no monitor principal (1920 × 1080), foram inspecionadas visões
+        gerais das oito telas na janela maximizada, nos dois temas, com banco vazio
+        isolado; os botões de navegação mudaram para as telas esperadas. Clientes e
+        seu diálogo também foram inspecionados isoladamente com dados fictícios. Com
+        largura de 1000 unidades Qt, a coluna “Nome” ficou com 34–36 unidades e
+        cortou o cabeçalho e o nome; com 1400, ficou com 434 unidades e o exemplo
+        apareceu completo. A coluna usa `Stretch` e as demais têm larguras fixas;
+        investigar a distribuição. O diálogo coube na área disponível nessa posição,
+        mas a captura não incluiu a moldura nativa. Foram ainda inspecionados os
+        conteúdos de backup, restauração, fornecedor, pedido, produto e nova venda
+        isolados, sem operações reais, nos dois temas. Em Nova Venda, também com a
+        janela principal como pai, a geometria externa ultrapassou a área disponível
+        em 13 unidades Qt na parte inferior; investigar o impacto da barra de tarefas.
+        Em 150% reais no mesmo monitor, a área disponível era 1280 × 672 unidades
+        Qt. Inspeção geral das oito telas maximizadas e de sete diálogos, nos dois
+        temas, com banco isolado: em Clientes, a coluna “Nome” tinha 74 unidades e
+        abreviou um nome longo. Com dados fictícios, busca, limpeza, F11 e seleção
+        responderam nos dois temas; ao redimensionar a tela isolada de 1000 para
+        1200 unidades Qt, a coluna passou de 34–36 para 234 unidades.
+        Com os diálogos abertos sobre a janela principal,
+        os botões OK e Cancelar de Fornecedor ficaram totalmente abaixo da área
+        disponível; em Nova Venda e Restauração, os botões inferiores ficaram
+        parcialmente fora dela. A geometria externa de Cliente e Pedido também
+        ultrapassou a área, mas seus botões medidos ficaram dentro. Investigar e
+        corrigir posicionamento e dimensionamento; capturas de conteúdo não mostram
+        a composição com a barra de tarefas nem as molduras nativas. O diálogo de
+        Fornecedor impunha altura mínima de 750 unidades; o dimensionador compartilhado
+        de Nova Venda usava a geometria total do monitor, não sua área disponível;
+        Restauração também centralizava pela geometria total.
+        Correções aplicadas: nome de Clientes com largura inicial de 200 unidades,
+        redimensionamento manual e rolagem horizontal; formulários de Cliente e
+        Fornecedor com rolagem e ações fixas; dimensionador compartilhado e
+        Restauração usam a área útil do monitor. Testes no backend Windows, com
+        escalas Qt simuladas de 125% e 150%, cobrem os botões e a rolagem nesses
+        diálogos. Revalidar as correções nas escalas reais: o monitor retornou a
+        100% antes da aplicação das alterações.
+        Permanecem pendentes a inspeção detalhada das demais telas e diálogos,
+        redimensionamento, interações e diálogos nativos nas duas escalas, além de
+        validar novamente após as correções. Simulações Qt não substituem a validação
+        real do Windows.
+- [x] Substituir emojis por ícones SVG monocromáticos Lucide 0.468.0 na navegação e nas
+      ações, com cores do tema e licenças ISC/MIT incluídas no instalador e na release.
+      Mensagens usam texto explícito e avisos nativos. Inspeção nos dois temas a 100%;
+      a conferência visual em 125% e 150% permanece pendente.
 - [ ] Definir a tela-modelo de ERP e aplicá-la às listagens: cabeçalho da tela, barra de
       ações com ícone e texto (Incluir, Alterar, Excluir, Pesquisar, Imprimir) e atalhos
       de teclado, filtros em painel, grade com cabeçalho destacado e linhas zebradas,
       totais no rodapé e barra de status com empresa e versão. Formulários com grupos de
       título reto e botões primário, secundário e de perigo consistentes.
-- [ ] Revisar a navegação lateral (botões grandes com emoji) para um menu compacto de
+- [ ] Revisar a navegação lateral (botões grandes) para um menu compacto de
       ERP, com item ativo marcado por faixa reta, e rever o tamanho base da fonte (hoje
       12 pt, Segoe UI) e a altura de linhas e controles para maior densidade, mantendo a
       legibilidade em 125% e 150%. Fazer junto com a confirmação das alturas das

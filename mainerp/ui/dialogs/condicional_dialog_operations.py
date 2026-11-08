@@ -288,7 +288,7 @@ class _CondicionalDialogOperations(ComponentMixin):
     def _atualizar_indicador_modificacoes(self):
         """Atualiza indicador visual de modificações não salvas"""
         if self._modificacoes_nao_salvas:
-            self.label_modificacoes.setText("✎ Modificações não salvas")
+            self.label_modificacoes.setText("Modificações não salvas")
             self.label_modificacoes.setVisible(True)
         else:
             self.label_modificacoes.setVisible(False)

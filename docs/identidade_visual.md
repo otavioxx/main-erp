@@ -132,7 +132,10 @@ Para capturas do tema anterior e medições da proposta original, consulte a
 `CoresPaleta` adapta esses tokens aos seletores existentes em `styles.py`, e
 `ConstrutorEstilos` gera o QSS. A inicialização aplica o tema à paleta Qt e ao QSS.
 As cores de estados usadas pelas listagens e diálogos são obtidas do tema ativo.
-Alguns componentes ainda mantêm estilos locais para dimensões e formatação.
+O QSS é centralizado em `styles.py`: propriedades dos widgets identificam os
+estilos e os estados dinâmicos são reaplicados quando mudam. As tabelas de vendas
+e produtos usam o seletor de linhas compactas; a altura das seções continua
+configurada pelas próprias listagens.
 
 O Qt Fusion é usado como estilo-base dos widgets, com raio zero no QSS para os
 controles da aplicação. As bordas externas e a barra de título de janelas nativas,
@@ -140,6 +143,12 @@ assim como diálogos nativos do Windows para arquivos, continuam sob controle do
 sistema operacional e podem manter cantos arredondados. O Fusion reduz diferenças
 entre estilos nativos, mas não garante aparência idêntica entre versões e escalas
 do Windows; elas ainda exigem inspeção visual.
+
+Os ícones de navegação e ações são SVGs locais do Lucide 0.468.0, renderizados com
+tokens do tema e variantes para seleção e desativação. O conjunto usa licença ISC;
+alguns ícones derivam do Feather, sob licença MIT. Os textos integrais das licenças
+acompanham os SVGs em `mainerp/ui/icons/` e são incluídos nas releases e no instalador.
+Mensagens de estado usam texto explícito e os avisos nativos, sem depender de emoji.
 
 O splash de inicialização usa as cores do tema ativo, superfícies planas e bordas
 retas. Ele mantém as mensagens das etapas reais, sem apresentar progresso simulado.

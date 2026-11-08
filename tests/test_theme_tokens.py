@@ -1,8 +1,56 @@
+import ast
+import re
 from dataclasses import FrozenInstanceError
+from pathlib import Path
 
 import pytest
 
 from mainerp.ui.theme_tokens import CLARO, DIMENSOES, ESCURO, cores_do_tema
+
+
+def _problemas_de_estilo(texto: str, arquivo: str) -> list[str]:
+    problemas = []
+    arvore = ast.parse(texto, filename=arquivo)
+    for node in ast.walk(arvore):
+        if isinstance(node, ast.Call):
+            if isinstance(node.func, ast.Attribute) and node.func.attr == "setStyleSheet":
+                problemas.append(f"{arquivo}:{node.lineno}: stylesheet local")
+            if (
+                isinstance(node.func, ast.Name) and node.func.id == "QColor"
+                and node.args and isinstance(node.args[0], ast.Constant)
+                and isinstance(node.args[0].value, (str, int))
+            ):
+                problemas.append(f"{arquivo}:{node.lineno}: cor QColor fixa")
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if re.search(r"#[0-9a-fA-F]{3,8}\b", node.value):
+                problemas.append(f"{arquivo}:{node.lineno}: cor hexadecimal fixa")
+            if re.search(r"border(?:-(?:top|bottom)-(?:left|right))?-radius\s*:", node.value):
+                problemas.append(f"{arquivo}:{node.lineno}: raio fora do tema")
+    return problemas
+
+
+def test_guardian_detecta_exemplos_de_estilos_e_cores():
+    casos = [
+        "widget.setStyleSheet('color: red')",
+        "QColor('red')",
+        "QColor(255, 0, 0)",
+        "cor = '#ffffff'",
+        "css = 'border-radius: 2px'",
+    ]
+    assert all(_problemas_de_estilo(caso, "exemplo.py") for caso in casos)
+    assert not _problemas_de_estilo("cor = QColor(cores.text_primary)", "exemplo.py")
+
+
+def test_interface_nao_define_estilos_locais_ou_cores_fixas():
+    pasta = Path(__file__).resolve().parents[1] / "mainerp" / "ui"
+    problemas = []
+    for arquivo in pasta.rglob("*.py"):
+        if arquivo.name in {"styles.py", "theme_tokens.py"}:
+            continue
+        problemas.extend(_problemas_de_estilo(
+            arquivo.read_text(encoding="utf-8"), str(arquivo.relative_to(pasta))
+        ))
+    assert not problemas, "\n".join(problemas)
 
 
 def contraste(cor_a: str, cor_b: str) -> float:

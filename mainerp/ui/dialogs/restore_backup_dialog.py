@@ -6,7 +6,6 @@ import os
 from datetime import datetime
 
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QGuiApplication
 from PyQt6.QtWidgets import (
     QFileDialog,
     QFrame,
@@ -29,7 +28,8 @@ from mainerp.core.config import obter_config
 from mainerp.data.db_utils import DatabaseManager
 from mainerp.data.restore import preparar_restauracao
 from mainerp.ui.dialog_base import DialogBase
-from mainerp.ui.styles import cores_ativas
+from mainerp.ui.dialog_geometry import ajustar_dialogo_a_tela
+from mainerp.ui.styles import definir_estado_visual
 
 
 class VerifyBackupThread(QThread):
@@ -201,21 +201,7 @@ class RestoreBackupDialog(DialogBase):
 
     def _centralizar_janela(self):
         """Centraliza a janela na tela"""
-        # Força o cálculo do tamanho da janela
-        self.adjustSize()
-
-        # Obtém a geometria da tela
-        primary_screen = QGuiApplication.primaryScreen()
-        if primary_screen is None:
-            raise RuntimeError("Não foi possível localizar a tela principal.")
-        screen = primary_screen.geometry()
-
-        # Calcula a posição central
-        x = (screen.width() - self.width()) // 2
-        y = (screen.height() - self.height()) // 2
-
-        # Move a janela para a posição calculada
-        self.move(x, y)
+        ajustar_dialogo_a_tela(self)
 
     def _init_ui(self):
         """Inicializa interface do diálogo"""
@@ -250,7 +236,7 @@ class RestoreBackupDialog(DialogBase):
         file_layout.addWidget(QLabel("Arquivo de backup:"))
 
         self.file_label = QLabel("Nenhum arquivo selecionado")
-        self.file_label.setStyleSheet(f"padding: 8px; background-color: {cores_ativas().surface_alt}; color: {cores_ativas().text_primary};")
+        self.file_label.setProperty("estiloVisual", "caminho")
         self.file_label.setWordWrap(True)
         file_layout.addWidget(self.file_label, 1)
 
@@ -294,7 +280,7 @@ class RestoreBackupDialog(DialogBase):
         self.info_text = QTextEdit()
         self.info_text.setReadOnly(True)
         self.info_text.setMaximumHeight(150)
-        self.info_text.setStyleSheet("font-family: Consolas, monospace; font-size: 10pt;")
+        self.info_text.setProperty("estiloVisual", "backup-detalhes")
         bottom_layout.addWidget(self.info_text)
 
         # Barra de progresso
@@ -434,7 +420,7 @@ class RestoreBackupDialog(DialogBase):
 
         self.status_label.setVisible(True)
         self.status_label.setText("Verificando arquivo de backup...")
-        self.status_label.setStyleSheet(f"color: {cores_ativas().accent_text}; font-weight: bold;")
+        definir_estado_visual(self.status_label, "acento")
 
         # Criar e iniciar thread de verificação
         self.verify_thread = VerifyBackupThread(file_path)
@@ -452,7 +438,7 @@ class RestoreBackupDialog(DialogBase):
         self.info_text.clear()
 
         if info.get("is_valid"):
-            self.info_text.append("✅ BACKUP VÁLIDO")
+            self.info_text.append("BACKUP VÁLIDO")
             self.info_text.append("=" * 40)
 
             # Informações básicas
@@ -467,7 +453,7 @@ class RestoreBackupDialog(DialogBase):
                     f"Tipo: ZIP (contém: {', '.join(info.get('db_files', []))})"
                 )
 
-            self.info_text.append("\n📊 TABELAS ENCONTRADAS:")
+            self.info_text.append("\nTABELAS ENCONTRADAS:")
             self.info_text.append("-" * 30)
 
             # Listar tabelas
@@ -479,23 +465,23 @@ class RestoreBackupDialog(DialogBase):
             total_tables = len(info.get("tables", []))
             total_records = sum(info.get("record_counts", {}).values())
             self.info_text.append(
-                f"\n📈 TOTAL: {total_tables} tabelas, {total_records} registros"
+                f"\nTOTAL: {total_tables} tabelas, {total_records} registros"
             )
 
             # Habilitar botão de restauração
             self.btn_restore.setEnabled(True)
             self.status_label.setVisible(True)
-            self.status_label.setText("✅ Backup verificado e válido para restauração")
-            self.status_label.setStyleSheet(f"color: {cores_ativas().success_text}; font-weight: bold;")
+            self.status_label.setText("Backup verificado e válido para restauração")
+            definir_estado_visual(self.status_label, "sucesso")
 
         else:
-            self.info_text.append("❌ BACKUP INVÁLIDO OU CORROMPIDO")
+            self.info_text.append("BACKUP INVÁLIDO OU CORROMPIDO")
             self.info_text.append("=" * 40)
             self.info_text.append(f"Erro: {info.get('error', 'Arquivo inválido')}")
 
             self.status_label.setVisible(True)
-            self.status_label.setText("❌ Backup inválido - Não pode ser restaurado")
-            self.status_label.setStyleSheet(f"color: {cores_ativas().danger_text}; font-weight: bold;")
+            self.status_label.setText("Backup inválido - Não pode ser restaurado")
+            definir_estado_visual(self.status_label, "erro")
 
         # Reabilitar botão de verificação
         self.btn_verify.setEnabled(True)
@@ -506,8 +492,8 @@ class RestoreBackupDialog(DialogBase):
         self.btn_verify.setEnabled(True)
 
         self.status_label.setVisible(True)
-        self.status_label.setText("❌ Erro na verificação do backup")
-        self.status_label.setStyleSheet(f"color: {cores_ativas().danger_text}; font-weight: bold;")
+        self.status_label.setText("Erro na verificação do backup")
+        definir_estado_visual(self.status_label, "erro")
 
         QMessageBox.critical(
             self,
@@ -536,7 +522,7 @@ class RestoreBackupDialog(DialogBase):
         # Confirmar restauração
         reply = QMessageBox.warning(
             self,
-            "⚠️ CONFIRMAR RESTAURAÇÃO",
+            "CONFIRMAR RESTAURAÇÃO",
             "ATENÇÃO: Esta ação irá SUBSTITUIR o banco de dados atual!\n\n"
             "• Todos os dados atuais serão perdidos\n"
             "• O sistema será fechado e a restauração ocorrerá na próxima abertura\n"
@@ -560,7 +546,7 @@ class RestoreBackupDialog(DialogBase):
 
         self.status_label.setVisible(True)
         self.status_label.setText("Iniciando restauração do backup...")
-        self.status_label.setStyleSheet(f"color: {cores_ativas().accent_text}; font-weight: bold;")
+        definir_estado_visual(self.status_label, "acento")
 
         # Criar e iniciar thread de restauração
         self.restore_thread = RestoreBackupThread(
@@ -593,8 +579,8 @@ class RestoreBackupDialog(DialogBase):
             self.restore_thread.wait()
         self.progress_bar.setValue(100)
 
-        self.status_label.setText("✅ Restauração preparada!")
-        self.status_label.setStyleSheet(f"color: {cores_ativas().success_text}; font-weight: bold;")
+        self.status_label.setText("Restauração preparada!")
+        definir_estado_visual(self.status_label, "sucesso")
 
         # Mostrar mensagem de sucesso
         QMessageBox.information(
@@ -619,12 +605,12 @@ class RestoreBackupDialog(DialogBase):
         self.progress_bar.setVisible(False)
 
         self.status_label.setVisible(True)
-        self.status_label.setText("❌ Erro durante a restauração")
-        self.status_label.setStyleSheet(f"color: {cores_ativas().danger_text}; font-weight: bold;")
+        self.status_label.setText("Erro durante a restauração")
+        definir_estado_visual(self.status_label, "erro")
 
         QMessageBox.critical(
             self,
-            "❌ Erro na Restauração",
+            "Erro na Restauração",
             f"Ocorreu um erro durante a restauração:\n\n{mensagem_erro}\n\n"
             "A preparação falhou; nenhum dado atual foi substituído.",
         )

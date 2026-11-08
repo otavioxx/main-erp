@@ -30,7 +30,7 @@ from mainerp.core.app_logging import registrar_excecao
 from mainerp.core.config import obter_config
 from mainerp.core.paths import caminho_dados
 from mainerp.data.automatic_backup import criar_snapshot_sqlite
-from mainerp.ui.styles import cores_ativas
+from mainerp.ui.styles import definir_estado_visual
 
 logger = logging.getLogger(__name__)
 
@@ -417,9 +417,8 @@ class BackupDialog(QDialog):
 
         # Título
         titulo = QLabel("BACKUP OBRIGATÓRIO")
-        titulo.setProperty("class", "title")
+        titulo.setProperty("estiloVisual", "backup-titulo")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        titulo.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {cores_ativas().accent_text};")
         layout.addWidget(titulo)
 
         # Informações do arquivo
@@ -451,10 +450,7 @@ class BackupDialog(QDialog):
             f"<b>Pasta selecionada:</b> {self.destination_folder}"
         )
         self.caminho_label.setWordWrap(True)
-        self.caminho_label.setStyleSheet(
-            f"padding: 8px; background-color: {cores_ativas().surface_alt}; "
-            f"color: {cores_ativas().text_primary};"
-        )
+        self.caminho_label.setProperty("estiloVisual", "caminho")
         destino_layout.addWidget(self.caminho_label)
 
         # Botão para selecionar pasta
@@ -468,6 +464,7 @@ class BackupDialog(QDialog):
         # Mensagem de status
         self.status_label = QLabel("")
         self.status_label.setVisible(False)
+        self.status_label.setProperty("estiloVisual", "backup-status")
         self.status_label.setWordWrap(True)
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.status_label)
@@ -601,10 +598,8 @@ class BackupDialog(QDialog):
 
         # Mostrar status de processamento
         self.status_label.setVisible(True)
-        self.status_label.setText("⏳ Criando backup...")
-        self.status_label.setStyleSheet(
-            f"color: {cores_ativas().accent_text}; font-weight: bold; font-size: 14px;"
-        )
+        self.status_label.setText("Criando backup...")
+        definir_estado_visual(self.status_label, "acento")
 
         # Criar e iniciar thread de backup
         self.backup_thread = BackupThread(self.db_path, self.destination_folder)
@@ -654,10 +649,8 @@ class BackupDialog(QDialog):
                 "data e localização. O sistema poderá solicitar outro backup.",
             )
 
-        self.status_label.setText("✅ Backup concluído e verificado com sucesso!")
-        self.status_label.setStyleSheet(
-            f"color: {cores_ativas().success_text}; font-weight: bold; font-size: 14px;"
-        )
+        self.status_label.setText("Backup concluído e verificado com sucesso!")
+        definir_estado_visual(self.status_label, "sucesso")
 
         # Marcar que o backup foi verificado
         self.backup_verificado = True

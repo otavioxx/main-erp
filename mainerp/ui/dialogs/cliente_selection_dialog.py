@@ -21,7 +21,6 @@ from mainerp.domain.utils.helpers import aplicar_maiuscula_formulario
 # ✅ IMPORTAR O MIXIN DE DIMENSIONAMENTO
 from mainerp.ui.mixins.dialog_size_mixin import DialogSizeMixin
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
-from mainerp.ui.styles import cores_ativas
 from mainerp.ui.tabela import fixar_altura_linhas
 from mainerp.ui.views.cliente_view import ClienteDialog
 
@@ -57,7 +56,7 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
         header_layout.addStretch()
 
         ajuda_label = QLabel("Pressione F1 para cadastrar novo cliente")
-        ajuda_label.setStyleSheet(f"color: {cores_ativas().text_muted}; font-style: italic;")
+        ajuda_label.setProperty("estiloVisual", "ajuda")
         header_layout.addWidget(ajuda_label)
 
         header_frame.setLayout(header_layout)

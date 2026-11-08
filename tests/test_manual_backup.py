@@ -569,6 +569,11 @@ def test_backup_informa_falha_ao_salvar_metadados(tmp_path, monkeypatch):
             pass
 
     monkeypatch.setattr("mainerp.ui.dialogs.backup_dialog.QMessageBox", Caixa)
+    estados = []
+    monkeypatch.setattr(
+        "mainerp.ui.dialogs.backup_dialog.definir_estado_visual",
+        lambda widget, estado: estados.append(estado),
+    )
     monkeypatch.setattr(BackupConfig, "save_last_backup_date", lambda **kwargs: False)
     status = SimpleNamespace(
         setText=lambda value: None, setStyleSheet=lambda value: None
@@ -582,5 +587,6 @@ def test_backup_informa_falha_ao_salvar_metadados(tmp_path, monkeypatch):
     BackupDialog._backup_concluido(cast(BackupDialog, dialogo), str(arquivo))
 
     assert len(avisos) == 1
+    assert estados == ["sucesso"]
     assert emitidos == [str(arquivo)]
     assert aceitos == [True]

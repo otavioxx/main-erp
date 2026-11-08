@@ -27,12 +27,51 @@ def test_pacote_instalador_contem_codigo_e_componentes(tmp_path, monkeypatch):
             "distribuicao/criar_release.py",
             "distribuicao/criar_atalhos.ps1",
             "mainerp/ui/theme_tokens.py",
+            "mainerp/ui/icones.py",
+            "mainerp/ui/icons/shopping-cart.svg",
+            "mainerp/ui/icons/LICENSE-LUCIDE.txt",
+            "mainerp/ui/icons/LICENSE-FEATHER.txt",
         } <= nomes
         assert {
             caminho.relative_to(ROOT).as_posix()
             for caminho in criar_release.arquivos_do_release()
         } <= nomes
         assert not any(nome.startswith(("tests/", ".git/", "dados/")) for nome in nomes)
+
+
+@pytest.mark.parametrize("tipo", ["release", "instalador"])
+def test_icones_funcionam_no_pacote_extraido(tmp_path, monkeypatch, tipo):
+    monkeypatch.syspath_prepend(str(ROOT / "distribuicao"))
+    from distribuicao import criar_instalador, criar_release
+
+    pacote = (
+        criar_release.construir_zip(tmp_path)
+        if tipo == "release"
+        else criar_instalador.construir_instalador(tmp_path)
+    )
+    destino = tmp_path / "extraido"
+    with zipfile.ZipFile(pacote) as arquivo:
+        arquivo.extractall(destino)
+    script = """
+import sys
+sys.path.insert(0, sys.argv[1])
+from PyQt6.QtWidgets import QApplication
+from mainerp.ui.icones import icone
+from mainerp.ui.styles import aplicar_tema
+app = QApplication([])
+aplicar_tema(app, "dark")
+assert not icone("shopping-cart", "#ffffff").pixmap(24, 24).isNull()
+"""
+    env = {
+        **os.environ,
+        "MAINERP_DATA": str(tmp_path / "dados"),
+        "QT_QPA_PLATFORM": "offscreen",
+    }
+    resultado = subprocess.run(
+        [sys.executable, "-I", "-c", script, str(destino)],
+        env=env, capture_output=True, text=True, timeout=30, check=False,
+    )
+    assert resultado.returncode == 0, resultado.stdout + resultado.stderr
 
 
 @pytest.mark.parametrize("codigo", [0, 7])

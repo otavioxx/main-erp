@@ -13,8 +13,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from mainerp.ui.styles import cores_ativas
-
 
 class RelatorioProdutoDialog(QDialog):
     def __init__(self, parent=None):
@@ -38,7 +36,7 @@ class RelatorioProdutoDialog(QDialog):
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setFrameShadow(QFrame.Shadow.Sunken)
-        separator.setStyleSheet(f"color: {cores_ativas().border};")
+        separator.setProperty("estiloVisual", "separador")
         layout.addWidget(separator)
 
         # Grupo de filtro por estoque

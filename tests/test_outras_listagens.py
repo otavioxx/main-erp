@@ -156,10 +156,8 @@ def test_configuracao_individual(listagem):
     assert table.editTriggers() == QTableWidget.EditTrigger.NoEditTriggers
     assert table.alternatingRowColors()
     assert table.isSortingEnabled() is sorting
-    assert bool(table.styleSheet()) is has_css
-    if has_css:
-        assert "QTableWidget::item" in table.styleSheet()
-        assert "font-size: 11px" in table.styleSheet()
+    assert not table.styleSheet()
+    assert bool(table.property("linhaCompacta")) is has_css
     assert table.verticalScrollMode() == QTableWidget.ScrollMode.ScrollPerItem
 
 

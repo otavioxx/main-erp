@@ -1,5 +1,5 @@
 # \erp\views\config_view.py
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -24,6 +24,8 @@ from mainerp.data.models.empresa import Empresa
 from mainerp.ui.dialogs.backup_dialog import BackupDialog
 from mainerp.ui.dialogs.config_selection_dialog import ConfigSelectionDialog
 from mainerp.ui.dialogs.restore_backup_dialog import RestoreBackupDialog
+from mainerp.ui.icones import icone
+from mainerp.ui.styles import cores_ativas
 
 
 class ConfigView(QWidget):
@@ -64,7 +66,11 @@ class ConfigView(QWidget):
         self.btn_editar.clicked.connect(self.toggle_edit)
         header_layout.addWidget(self.btn_editar)
 
-        btn_avancadas = QPushButton("⚙️")
+        btn_avancadas = QPushButton()
+        btn_avancadas.setIcon(icone("settings", cores_ativas().text_primary))
+        btn_avancadas.setIconSize(QSize(20, 20))
+        btn_avancadas.setToolTip("Configurações avançadas")
+        btn_avancadas.setAccessibleName("Configurações avançadas")
         btn_avancadas.setProperty("class", "secondary")
         btn_avancadas.setFixedWidth(120)
         btn_avancadas.clicked.connect(self.mostrar_configuracoes_avancadas)
@@ -265,13 +271,17 @@ class ConfigView(QWidget):
         btn_layout = QHBoxLayout()
 
         # Botão Criar Backup
-        btn_backup = QPushButton("💾 Criar Backup")
+        btn_backup = QPushButton("Criar Backup")
+        btn_backup.setIcon(icone("hard-drive-download", cores_ativas().button_semantic_text))
+        btn_backup.setIconSize(QSize(18, 18))
         btn_backup.setProperty("class", "primary")
         btn_backup.setFixedWidth(150)
         btn_backup.clicked.connect(self._criar_backup)
 
         # Botão Restaurar Backup
-        btn_restore = QPushButton("📁 Restaurar Backup")
+        btn_restore = QPushButton("Restaurar Backup")
+        btn_restore.setIcon(icone("folder-open", cores_ativas().warning_text))
+        btn_restore.setIconSize(QSize(18, 18))
         btn_restore.setProperty("class", "warning")
         btn_restore.setFixedWidth(150)
         btn_restore.clicked.connect(self._restaurar_backup)
@@ -332,11 +342,12 @@ class ConfigView(QWidget):
                     Qt.TransformationMode.SmoothTransformation,
                 )
                 self.header_logo.setPixmap(pixmap)
-                self.header_logo.setText("")
             else:
                 self.header_logo.setText("")
         else:
-            self.header_logo.setText("🏢")
+            self.header_logo.setPixmap(
+                icone("building-2", cores_ativas().text_primary).pixmap(32, 32)
+            )
 
     def toggle_edit_mode(self, edit_mode):
         self.edit_mode = edit_mode
@@ -488,7 +499,7 @@ class ConfigView(QWidget):
         """Chamado quando backup é criado com sucesso"""
         if backup_path:  # Pode ser string vazia
             QMessageBox.information(
-                self, "✅ Backup Criado", f"Backup criado com sucesso:\n\n{backup_path}"
+                self, "Backup Criado", f"Backup criado com sucesso:\n\n{backup_path}"
             )
 
     def _restauracao_concluida(self):

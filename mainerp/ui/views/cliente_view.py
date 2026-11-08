@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
@@ -22,6 +23,7 @@ from PyQt6.QtWidgets import (
 from mainerp.core.app_logging import registrar_excecao
 from mainerp.data.models.cliente import Cliente
 from mainerp.domain.utils.helpers import aplicar_maiuscula_formulario
+from mainerp.ui.dialog_geometry import ajustar_dialogo_a_tela
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
 from mainerp.ui.styles import cores_ativas
 from mainerp.ui.tabela import configurar_listagem_padrao
@@ -34,14 +36,31 @@ class ClienteDialog(QDialog):
         self.cliente = cliente or Cliente()
         self._init_ui()
         aplicar_maiuscula_formulario(self)
+        self._primeira_exibicao = True
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if self._primeira_exibicao:
+            self._primeira_exibicao = False
+            ajustar_dialogo_a_tela(self)
 
     def _init_ui(self):
         self.setWindowTitle("Cadastro de Cliente")
-        self.setMinimumSize(500, 650)
+        self.setMinimumWidth(500)
+        self.resize(500, 650)
 
         layout = QVBoxLayout()
         layout.setSpacing(12)
         layout.setContentsMargins(15, 15, 15, 15)
+
+        area = QScrollArea()
+        area.setWidgetResizable(True)
+        conteudo = QWidget()
+        conteudo_layout = QVBoxLayout(conteudo)
+        conteudo_layout.setSpacing(12)
+        conteudo_layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(area)
+        area.setWidget(conteudo)
 
         # Dados Pessoais
         grupo_dados = QGroupBox("Dados Pessoais")
@@ -61,7 +80,7 @@ class ClienteDialog(QDialog):
         dados_layout.addWidget(self.cpf_cnpj_edit)
 
         grupo_dados.setLayout(dados_layout)
-        layout.addWidget(grupo_dados)
+        conteudo_layout.addWidget(grupo_dados)
 
         # Contato
         grupo_contato = QGroupBox("Informações de Contato")
@@ -86,7 +105,7 @@ class ClienteDialog(QDialog):
         contato_layout.addWidget(self.email_edit)
 
         grupo_contato.setLayout(contato_layout)
-        layout.addWidget(grupo_contato)
+        conteudo_layout.addWidget(grupo_contato)
 
         # Observações
         grupo_obs = QGroupBox("Observações")
@@ -100,7 +119,7 @@ class ClienteDialog(QDialog):
         obs_layout.addWidget(self.observacao_edit)
 
         grupo_obs.setLayout(obs_layout)
-        layout.addWidget(grupo_obs)
+        conteudo_layout.addWidget(grupo_obs)
 
         # Status
         status_layout = QHBoxLayout()
@@ -108,7 +127,7 @@ class ClienteDialog(QDialog):
         self.ativo_checkbox.setChecked(self.cliente.ativo)
         status_layout.addWidget(self.ativo_checkbox)
         status_layout.addStretch()
-        layout.addLayout(status_layout)
+        conteudo_layout.addLayout(status_layout)
 
         # Botões
         buttons = QDialogButtonBox(
@@ -284,7 +303,7 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
         assert header is not None
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Nome
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)  # Nome
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # CPF/CNPJ
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Endereço
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Telefone

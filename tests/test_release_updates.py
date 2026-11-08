@@ -510,6 +510,23 @@ def test_builds_current_project_with_consistent_version(criador, tmp_path, monke
             if "__pycache__" not in caminho.parts
         }
         assert codigo <= set(archive.namelist())
+        assert {
+            f"mainerp/ui/icons/{nome}" for nome in criador.ICONES
+        } <= set(archive.namelist())
+
+
+def test_release_recusa_icone_ausente(criador, tmp_path, monkeypatch):
+    projeto = tmp_path / "projeto"
+    config = projeto / "mainerp" / "core" / "config.py"
+    config.parent.mkdir(parents=True)
+    config.write_text('APP_VERSION = "0.10.0"\n', encoding="utf-8")
+    (projeto / "main.py").touch()
+    ui = projeto / "mainerp" / "ui"
+    ui.mkdir()
+    (ui / "icones.py").touch()
+    monkeypatch.setattr(criador, "PROJETO", projeto)
+    with pytest.raises(FileNotFoundError, match="Ícone ou licença ausente"):
+        criador.construir_zip(tmp_path / "saida")
 
 
 def test_release_exclui_arquivos_locais_e_caches(criador, tmp_path, monkeypatch):

@@ -24,7 +24,6 @@ from PyQt6.QtWidgets import (
 
 from mainerp.data.money import de_centavos, para_centavos
 from mainerp.domain.utils.helpers import SelectAllDoubleSpinBox, formatar_moeda
-from mainerp.ui.styles import cores_ativas
 
 
 class PagamentoDialog(QDialog):
@@ -93,7 +92,7 @@ class PagamentoDialog(QDialog):
         entrada_layout.addLayout(entrada_h_layout)
 
         self.label_financiado = QLabel("Valor a financiar: R$ 0,00")
-        self.label_financiado.setStyleSheet(f"color: {cores_ativas().success_text}; font-weight: bold;")
+        self.label_financiado.setProperty("estadoVisual", "sucesso")
         entrada_layout.addWidget(self.label_financiado)
 
         self.entrada_group.setLayout(entrada_layout)
@@ -117,7 +116,7 @@ class PagamentoDialog(QDialog):
         parcelas_layout.addLayout(parcelas_h_layout)
 
         self.label_valor_parcela = QLabel("Valor da parcela: R$ 0,00")
-        self.label_valor_parcela.setStyleSheet(f"color: {cores_ativas().accent_text}; font-weight: bold;")
+        self.label_valor_parcela.setProperty("estadoVisual", "acento")
         parcelas_layout.addWidget(self.label_valor_parcela)
 
         self.parcelas_group.setLayout(parcelas_layout)

@@ -106,12 +106,12 @@ class _CondicionalDialogQuickEntry(ComponentMixin):
                 self._exibir_produto_encontrado(produto)
                 return True
             else:
-                self.label_produto_encontrado.setText("❌ Produto não encontrado")
+                self.label_produto_encontrado.setText("Erro: produto não encontrado")
                 self.entry_valor.clear()
                 return False
 
         except ValueError:
-            self.label_produto_encontrado.setText("❌ Código inválido")
+            self.label_produto_encontrado.setText("Erro: código inválido")
             self.entry_valor.clear()
             return False
 
@@ -134,7 +134,7 @@ class _CondicionalDialogQuickEntry(ComponentMixin):
 
         except ValueError:
             if len(codigo_texto) > 0:
-                self.label_produto_encontrado.setText("❌ Digite apenas números")
+                self.label_produto_encontrado.setText("Erro: digite apenas números")
                 self.entry_valor.clear()
 
     def _atualizar_valor_automatico(self, produto_id):
@@ -165,16 +165,16 @@ class _CondicionalDialogQuickEntry(ComponentMixin):
         """Exibe informações do produto encontrado"""
         if produto.preco_venda <= 0:
             self.label_produto_encontrado.setText(
-                f"⚠️ {produto.nome} - Produto sem preço de venda!"
+                f"Atenção: {produto.nome} - Produto sem preço de venda!"
             )
             return
 
         if produto.estoque <= 0:
-            self.label_produto_encontrado.setText(f"⚠️ {produto.nome} - Sem estoque!")
+            self.label_produto_encontrado.setText(f"Atenção: {produto.nome} - Sem estoque!")
             return
 
         # Produto válido
-        info_produto = f"✅ {produto.nome}"
+        info_produto = f"{produto.nome}"
         if produto.cor:
             info_produto += f" - {produto.cor}"
         if produto.tamanho:

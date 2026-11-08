@@ -8,13 +8,15 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QScrollArea,
     QTextEdit,
     QVBoxLayout,
+    QWidget,
 )
 
 from mainerp.data.models.fornecedor import Fornecedor
 from mainerp.domain.utils.helpers import SelectAllLineEdit, aplicar_maiuscula_formulario
-from mainerp.ui.styles import cores_ativas
+from mainerp.ui.dialog_geometry import ajustar_dialogo_a_tela
 
 
 class FornecedorDialog(QDialog):
@@ -23,21 +25,36 @@ class FornecedorDialog(QDialog):
         self.fornecedor = fornecedor or Fornecedor()
         self.init_ui()
         aplicar_maiuscula_formulario(self)
+        self._primeira_exibicao = True
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if self._primeira_exibicao:
+            self._primeira_exibicao = False
+            ajustar_dialogo_a_tela(self)
 
     def init_ui(self):
         self.setWindowTitle("Cadastro de Fornecedor")
         self.setMinimumWidth(500)
-        self.setMinimumHeight(750)
+        self.resize(500, 750)
         self.setWindowIcon(QIcon("icon.ico"))
 
         layout = QVBoxLayout()
         layout.setSpacing(12)
         layout.setContentsMargins(15, 15, 15, 15)
 
-        self.criar_grupo_dados(layout)
-        self.criar_grupo_contato(layout)
-        self.criar_grupo_observacoes(layout)
-        self.criar_status(layout)
+        area = QScrollArea()
+        area.setWidgetResizable(True)
+        conteudo = QWidget()
+        conteudo_layout = QVBoxLayout(conteudo)
+        conteudo_layout.setContentsMargins(0, 0, 0, 0)
+        conteudo_layout.setSpacing(12)
+        self.criar_grupo_dados(conteudo_layout)
+        self.criar_grupo_contato(conteudo_layout)
+        self.criar_grupo_observacoes(conteudo_layout)
+        self.criar_status(conteudo_layout)
+        area.setWidget(conteudo)
+        layout.addWidget(area)
         self.criar_botoes(layout)
 
         self.setLayout(layout)
@@ -113,7 +130,7 @@ class FornecedorDialog(QDialog):
         status_layout.setContentsMargins(0, 0, 0, 0)
 
         status_info = QLabel("Status do fornecedor:")
-        status_info.setStyleSheet(f"font-weight: bold; color: {cores_ativas().text_primary};")
+        status_info.setProperty("estiloVisual", "destaque")
 
         self.ativo_checkbox = QCheckBox("Fornecedor ativo no sistema")
         self.ativo_checkbox.setChecked(self.fornecedor.ativo)

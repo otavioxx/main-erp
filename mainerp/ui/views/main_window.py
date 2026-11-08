@@ -2,7 +2,7 @@ import logging
 from collections.abc import Callable
 from datetime import datetime
 
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtCore import QSize, Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -24,6 +24,8 @@ from mainerp.data.automatic_backup import BackupAutomatico
 from mainerp.domain.utils.helpers import aplicar_maiuscula_formulario
 from mainerp.ui.dialogs.backup_dialog import BackupDialog
 from mainerp.ui.dialogs.sobre_atualizacoes_dialog import SobreAtualizacoesDialog
+from mainerp.ui.icones import icone
+from mainerp.ui.styles import cores_ativas
 from mainerp.ui.views.cliente_view import ClienteView
 from mainerp.ui.views.condicional_view import CondicionalView
 from mainerp.ui.views.config_view import ConfigView
@@ -169,18 +171,21 @@ class MainWindow(QMainWindow):
 
         # Ícones e textos para os botões
         nav_items = [
-            ("🛒", "VENDAS"),
-            ("💫", "CONDICIONAL"),
-            ("📝", "PEDIDOS"),
-            ("💰", "RECEBIMENTOS"),
-            ("👤", "CLIENTES"),
-            ("📦", "PRODUTOS"),
-            ("🏭", "FORNECEDORES"),
-            ("⚙️", "CONFIGURAÇÕES"),
+            ("shopping-cart", "VENDAS"),
+            ("clipboard-check", "CONDICIONAL"),
+            ("clipboard-list", "PEDIDOS"),
+            ("wallet", "RECEBIMENTOS"),
+            ("users", "CLIENTES"),
+            ("package", "PRODUTOS"),
+            ("truck", "FORNECEDORES"),
+            ("settings", "CONFIGURAÇÕES"),
         ]
 
-        for icon, text in nav_items:
-            btn = QPushButton(f"{icon} {text}")
+        cores = cores_ativas()
+        for nome_icone, text in nav_items:
+            btn = QPushButton(text)
+            btn.setIcon(icone(nome_icone, cores.nav_text, cores.button_semantic_text))
+            btn.setIconSize(QSize(20, 20))
             btn.setProperty("class", "nav-button")
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -192,7 +197,9 @@ class MainWindow(QMainWindow):
         # Espaço flexível no final
         nav_layout.addStretch()
 
-        self.about_updates_button = QPushButton("ℹ️ SOBRE")
+        self.about_updates_button = QPushButton("SOBRE")
+        self.about_updates_button.setIcon(icone("info", cores.nav_text))
+        self.about_updates_button.setIconSize(QSize(20, 20))
         self.about_updates_button.setProperty("class", "nav-button")
         self.about_updates_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.about_updates_button.clicked.connect(self._mostrar_sobre_atualizacoes)
@@ -378,7 +385,7 @@ class MainWindow(QMainWindow):
         # Não tenta acessar status_label que não existe
         # Opcional: mostrar mensagem na status bar
         if hasattr(self, "status_bar"):
-            self.status_bar.showMessage("✅ Backup concluído com sucesso!", 3000)
+            self.status_bar.showMessage("Backup concluído com sucesso!", 3000)
 
         # Emitir sinal de backup realizado (se necessário)
         self.backup_realizado.emit(backup_path)

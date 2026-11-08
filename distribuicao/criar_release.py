@@ -37,6 +37,12 @@ PACOTES = (
     "mainerp/ui/mixins",
     "mainerp/ui/views",
 )
+ICONES = (
+    "shopping-cart.svg", "clipboard-check.svg", "clipboard-list.svg", "wallet.svg",
+    "users.svg", "package.svg", "truck.svg", "settings.svg", "info.svg",
+    "hard-drive-download.svg", "folder-open.svg", "building-2.svg",
+    "LICENSE-LUCIDE.txt", "LICENSE-FEATHER.txt",
+)
 VERSAO_ESTAVEL = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")
 
 
@@ -77,6 +83,15 @@ def arquivos_do_release():
         for caminho in sorted(pasta.glob("*.py")):
             if caminho.is_file() and not caminho.is_symlink():
                 yield caminho
+    if (PROJETO / "mainerp" / "ui" / "icones.py").is_file():
+        pasta = PROJETO / "mainerp" / "ui" / "icons"
+        for nome in ICONES:
+            caminho = pasta / nome
+            if any(p.is_symlink() for p in (caminho, pasta, pasta.parent, pasta.parent.parent)):
+                raise ValueError(f"Link simbólico não permitido no ícone: {caminho}")
+            if not caminho.is_file():
+                raise FileNotFoundError(f"Ícone ou licença ausente: {caminho}")
+            yield caminho
 
 
 def sha256_arquivo(caminho: Path) -> str:

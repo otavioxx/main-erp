@@ -13,7 +13,7 @@ CASES = [
         "_carregar_clientes",
         "tabela_clientes",
         ["ID", "Nome", "CPF/CNPJ", "Endereço", "Telefone", "Email", "Observação"],
-        [50, None, 130, 250, 110, 200, 200],
+        [50, 200, 130, 250, 110, 200, 200],
     ),
     (
         FornecedorView,
@@ -44,7 +44,7 @@ def listagem(request, monkeypatch, app):
 
 
 def test_listagem_mantem_configuracao_de_colunas_e_aparencia(listagem):
-    _, table, labels, widths = listagem
+    view, table, labels, widths = listagem
     assert table.columnCount() == len(labels)
     header = table.horizontalHeader()
     vertical = table.verticalHeader()
@@ -54,11 +54,13 @@ def test_listagem_mantem_configuracao_de_colunas_e_aparencia(listagem):
         item = table.horizontalHeaderItem(column)
         assert item is not None
         assert item.text() == label
-        assert header.sectionResizeMode(column) == (
-            QHeaderView.ResizeMode.Stretch
-            if width is None
-            else QHeaderView.ResizeMode.Fixed
-        )
+        if width is None:
+            expected_mode = QHeaderView.ResizeMode.Stretch
+        elif isinstance(view, ClienteView) and column == 1:
+            expected_mode = QHeaderView.ResizeMode.Interactive
+        else:
+            expected_mode = QHeaderView.ResizeMode.Fixed
+        assert header.sectionResizeMode(column) == expected_mode
         if width is not None:
             assert table.columnWidth(column) == width
     assert not vertical.isVisible()

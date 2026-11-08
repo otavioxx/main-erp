@@ -28,7 +28,7 @@ from mainerp.domain.utils.helpers import (
     formatar_moeda,
     validar_data,
 )
-from mainerp.ui.styles import cores_ativas
+from mainerp.ui.styles import definir_estado_visual
 
 logger = logging.getLogger(__name__)
 
@@ -145,13 +145,13 @@ class RecebimentoDialog(QDialog):
         diferenca = float(de_centavos(abs(diferenca_centavos)))
         if diferenca_centavos > 0:
             texto = f"Valor maior em: {formatar_moeda(diferenca)}"
-            cor = cores_ativas().success_text
+            estado = "sucesso"
         else:
             texto = f"Valor menor em: {formatar_moeda(diferenca)}"
-            cor = cores_ativas().danger_text
+            estado = "erro"
 
         self.diferenca_label.setText(texto)
-        self.diferenca_label.setStyleSheet(f"color: {cor}; font-weight: bold;")
+        definir_estado_visual(self.diferenca_label, estado)
 
     def _criar_forma_pagamento(self, layout):
         """Cria seção de forma de pagamento"""

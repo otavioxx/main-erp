@@ -240,8 +240,7 @@ class VendaView(TableScrollNavigationMixin, QWidget):
                 self.tabela_vendas.setColumnWidth(i, largura)
 
         # ========== CONFIGURAÇÃO DE ALTURA ==========
-        # 1. REMOVER QUALQUER ESTILO EXISTENTE
-        self.tabela_vendas.setStyleSheet("")
+        self.tabela_vendas.setProperty("linhaCompacta", True)
 
         # 2. Configurar VERTICAL HEADER
         vheader = self.tabela_vendas.verticalHeader()
@@ -257,19 +256,6 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             vheader.setCascadingSectionResizes(False)
             vheader.setStretchLastSection(False)
             vheader.setVisible(False)  # Opcional: esconder números
-
-        # 3. CSS SIMPLES que FUNCIONA
-        css = f"""
-        QTableWidget::item {{
-            min-height: {altura_desejada}px !important;
-            max-height: {altura_desejada}px !important;
-            height: {altura_desejada}px !important;
-            padding: 1px 2px !important;
-            font-size: 11px !important;
-        }}
-        """
-
-        self.tabela_vendas.setStyleSheet(css)
 
         # 4. Timer para garantir após renderização
         from PyQt6.QtCore import QTimer

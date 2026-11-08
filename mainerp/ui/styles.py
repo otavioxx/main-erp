@@ -1,7 +1,7 @@
 """Tema central da interface Qt."""
 
 from PyQt6.QtGui import QColor, QFont, QPalette
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QWidget
 
 from mainerp.ui.theme_tokens import CLARO, DIMENSOES, ESCURO, CoresTema
 
@@ -227,6 +227,14 @@ class ConstrutorEstilos:
             padding: 4px 6px;
             border-bottom: {self.dimensoes.borda}px solid {self.cores.border_primary};
             border-right: none;
+        }}
+
+        QTableWidget[linhaCompacta="true"]::item {{
+            min-height: {self.dimensoes.altura_linha}px;
+            max-height: {self.dimensoes.altura_linha}px;
+            height: {self.dimensoes.altura_linha}px;
+            padding: 1px 2px;
+            font-size: 11px;
         }}
         
         QTableWidget::item:selected {{
@@ -647,6 +655,47 @@ class ConstrutorEstilos:
             font-weight: 400;
             background-color: transparent;
         }}
+
+        QLabel[estiloVisual="ajuda"] {{
+            color: {self.cores.text_muted};
+            font-style: italic;
+        }}
+        QLabel[estiloVisual="destaque"] {{
+            color: {self.cores.text_primary};
+            font-weight: bold;
+        }}
+        QLabel[estiloVisual="backup-titulo"] {{
+            font-size: 18px;
+            font-weight: bold;
+            color: {self.cores.tokens.accent_text};
+        }}
+        QLabel[estiloVisual="caminho"] {{
+            padding: 8px;
+            background-color: {self.cores.tokens.surface_alt};
+            color: {self.cores.text_primary};
+        }}
+        QLabel[estadoVisual="acento"] {{
+            color: {self.cores.tokens.accent_text};
+            font-weight: bold;
+        }}
+        QLabel[estadoVisual="sucesso"] {{
+            color: {self.cores.tokens.success_text};
+            font-weight: bold;
+        }}
+        QLabel[estadoVisual="erro"] {{
+            color: {self.cores.tokens.danger_text};
+            font-weight: bold;
+        }}
+        QLabel[estiloVisual="backup-status"] {{
+            font-size: 14px;
+        }}
+        QTextEdit[estiloVisual="backup-detalhes"] {{
+            font-family: Consolas, monospace;
+            font-size: 10pt;
+        }}
+        QFrame[estiloVisual="separador"] {{
+            color: {self.cores.border_primary};
+        }}
         
         /* Estilos para status de cadastros */
         QTableWidgetItem[class="inativo"] {{
@@ -687,6 +736,18 @@ class ConstrutorEstilos:
                 self._estilo_extras(),
             ]
         )
+
+
+def definir_estado_visual(widget: QWidget, estado: str) -> None:
+    if estado not in ("acento", "sucesso", "erro"):
+        raise ValueError(f"Estado visual desconhecido: {estado!r}")
+    if widget.property("estadoVisual") == estado:
+        return
+    widget.setProperty("estadoVisual", estado)
+    style = widget.style()
+    style.unpolish(widget)
+    style.polish(widget)
+    widget.update()
 
 
 def configurar_paleta_qt(app, cores: CoresPaleta):

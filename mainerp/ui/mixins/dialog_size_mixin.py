@@ -53,6 +53,8 @@ class _DialogWidget(Protocol):
 
     def geometry(self) -> QRect: ...
 
+    def frameGeometry(self) -> QRect: ...
+
     def _get_screen_geometry(self) -> QRect: ...
 
     def _center_on_screen(self) -> None: ...
@@ -196,12 +198,12 @@ class DialogSizeMixin:
             # Se tem parent, usa a tela onde o parent está
             screen = parent.screen()
             if screen is not None:
-                return screen.geometry()
+                return screen.availableGeometry()
 
         # Usa a tela primária
         screen = QGuiApplication.primaryScreen()
         if screen is not None:
-            return screen.geometry()
+            return screen.availableGeometry()
 
         # Fallback: retorna um tamanho padrão
         return QRect(0, 0, 1920, 1080)
@@ -211,8 +213,9 @@ class DialogSizeMixin:
         screen = self._get_screen_geometry()
 
         # Calcular posição central
-        x = screen.x() + (screen.width() - self.width()) // 2
-        y = screen.y() + (screen.height() - self.height()) // 2
+        frame = self.frameGeometry()
+        x = screen.x() + (screen.width() - frame.width()) // 2
+        y = screen.y() + (screen.height() - frame.height()) // 2
 
         self.move(x, y)
 
