@@ -56,12 +56,10 @@ def test_listagem_mantem_configuracao_de_colunas_e_aparencia(listagem):
         assert item.text() == label
         if width is None:
             expected_mode = QHeaderView.ResizeMode.Stretch
-        elif isinstance(view, ClienteView) and column == 1:
-            expected_mode = QHeaderView.ResizeMode.Interactive
         else:
             expected_mode = QHeaderView.ResizeMode.Fixed
         assert header.sectionResizeMode(column) == expected_mode
-        if width is not None:
+        if width is not None and not (isinstance(view, ClienteView) and column == 1):
             assert table.columnWidth(column) == width
     assert not vertical.isVisible()
     assert vertical.defaultSectionSize() == 22
@@ -113,3 +111,40 @@ def test_listagem_ordena_seleciona_e_navega_pelo_scroll(listagem, app):
     assert table.currentRow() == 1
     assert changes[-1][:2] == (1, 0)
     assert len(table.selectionModel().selectedRows()) == 1
+
+
+def test_coluna_nome_clientes_ocupa_espaco_disponivel_com_largura_minima(
+    monkeypatch, app
+):
+    monkeypatch.setattr(ClienteView, "_carregar_clientes", lambda self: None)
+    view = ClienteView()
+    view.resize(1600, 600)
+    view.show()
+    app.processEvents()
+    table = view.tabela_clientes
+    viewport = table.viewport()
+    assert viewport is not None
+    larguras_fixas = [table.columnWidth(i) for i in (0, 2, 3, 4, 5, 6)]
+    soma_fixas = sum(larguras_fixas)
+
+    def verificar():
+        assert table.columnWidth(1) == max(200, viewport.width() - soma_fixas)
+        assert [table.columnWidth(i) for i in (0, 2, 3, 4, 5, 6)] == larguras_fixas
+
+    verificar()
+    view.resize(900, 600)
+    app.processEvents()
+    verificar()
+    assert table.horizontalScrollBar().maximum() > 0
+    view.resize(1400, 600)
+    app.processEvents()
+    verificar()
+    table.setRowCount(100)
+    app.processEvents()
+    verificar()
+    table.setRowCount(0)
+    app.processEvents()
+    verificar()
+    view.close()
+    view.deleteLater()
+    app.processEvents()

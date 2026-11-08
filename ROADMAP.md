@@ -362,13 +362,16 @@ Escopo visual atual: trabalhar e validar somente em 100% no Windows. Os registro
         Fornecedor impunha altura mínima de 750 unidades; o dimensionador compartilhado
         de Nova Venda usava a geometria total do monitor, não sua área disponível;
         Restauração também centralizava pela geometria total.
-        Correções aplicadas: nome de Clientes com largura inicial de 200 unidades,
+        Correções aplicadas na época: nome de Clientes com largura inicial de 200 unidades,
         redimensionamento manual e rolagem horizontal; formulários de Cliente e
         Fornecedor com rolagem e ações fixas; dimensionador compartilhado e
         Restauração usam a área útil do monitor. Testes no backend Windows, com
         escalas Qt simuladas de 125% e 150%, cobrem os botões e a rolagem nesses
         diálogos. Revalidar as correções nas escalas reais: o monitor retornou a
         100% antes da aplicação das alterações.
+        Posteriormente, a coluna Nome passou a ocupar automaticamente o espaço restante
+        da tabela, com mínimo de 200 unidades e rolagem horizontal em janelas estreitas;
+        deixou de ter redimensionamento manual.
         Permanecem pendentes a inspeção detalhada das demais telas e diálogos,
         redimensionamento, interações e diálogos nativos nas duas escalas, além de
         validar novamente após as correções. Simulações Qt não substituem a validação

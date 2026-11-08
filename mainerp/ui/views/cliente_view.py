@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QEvent, QObject, Qt
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QCheckBox,
@@ -317,7 +317,7 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
         assert header is not None
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)  # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)  # Nome
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)  # Nome
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)  # CPF/CNPJ
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)  # Endereço
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.Fixed)  # Telefone
@@ -332,11 +332,33 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
 
         configurar_listagem_padrao(self.tabela_clientes)
 
+        viewport = self.tabela_clientes.viewport()
+        assert viewport is not None
+        viewport.installEventFilter(self)
+        self._ajustar_coluna_nome()
+
         self.setup_scroll_navigation(
             tabela=self.tabela_clientes,
             scroll_sensibilidade=1,  # 1 linha por scroll (padrão)
             auto_select_first=True,  # Seleciona primeira linha automaticamente
         )
+
+    def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
+        if (
+            obj is self.tabela_clientes.viewport()
+            and event is not None
+            and event.type() == QEvent.Type.Resize
+        ):
+            self._ajustar_coluna_nome()
+        return super().eventFilter(obj, event)
+
+    def _ajustar_coluna_nome(self) -> None:
+        viewport = self.tabela_clientes.viewport()
+        assert viewport is not None
+        largura_fixa = sum(
+            self.tabela_clientes.columnWidth(i) for i in (0, 2, 3, 4, 5, 6)
+        )
+        self.tabela_clientes.setColumnWidth(1, max(200, viewport.width() - largura_fixa))
 
     # ========== MÉTODOS DE CARREGAMENTO E FILTROS ==========
 
