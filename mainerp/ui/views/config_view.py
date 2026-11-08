@@ -2,6 +2,7 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
+    QComboBox,
     QFileDialog,
     QFormLayout,
     QFrame,
@@ -18,6 +19,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from mainerp.core.config import obter_config
 from mainerp.data.models.empresa import Empresa
 from mainerp.ui.dialogs.backup_dialog import BackupDialog
 from mainerp.ui.dialogs.config_selection_dialog import ConfigSelectionDialog
@@ -213,6 +215,23 @@ class ConfigView(QWidget):
 
         layout.addWidget(scroll_area)
 
+        tema_group = QGroupBox("Aparência")
+        tema_layout = QHBoxLayout(tema_group)
+        tema_layout.addWidget(QLabel("Tema:"))
+        self.tema_combo = QComboBox()
+        self.tema_combo.addItem("Claro", "light")
+        self.tema_combo.addItem("Escuro", "dark")
+        self.tema_combo.setCurrentIndex(
+            self.tema_combo.findData(obter_config().obter_tema())
+        )
+        tema_layout.addWidget(self.tema_combo)
+        btn_tema = QPushButton("Salvar tema")
+        btn_tema.clicked.connect(self.salvar_tema)
+        tema_layout.addWidget(btn_tema)
+        tema_layout.addWidget(QLabel("Aplicado na próxima abertura do ERP."))
+        tema_layout.addStretch()
+        layout.addWidget(tema_group)
+
         self.action_frame = QFrame()
         self.action_frame.setVisible(False)
         action_layout = QHBoxLayout()
@@ -286,6 +305,20 @@ class ConfigView(QWidget):
                 self.logo_label.setText("Logo inválido\nClique para selecionar")
         else:
             self.logo_label.setText("Sem logo\nClique para selecionar")
+
+    def salvar_tema(self):
+        config = obter_config()
+        tema = self.tema_combo.currentData()
+        if not config.salvar_tema(tema):
+            QMessageBox.warning(
+                self, "Tema não salvo",
+                "Não foi possível salvar a preferência de tema. "
+                "Verifique o acesso à pasta de dados.",
+            )
+            return
+        QMessageBox.information(
+            self, "Tema salvo", "O tema será aplicado na próxima abertura do ERP."
+        )
 
     def atualizar_header_logo(self):
         if self.empresa.logo:

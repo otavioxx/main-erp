@@ -26,6 +26,7 @@ def test_pacote_instalador_contem_codigo_e_componentes(tmp_path, monkeypatch):
             "distribuicao/launcher.pyw",
             "distribuicao/criar_release.py",
             "distribuicao/criar_atalhos.ps1",
+            "mainerp/ui/theme_tokens.py",
         } <= nomes
         assert {
             caminho.relative_to(ROOT).as_posix()

@@ -18,6 +18,7 @@ from mainerp.domain.utils.helpers import (
     validar_data,
 )
 from mainerp.ui.mixins.component_mixin import ComponentMixin
+from mainerp.ui.styles import cores_ativas
 from mainerp.ui.table_items import NumericTableWidgetItem
 
 logger = logging.getLogger(__name__)
@@ -257,9 +258,9 @@ class _RecebimentoViewFilters(ComponentMixin):
         status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
         if status == "pago":
-            status_item.setForeground(QBrush(QColor(0, 150, 0)))
+            status_item.setForeground(QBrush(QColor(cores_ativas().success_text)))
         elif status == "aberto":
-            status_item.setForeground(QBrush(QColor(237, 145, 33)))
+            status_item.setForeground(QBrush(QColor(cores_ativas().warning_text)))
 
         self.tabela_duplicatas.setItem(row, 2, status_item)
 
@@ -277,7 +278,7 @@ class _RecebimentoViewFilters(ComponentMixin):
             try:
                 data_venc = datetime.strptime(data_vencimento, "%Y-%m-%d").date()
                 if data_venc < datetime.now().date():
-                    venc_item.setForeground(QBrush(QColor(140, 47, 47)))
+                    venc_item.setForeground(QBrush(QColor(cores_ativas().danger_text)))
                     font = venc_item.font()
                     font.setBold(True)
                     venc_item.setFont(font)

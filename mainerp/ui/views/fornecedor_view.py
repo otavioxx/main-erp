@@ -19,6 +19,7 @@ from mainerp.core.app_logging import registrar_excecao
 from mainerp.data.models.fornecedor import Fornecedor
 from mainerp.ui.dialogs.fornecedor_dialog import FornecedorDialog
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
+from mainerp.ui.styles import cores_ativas
 from mainerp.ui.tabela import configurar_listagem_padrao
 from mainerp.ui.table_items import NumericTableWidgetItem
 
@@ -249,8 +250,8 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
         self.tabela_fornecedores.setSortingEnabled(False)
 
         # Cores para fornecedores inativos (mesmas do sistema de estilos)
-        cor_fundo_inativo = QColor("#4a2a2a")
-        cor_texto_inativo = QColor("#ff6b6b")
+        cor_fundo_inativo = QColor(cores_ativas().danger_bg)
+        cor_texto_inativo = QColor(cores_ativas().danger_text)
 
         for row, fornecedor in enumerate(fornecedores):
             # CORREÇÃO: ID usando NumericTableWidgetItem para ordenação numérica

@@ -204,6 +204,12 @@ temporários nos testes, nunca dados de produção.
 - [x] Preparar `cryptography` no runtime principal pelo instalador 0.10.5, inclusive
       em instalações existentes; testes cobrem o preparo e a falha. A instalação pela
       release de código não atualiza o instalador nem o launcher fixo.
+- [x] Exibir novidades do histórico na primeira abertura após atualização pelo launcher,
+      com registro por versão após fechar; falhas são avisadas e não impedem nova tentativa.
+- [ ] Redesenhar a janela de espera do launcher com a identidade visual e progresso real
+      quando mensurável, ou indicador indeterminado responsivo. O launcher usa Tkinter,
+      executa operações bloqueantes e só é substituído pelo instalador; planejar testes
+      de falhas, atualização e compatibilidade antes de alterar esse fluxo.
 
 ### Rota pendente — operação e segurança
 
@@ -297,30 +303,31 @@ Decisão: manter o frontend em PyQt6/Qt Widgets, sem migrar para web ou QML, e i
 estilo e melhoria geral de usabilidade. A referência é o padrão visual de ERPs corporativos
 consolidados (como o TOTVS): aparência plana, sóbria e densa, bordas retas e hierarquia por
 contraste. É inspiração de padrão de uso; não copiar logotipos, ícones, textos ou outros
-ativos de terceiros. A paleta já está definida em documentação, mas sua aplicação à
-interface ainda está pendente. Hoje o
-tema é único e escuro (`mainerp/ui/styles.py`, fundo `#1a1a1a`), há 32 chamadas de
-`setStyleSheet` em 12 arquivos, ≈ 77 cores hexadecimais fixas em `mainerp/ui/`,
-`border-radius` em 23 pontos de `styles.py` e nos diálogos de backup e restauração, e
-emojis como ícones (barra lateral em `main_window.py`, botões em `config_view.py`).
+ativos de terceiros. A fundação dos temas claro e escuro já foi aplicada, mas a
+validação visual e a migração de estilos locais continuam pendentes. Ainda há emojis
+como ícones (barra lateral em `main_window.py`, botões em `config_view.py`).
 
-- [ ] Registrar os princípios de design em `docs/`: raio de borda zero, bordas de 1 px,
+- [x] Registrar os princípios de design em `docs/identidade_visual.md`: raio de borda zero, bordas de 1 px,
       sem sombras nem gradientes, controles e linhas compactos, cor usada para significado
       (acento, estado, alerta) e não para decoração, ícones monocromáticos e texto sóbrio.
 - [x] Definir a paleta de ERP em `docs/identidade_visual.md`, com tokens para os temas
       claro e escuro. A implementação e a validação de contraste continuam pendentes.
-- [ ] Reestruturar `CoresPaleta` e `ConstrutorEstilos` para tokens (superfície, texto,
+- [x] Reestruturar `CoresPaleta` e `ConstrutorEstilos` para tokens (superfície, texto,
       borda, acento, estados, semânticas, altura de controle, espaçamento, raio igual a
       zero e fonte) com tema claro como padrão e o escuro como opção, e persistir a
       escolha nas configurações. Testes Qt aplicam cada tema e instanciam cada tela e
-      diálogo sem erro.
-- [ ] Mover os `setStyleSheet` soltos e as cores fixas de `mainerp/ui/` para o tema
-      central, incluindo `backup_dialog.py` e `restore_backup_dialog.py`. Adicionar um
-      teste que falhe se aparecer `border-radius` diferente de zero ou cor hexadecimal
-      fora de `styles.py`, para o padrão não se perder nas próximas telas.
-- [ ] Zerar os arredondamentos em botões, campos, listas suspensas, abas, tabelas, barras
-      de rolagem, menus e diálogos. Avaliar `app.setStyle("Fusion")` como base, para o QSS
-      renderizar igual entre versões do Windows.
+      diálogo sem erro. A escolha passa a valer na próxima abertura; configurações
+      antigas sem preferência mantêm o escuro.
+- [ ] Consolidar os `setStyleSheet` locais no tema central, incluindo os de backup e
+      restauração. Suas cores já usam os tokens, mas ainda existem estilos locais de
+      formatação e altura. Adicionar um teste contra raios diferentes de zero ou cores
+      fixas fora de `styles.py` e `theme_tokens.py`.
+- [x] Adotar Fusion e raio zero no QSS dos controles, abas, tabelas, barras, menus e
+      conteúdo dos diálogos. Testes cobrem temas, interação e escalas Qt simuladas;
+      inspeção de controles em Windows foi feita a 100%. A seta das listas usa Fusion.
+  - [ ] Validar visualmente em 125% e 150% no Windows. Bordas externas de janelas e
+        diálogos nativos de arquivos são controladas pelo sistema operacional e podem
+        continuar arredondadas; não trocar por janelas sem moldura sem avaliar o impacto.
 - [ ] Substituir os emojis por ícones SVG monocromáticos de um conjunto livre (conferir a
       licença; Lucide, Phosphor e Material Symbols são opções), em `mainerp/ui/icons/`,
       coloridos pelo tema. Conferir se o gerador de release empacota esses arquivos.
@@ -338,6 +345,9 @@ emojis como ícones (barra lateral em `main_window.py`, botões em `config_view.
       capturar imagens em 100%, 125% e 150% e só então seguir. Ordem sugerida: janela
       principal e navegação, listagens, diálogos de entrada, diálogos de relatório e, por
       fim, configurações e backup.
+  - [x] Registrar capturas do tema atual em 100% e medir combinações candidatas da
+        paleta em `docs/base_clientes_contraste.md`; há pares que exigem revisão.
+        Capturas do tema novo e validação em 125% e 150% continuam pendentes.
 - [ ] Alinhar os relatórios em PDF à mesma identidade (cabeçalho, cores, tabela), usando os
       tokens nos componentes compartilhados escolhidos na Fase 4.2. Definir a paleta antes
       de migrar os relatórios.

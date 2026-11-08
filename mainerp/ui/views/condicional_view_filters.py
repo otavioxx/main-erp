@@ -15,6 +15,7 @@ from mainerp.domain.utils.helpers import (
     validar_data,
 )
 from mainerp.ui.mixins.component_mixin import ComponentMixin
+from mainerp.ui.styles import cores_ativas
 from mainerp.ui.table_items import NumericTableWidgetItem
 
 __all__ = ["_CondicionalViewFilters"]
@@ -213,7 +214,7 @@ class _CondicionalViewFilters(ComponentMixin):
 
         # Para condicionais devolvidas - linha toda laranja
         if condicional.status == "devolvida":
-            cor_laranja = QColor(237, 145, 33)  # Laranja
+            cor_laranja = QColor(cores_ativas().warning_text)  # Laranja
             for col in range(self.tabela_condicionais.columnCount()):
                 item = self.tabela_condicionais.item(row, col)
                 if item:
@@ -221,7 +222,7 @@ class _CondicionalViewFilters(ComponentMixin):
 
         # Para condicionais convertidas - linha toda verde
         elif condicional.status == "convertida":
-            cor_verde = QColor(0, 128, 0)  # Verde
+            cor_verde = QColor(cores_ativas().success_text)  # Verde
             for col in range(self.tabela_condicionais.columnCount()):
                 item = self.tabela_condicionais.item(row, col)
                 if item:
@@ -229,7 +230,7 @@ class _CondicionalViewFilters(ComponentMixin):
 
         # Para condicionais ativas e vencidas - APENAS a coluna de data prevista em vermelho
         elif condicional.status == "ativa" and condicional.esta_vencida():
-            cor_vermelha = QColor(140, 47, 47)  # Vermelho
+            cor_vermelha = QColor(cores_ativas().danger_text)  # Vermelho
 
             # Aplicar vermelho apenas na coluna 3 (Prev. Devolução)
             item_data_prevista = self.tabela_condicionais.item(row, 3)

@@ -30,6 +30,7 @@ from mainerp.core.app_logging import registrar_excecao
 from mainerp.core.config import obter_config
 from mainerp.core.paths import caminho_dados
 from mainerp.data.automatic_backup import criar_snapshot_sqlite
+from mainerp.ui.styles import cores_ativas
 
 logger = logging.getLogger(__name__)
 
@@ -418,7 +419,7 @@ class BackupDialog(QDialog):
         titulo = QLabel("BACKUP OBRIGATÓRIO")
         titulo.setProperty("class", "title")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        titulo.setStyleSheet("font-size: 18px; font-weight: bold; color: #1A4968;")
+        titulo.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {cores_ativas().accent_text};")
         layout.addWidget(titulo)
 
         # Informações do arquivo
@@ -451,7 +452,8 @@ class BackupDialog(QDialog):
         )
         self.caminho_label.setWordWrap(True)
         self.caminho_label.setStyleSheet(
-            "padding: 8px; background-color: #404040; border-radius: 4px;"
+            f"padding: 8px; background-color: {cores_ativas().surface_alt}; "
+            f"color: {cores_ativas().text_primary};"
         )
         destino_layout.addWidget(self.caminho_label)
 
@@ -478,23 +480,7 @@ class BackupDialog(QDialog):
         # Botão Realizar Backup (centralizado)
         self.btn_backup = QPushButton("REALIZAR BACKUP E FECHAR")
         self.btn_backup.clicked.connect(self._iniciar_backup)
-        self.btn_backup.setStyleSheet("""
-            QPushButton {
-                padding: 15px 30px;
-                background-color: #28a745;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-weight: bold;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-            QPushButton:disabled {
-                background-color: #6c757d;
-            }
-        """)
+        self.btn_backup.setProperty("class", "success")
 
         button_layout.addStretch()
         button_layout.addWidget(self.btn_backup)
@@ -617,7 +603,7 @@ class BackupDialog(QDialog):
         self.status_label.setVisible(True)
         self.status_label.setText("⏳ Criando backup...")
         self.status_label.setStyleSheet(
-            "color: #007bff; font-weight: bold; font-size: 14px;"
+            f"color: {cores_ativas().accent_text}; font-weight: bold; font-size: 14px;"
         )
 
         # Criar e iniciar thread de backup
@@ -670,7 +656,7 @@ class BackupDialog(QDialog):
 
         self.status_label.setText("✅ Backup concluído e verificado com sucesso!")
         self.status_label.setStyleSheet(
-            "color: #28a745; font-weight: bold; font-size: 14px;"
+            f"color: {cores_ativas().success_text}; font-weight: bold; font-size: 14px;"
         )
 
         # Marcar que o backup foi verificado

@@ -28,6 +28,7 @@ from mainerp.domain.utils.helpers import (
     formatar_moeda,
     validar_data,
 )
+from mainerp.ui.styles import cores_ativas
 
 logger = logging.getLogger(__name__)
 
@@ -144,10 +145,10 @@ class RecebimentoDialog(QDialog):
         diferenca = float(de_centavos(abs(diferenca_centavos)))
         if diferenca_centavos > 0:
             texto = f"Valor maior em: {formatar_moeda(diferenca)}"
-            cor = "green"
+            cor = cores_ativas().success_text
         else:
             texto = f"Valor menor em: {formatar_moeda(diferenca)}"
-            cor = "red"
+            cor = cores_ativas().danger_text
 
         self.diferenca_label.setText(texto)
         self.diferenca_label.setStyleSheet(f"color: {cor}; font-weight: bold;")

@@ -23,6 +23,7 @@ from mainerp.core.app_logging import registrar_excecao
 from mainerp.data.models.cliente import Cliente
 from mainerp.domain.utils.helpers import aplicar_maiuscula_formulario
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
+from mainerp.ui.styles import cores_ativas
 from mainerp.ui.tabela import configurar_listagem_padrao
 from mainerp.ui.table_items import NumericTableWidgetItem
 
@@ -358,8 +359,8 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
         self.tabela_clientes.setSortingEnabled(False)
 
         # Cores para clientes inativos (mesmas do sistema de estilos)
-        cor_fundo_inativo = QColor("#4a2a2a")
-        cor_texto_inativo = QColor("#ff6b6b")
+        cor_fundo_inativo = QColor(cores_ativas().danger_bg)
+        cor_texto_inativo = QColor(cores_ativas().danger_text)
 
         for row, cliente in enumerate(clientes):
             # CORREÇÃO: ID usando NumericTableWidgetItem para ordenação numérica

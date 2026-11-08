@@ -2,6 +2,8 @@
 import json
 import logging
 import os
+import tempfile
+from copy import deepcopy
 from typing import Any
 
 from mainerp.core.paths import caminho_dados
@@ -20,10 +22,12 @@ class Config:
     def __init__(self, config_file: str | None = None):
         # config.json fica na pasta de dados, fora do código das releases
         self.config_file = config_file or caminho_dados("config.json")
+        self.config_preexistente = os.path.exists(self.config_file)
+        self._carregamento_falhou = False
         self.default_config = {
             "database": {"name": "erp.db"},
             "appearance": {
-                "theme": "dark",
+                "theme": "light",
                 "font_family": "Segoe UI",
                 "font_size": 9,
                 "accent_color": "#007acc",
@@ -97,6 +101,7 @@ class Config:
                 return self.default_config.copy()
         except (OSError, json.JSONDecodeError):
             logger.exception("Erro ao carregar configurações")
+            self._carregamento_falhou = True
             return self.default_config.copy()
 
     def save_config(self) -> bool:
@@ -111,6 +116,51 @@ class Config:
         except OSError:
             logger.exception("Erro ao salvar configurações")
             return False
+
+    def obter_tema(self) -> str:
+        """Preserva o escuro em configurações antigas sem preferência explícita."""
+        tema = self.get("appearance.theme", None)
+        if tema is None:
+            return "dark" if self.config_preexistente else "light"
+        if tema not in ("light", "dark"):
+            logger.warning("Tema inválido %r; usando escuro sem alterar configuração.", tema)
+            return "dark"
+        return tema
+
+    def salvar_tema(self, tema: str) -> bool:
+        if tema not in ("light", "dark"):
+            raise ValueError(f"Tema desconhecido: {tema!r}")
+        nova = deepcopy(self.config)
+        if self._carregamento_falhou or not isinstance(nova, dict):
+            logger.error("Não é possível salvar tema: configuração original inválida.")
+            return False
+        appearance = nova.setdefault("appearance", {})
+        if not isinstance(appearance, dict):
+            logger.error("Não é possível salvar tema: appearance não é um objeto.")
+            return False
+        appearance["theme"] = tema
+        diretorio = os.path.dirname(os.path.abspath(self.config_file))
+        temporario = None
+        try:
+            os.makedirs(diretorio, exist_ok=True)
+            with tempfile.NamedTemporaryFile(
+                mode="w", encoding="utf-8", dir=diretorio, delete=False
+            ) as arquivo:
+                temporario = arquivo.name
+                json.dump(nova, arquivo, indent=4, ensure_ascii=False)
+            os.replace(temporario, self.config_file)
+        except OSError:
+            logger.exception("Erro ao salvar preferência de tema")
+            return False
+        finally:
+            if temporario and os.path.exists(temporario):
+                try:
+                    os.unlink(temporario)
+                except OSError:
+                    logger.exception("Não foi possível remover arquivo temporário %s", temporario)
+        self.config = nova
+        self.config_preexistente = True
+        return True
 
     # ------------------------------------------------------------------
     # Acesso genérico por chave

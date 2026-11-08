@@ -44,6 +44,8 @@ ARQUIVOS_DESENVOLVIMENTO = (
     "tests/test_pedido_utils_money.py", "tests/test_produto_model.py",
     "tests/test_release_updates.py", "tests/test_restore_pending.py",
     "tests/test_restore_validation.py", "tests/test_table_items.py",
+    "tests/test_splash.py", "tests/test_theme_tokens.py",
+    "tests/test_themes_ui.py",
     "tests/test_venda_estoque.py", "tests/test_venda_model.py",
     "tests/test_venda_utils.py", "tests/test_view_data_models.py",
 )

@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 
 from mainerp.data.models.fornecedor import Fornecedor
 from mainerp.domain.utils.helpers import SelectAllLineEdit, aplicar_maiuscula_formulario
+from mainerp.ui.styles import cores_ativas
 
 
 class FornecedorDialog(QDialog):
@@ -112,7 +113,7 @@ class FornecedorDialog(QDialog):
         status_layout.setContentsMargins(0, 0, 0, 0)
 
         status_info = QLabel("Status do fornecedor:")
-        status_info.setStyleSheet("font-weight: bold; color: #cccccc;")
+        status_info.setStyleSheet(f"font-weight: bold; color: {cores_ativas().text_primary};")
 
         self.ativo_checkbox = QCheckBox("Fornecedor ativo no sistema")
         self.ativo_checkbox.setChecked(self.fornecedor.ativo)

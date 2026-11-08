@@ -1,6 +1,6 @@
 # \erp\views\config_selection_dialog.py
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QColor, QIcon
 from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -15,8 +15,10 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from mainerp.core.config import obter_config
 from mainerp.data.models.empresa import Empresa
 from mainerp.domain.utils.helpers import aplicar_maiuscula_formulario
+from mainerp.ui.styles import cores_ativas
 
 
 class ConfigSelectionDialog(QDialog):
@@ -140,7 +142,9 @@ class ConfigSelectionDialog(QDialog):
                 "valor": "contato@empresa.com",
                 "categoria": "Empresa",
             },
-            {"chave": "sistema.tema", "valor": "Escuro", "categoria": "Sistema"},
+            {"chave": "sistema.tema",
+             "valor": "Claro" if obter_config().obter_tema() == "light" else "Escuro",
+             "categoria": "Sistema"},
             {"chave": "sistema.idioma", "valor": "Português", "categoria": "Sistema"},
             {"chave": "sistema.moeda", "valor": "R$", "categoria": "Sistema"},
             {"chave": "backup.automatico", "valor": "Ativado", "categoria": "Backup"},
@@ -186,7 +190,7 @@ class ConfigSelectionDialog(QDialog):
 
             valor_item = QTableWidgetItem(str(configuracao["valor"]))
             if "Não configurado" in str(configuracao["valor"]):
-                valor_item.setForeground(Qt.GlobalColor.red)
+                valor_item.setForeground(QColor(cores_ativas().danger_text))
             self.tabela.setItem(row, 1, valor_item)
 
             categoria_item = QTableWidgetItem(configuracao["categoria"])

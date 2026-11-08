@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
 )
 
 from mainerp.ui.dialogs.cliente_selection_dialog import ClienteSelectionDialog
+from mainerp.ui.styles import cores_ativas
 
 
 class RelatorioCondicionalDialog(QDialog):
@@ -39,7 +40,7 @@ class RelatorioCondicionalDialog(QDialog):
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
         separator.setFrameShadow(QFrame.Shadow.Sunken)
-        separator.setStyleSheet("color: #3c3c3c;")
+        separator.setStyleSheet(f"color: {cores_ativas().border};")
         layout.addWidget(separator)
 
         # Grupo de datas - Layout horizontal

@@ -182,6 +182,23 @@ Instalações existentes precisam receber o launcher atualizado pelo instalador;
 requer espaço em disco e acesso às dependências. Não apague
 nem substitua esse ambiente durante uma atualização normal.
 
+Após atualizar e abrir a nova versão pelo launcher, o aplicativo apresenta uma vez
+as novidades do `CHANGELOG.md`, incluindo versões intermediárias disponíveis. A leitura
+é registrada em `dados\novidades\`; falhas de leitura ou gravação são avisadas e
+permitem nova tentativa. Instalações novas e regressões a versões anteriores não
+exibem o diálogo. A detecção depende de uma release anterior confirmada ainda presente;
+por segurança, o diálogo também é suprimido enquanto existir uma release mais nova,
+mesmo marcada como ruim.
+Ao preparar cada release, inclua no histórico uma seção não vazia para sua versão.
+
+A janela de espera da atualização pertence ao launcher fixo e usa Tkinter, não a
+interface Qt do aplicativo. É possível redesenhá-la, mas as instalações atuais precisam
+receber o launcher atualizado pelo instalador. O download e a instalação de dependências
+são operações bloqueantes: uma barra de progresso animada exigiria processamento da
+interface independente dessas operações. Percentuais só devem ser exibidos quando
+houver medição real; a instalação de dependências não oferece progresso percentual
+confiável no fluxo atual.
+
 ## Mudanças no banco (migrações)
 
 Quando uma release inclui migração, o aplicativo cria automaticamente um backup

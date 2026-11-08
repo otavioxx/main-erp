@@ -3,18 +3,28 @@
 ## 1. Direção visual
 
 O MainERP adota uma identidade visual inspirada em sistemas ERP corporativos, priorizando sobriedade, legibilidade, consistência e densidade de informação.
+Esta é a direção da Fase 4.3; a implementação e a validação visual são incrementais.
+As referências são de padrão de uso: não copiar logotipos, ícones, textos ou outros
+ativos de terceiros.
 
 Princípios:
 
-- Azul-marinho institucional na navegação.
-- Cinzas neutros nas superfícies e áreas de trabalho.
-- Um único azul de acento para ações primárias, foco e links.
-- Cores vivas exclusivamente para estados semânticos: sucesso, atenção, perigo e informação.
-- Bordas retas de 1 px, sem arredondamentos, sombras ou gradientes.
-- Ícones monocromáticos.
-- Tema claro como padrão e tema escuro como opção.
-- Contraste mínimo de 4,5:1 para textos normais.
-- Aparência compacta, sem comprometer a legibilidade.
+- **Estrutura plana:** cantos com raio zero e bordas visíveis de 1 px; sem sombras
+  nem gradientes decorativos. Um componente pode não ter borda quando sua separação
+  permanecer clara.
+- **Hierarquia:** azul-marinho na navegação, cinzas neutros nas superfícies e um azul
+  de acento para ação primária, foco e links; não usar cor apenas como decoração.
+- **Significado:** sucesso, atenção, perigo e informação representam estados ou ações
+  reais. Não depender apenas de cor: combinar com texto ou outro indicador reconhecível.
+- **Densidade com legibilidade:** controles, linhas e espaçamentos compactos, sem cortar
+  textos ou dificultar a leitura, a seleção e o uso por teclado. As dimensões finais
+  dependem da validação visual nas escalas suportadas.
+- **Ícones e texto:** ícones monocromáticos de conjunto com licença verificada; textos
+  curtos e sóbrios, mantendo nomes de ações claros e avisos compreensíveis.
+- **Acessibilidade:** contraste mínimo de 4,5:1 para texto normal; foco visível, estados
+  distinguíveis e navegação por teclado. Avaliar também textos desabilitados, bordas,
+  ícones e seleção, sem supor que uma cor isolada garante contraste em todo contexto.
+- **Temas:** claro como padrão para configurações novas e escuro como opção.
 
 ## 2. Paleta oficial de cores
 
@@ -35,13 +45,15 @@ Princípios:
 |---|---|---|---|
 | `text_primary` | `#1F2933` | `#E1E6EB` | Texto principal |
 | `text_secondary` | `#4B5A6A` | `#AEB8C2` | Rótulos e textos auxiliares |
-| `text_muted` | `#5C6875` | `#8795A3` | Dicas e metadados |
+| `text_muted` | `#5C6875` | `#A0AFBE` | Dicas e metadados |
+| `text_disabled` | `#5C6875` | `#A0AFBE` | Texto de botão desabilitado |
+| `surface_disabled` | `#E1E7EE` | `#2A313A` | Fundo de botão desabilitado |
 
 ### Navegação institucional
 
 | Token | Claro | Escuro | Aplicação |
 |---|---|---|---|
-| `nav_bg` | `#0B2A4A` | `#121A23` | Barra lateral e barra de status |
+| `nav_bg` | `#0B2A4A` | `#121A23` | Barra lateral |
 | `nav_hover` | `#14406E` | `#1C2A3A` | Item ativo ou sob o mouse |
 | `nav_text` | `#DCE6F0` | `#C9D3DD` | Texto da navegação |
 
@@ -49,8 +61,10 @@ Princípios:
 
 | Token | Claro | Escuro | Aplicação |
 |---|---|---|---|
-| `accent` | `#1565A8` | `#2B6CB0` | Botões primários, foco e links |
+| `accent` | `#1565A8` | `#2B6CB0` | Botões primários |
 | `accent_hover` | `#0F5290` | `#2F78C4` | Hover de ações primárias |
+| `accent_text` | `#1565A8` | `#87BDF5` | Texto destacado e links |
+| `focus` | `#1565A8` | `#87BDF5` | Borda de foco |
 
 ### Seleção e interação
 
@@ -93,10 +107,11 @@ Essas cores são específicas para botões sólidos e não substituem os tokens 
 
 ### Referências
 
-Imagens de referencia:
-Tema claro: docs\tema-claro.png
-Tema escuro: docs\tema-escuro.png
-HTML: docs\previa_paleta_erp_claro_escuro.html
+As imagens e a prévia são referências visuais, não capturas da aplicação implementada:
+[tema claro](tema-claro.png), [tema escuro](tema-escuro.png) e
+[prévia HTML](previa_paleta_erp_claro_escuro.html).
+Para capturas do tema anterior e medições da proposta original, consulte a
+[linha de base de Clientes e contraste](base_clientes_contraste.md).
 
 ## 3. Regras de utilização
 
@@ -111,28 +126,87 @@ HTML: docs\previa_paleta_erp_claro_escuro.html
 9. O tema claro deve ser utilizado por padrão em novas instalações.
 10. A preferência de tema deve ser persistida nas configurações.
 
-## 4. Implementação
+## 4. Implementação e evolução
 
-A implementação deve ser centralizada em `mainerp/ui/styles.py`, utilizando:
+`mainerp/ui/theme_tokens.py` define cores e dimensões dos dois temas;
+`CoresPaleta` adapta esses tokens aos seletores existentes em `styles.py`, e
+`ConstrutorEstilos` gera o QSS. A inicialização aplica o tema à paleta Qt e ao QSS.
+As cores de estados usadas pelas listagens e diálogos são obtidas do tema ativo.
+Alguns componentes ainda mantêm estilos locais para dimensões e formatação.
 
-- `CoresPaleta`: definição dos tokens e valores por tema.
-- `ConstrutorEstilos`: geração dos estilos dos componentes a partir dos tokens.
-- Tema claro e tema escuro: seleção dos valores conforme a configuração ativa.
+O Qt Fusion é usado como estilo-base dos widgets, com raio zero no QSS para os
+controles da aplicação. As bordas externas e a barra de título de janelas nativas,
+assim como diálogos nativos do Windows para arquivos, continuam sob controle do
+sistema operacional e podem manter cantos arredondados. O Fusion reduz diferenças
+entre estilos nativos, mas não garante aparência idêntica entre versões e escalas
+do Windows; elas ainda exigem inspeção visual.
 
-Nenhuma tela ou diálogo deve manter uma paleta própria independente.
+O splash de inicialização usa as cores do tema ativo, superfícies planas e bordas
+retas. Ele mantém as mensagens das etapas reais, sem apresentar progresso simulado.
+Seu tamanho lógico é preservado e a imagem é desenhada na escala da tela principal.
+
+Em **Configurações > Aparência**, selecione Claro ou Escuro e clique em **Salvar tema**;
+a escolha entra em vigor na próxima abertura. Sem arquivo de configuração, o padrão é
+claro; arquivos existentes sem preferência ou com preferência inválida usam escuro.
+Um valor inválido gera aviso no log e não é sobrescrito automaticamente. Se o arquivo
+de configuração não puder ser lido ou a gravação falhar, a alteração é recusada e
+uma mensagem é exibida. A preferência antiga explícita `dark` permanece escura, mas
+usa a nova paleta, não a aparência antiga.
+
+A fonte continua com base Segoe UI 12 pt; `appearance.font_size` não é usada para
+defini-la. Há tamanhos em pixels no QSS. Os testes de contraste cobrem combinações
+previstas; não substituem a avaliação dos widgets, de todos os estados ou das escalas
+do Windows.
+
+### Caminho incremental
+
+Cada etapa deve ser pequena e preservar o funcionamento anterior até ser validada:
+
+1. **Linha de base:** registrar capturas da listagem e do diálogo de Clientes, com dados
+   fictícios e estados de foco, seleção, desativação e aviso; anotar resolução e escala.
+   Inventariar os estilos locais e regras funcionais dessas telas antes de alterá-las.
+2. **Contraste:** medir os pares texto/fundo realmente usados nos dois temas, incluindo
+   estados de interação e seleção; revisar valores que não atendam à meta antes de
+   adotar a paleta. Uma amostra de pares não valida a paleta inteira.
+3. **Fundação e preferência:** tokens, aplicação e persistência foram implementados;
+   ampliar a validação visual, em especial nas telas e nos estados menos frequentes.
+   Preservar as classes semânticas e a compatibilidade dos chamadores.
+5. **Protótipo limitado:** aplicar o padrão a Clientes e seu diálogo e comparar com a
+   linha de base. Preservar filtros, ordenação, seleção, atalhos, cadastro e validações.
+   Depois de validado, expandir em lotes pequenos para outras telas e navegação.
+6. **Consolidação:** migrar estilos locais gradualmente, inclusive backup e restauração.
+   Introduzir verificações automatizadas por componentes já migrados; uma proibição
+   global de cores ou raios antes da migração faria o projeto atual falhar.
+7. **Ícones e relatórios:** escolher ícones e conferir licença e inclusão na release.
+   O gerador atual inclui arquivos Python dos pacotes autorizados, não SVGs
+   automaticamente. Alinhar PDFs após a escolha dos componentes da Fase 4.2.
+
+Antes de mudar dimensões, conferir `mainerp/ui/tabela.py`: a listagem padrão fixa linhas
+em 22 unidades Qt. Validar o resultado com fonte e escala reais no Windows em vez de
+assumir equivalência entre pixels do QSS, pontos da fonte e pixels físicos. Avaliar
+`Fusion` em protótipo, pois uma mudança global de estilo pode afetar telas não migradas.
 
 ## 5. Validação
 
-Antes da aplicação definitiva:
+Em cada lote, usar uma instalação ou dados de teste isolados e:
 
-- Validar contraste de textos, controles, estados e seleção.
-- Conferir os temas em escalas de 100%, 125% e 150% no Windows.
-- Verificar consistência visual entre telas, diálogos, tabelas e relatórios.
-- Executar testes automatizados de aplicação dos temas.
-- Garantir que novas telas não introduzam cores fixas fora da paleta oficial.
+- Medir contraste de combinações efetivamente exibidas e conferir foco, estados ativos,
+  desabilitados, seleção, mensagens e legibilidade sem depender apenas de cor.
+- Conferir os temas em 100%, 125% e 150% no Windows, incluindo textos longos,
+  redimensionamento, cortes e acesso aos controles. Capturas offscreen ajudam na
+  regressão, mas não substituem a conferência visual nessas escalas.
+- Comparar as telas migradas com a linha de base e verificar navegação por teclado,
+  filtros, ordenação, seleção, ações e comportamento dos diálogos.
+- Executar testes Qt relevantes para os dois temas e os fluxos afetados; ao alterar
+  empacotamento, conferir o conteúdo da release e uma instalação isolada.
+- Impedir novos estilos fora do padrão nos componentes já migrados e ampliar a
+  verificação conforme os demais forem convertidos.
 
 ## 6. Relação com os relatórios
 
 Os relatórios PDF devem seguir a mesma identidade visual do aplicativo.
 
-O template compartilhado `mainerp/reports/templates/base.html`, previsto na Fase 4.2, deverá utilizar os mesmos valores da paleta oficial, mantendo consistência entre a interface e os documentos gerados.
+Os relatórios atuais usam ReportLab. A Fase 4.2 ainda avaliará o motor e os componentes
+compartilhados; não há decisão de usar template HTML. Após essa escolha, adaptar a
+identidade aos documentos e validar contraste e impressão, sem pressupor que o tema
+escuro da interface seja apropriado para papel.

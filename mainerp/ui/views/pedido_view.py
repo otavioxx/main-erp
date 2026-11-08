@@ -36,6 +36,7 @@ from mainerp.reports.print_pedido import PrintPedido
 from mainerp.reports.print_relat_pedido import PrintRelatPedido
 from mainerp.ui.dialogs.pedido_dialog import PedidoDialog
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
+from mainerp.ui.styles import cores_ativas
 from mainerp.ui.tabela import configurar_listagem_padrao
 from mainerp.ui.table_items import NumericTableWidgetItem
 
@@ -446,7 +447,7 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
             )
             # Destacar desconto em vermelho se houver
             if desconto_valor > 0:
-                desconto_item.setForeground(QBrush(QColor("#ff6b6b")))
+                desconto_item.setForeground(QBrush(QColor(cores_ativas().danger_text)))
             self.tabela_pedidos.setItem(row, 5, desconto_item)
 
             # CORREÇÃO: Frete - índice 5
@@ -489,11 +490,11 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
 
         # Cores baseadas no status
         if status_str.lower() == "pendente":
-            status_item.setForeground(QBrush(QColor(150, 100, 0)))
+            status_item.setForeground(QBrush(QColor(cores_ativas().warning_text)))
         elif status_str.lower() == "recebido":
-            status_item.setForeground(QBrush(QColor(0, 150, 0)))
+            status_item.setForeground(QBrush(QColor(cores_ativas().success_text)))
         elif status_str.lower() == "cancelado":
-            status_item.setForeground(QBrush(QColor(200, 50, 50)))
+            status_item.setForeground(QBrush(QColor(cores_ativas().danger_text)))
 
         self.tabela_pedidos.setItem(row, 3, status_item)
 

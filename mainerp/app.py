@@ -7,8 +7,8 @@ import sys
 from datetime import datetime
 
 import pytz
-from PyQt6.QtCore import QLibraryInfo, Qt, QTranslator
-from PyQt6.QtGui import QColor, QFont, QIcon, QPainter, QPainterPath, QPixmap
+from PyQt6.QtCore import QLibraryInfo, QRect, Qt, QTimer, QTranslator
+from PyQt6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
 from PyQt6.QtWidgets import QApplication, QMessageBox, QSplashScreen
 
 from mainerp.core import paths
@@ -18,7 +18,11 @@ from mainerp.core.config import obter_config
 # Importações movidas para o topo para evitar problemas
 from mainerp.data.database import obter_database
 from mainerp.data.restore import aplicar_restauracao_pendente
-from mainerp.ui.styles import aplicar_tema_dark  # Alterado para aplicar_tema_dark
+from mainerp.ui.dialogs.sobre_atualizacoes_dialog import (
+    mostrar_novidades_apos_atualizacao,
+)
+from mainerp.ui.styles import aplicar_tema, cores_ativas
+from mainerp.ui.theme_tokens import DIMENSOES
 from mainerp.ui.views.main_window import MainWindow
 
 logger = logging.getLogger(__name__)
@@ -117,65 +121,62 @@ def show_splash(
     app_name="ERP System",
     footer_text="© Digital Solutions - Todos os direitos reservados",
 ):
-    """Mostra tela de splash com quinas arredondadas e textos - Adaptado para PyQt6"""
+    """Mostra o progresso real da inicialização com as cores do tema ativo."""
     width, height = 450, 300
-    radius = 12
+    cores = cores_ativas()
+    screen = QApplication.primaryScreen()
+    escala = screen.devicePixelRatio() if screen is not None else 1.0
 
     def create_splash_pixmap(progress_message=""):
-        """Cria o pixmap do splash com mensagem de progresso"""
-        splash_pixmap = QPixmap(width, height)
-        splash_pixmap.fill(Qt.GlobalColor.transparent)
-
+        splash_pixmap = QPixmap(round(width * escala), round(height * escala))
+        splash_pixmap.setDevicePixelRatio(escala)
+        splash_pixmap.fill(QColor(cores.surface))
         painter = QPainter(splash_pixmap)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        # Fundo arredondado
-        path = QPainterPath()
-        path.addRoundedRect(0, 0, width, height, radius, radius)
-        painter.fillPath(path, QColor("#2b2b2b"))
-
-        # Borda sutil
-        painter.setPen(QColor("#404040"))
-        painter.drawRoundedRect(1, 1, width - 2, height - 2, radius - 1, radius - 1)
-
-        # Título
-        title_font = QFont("Segoe UI", 34, QFont.Weight.Bold)
-        painter.setFont(title_font)
-        painter.setPen(QColor("#ffffff"))
-        title_rect = splash_pixmap.rect().adjusted(20, 40, -20, -200)
-        painter.drawText(title_rect, Qt.AlignmentFlag.AlignCenter, app_name)
-
-        # Subtítulo
-        subtitle_font = QFont("Segoe UI", 11)
-        painter.setFont(subtitle_font)
-        painter.setPen(QColor("#cccccc"))
-        subtitle_rect = splash_pixmap.rect().adjusted(20, 100, -20, -160)
+        painter.fillRect(QRect(0, 0, width, 86), QColor(cores.nav_bg))
+        painter.setPen(QColor(cores.nav_text))
+        painter.setFont(QFont(DIMENSOES.fonte_familia, 24, QFont.Weight.DemiBold))
         painter.drawText(
-            subtitle_rect, Qt.AlignmentFlag.AlignCenter, "Sistema de Gestão Empresarial"
+            QRect(28, 12, width - 56, 62),
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+            app_name,
         )
 
-        # MENSAGEM DE PROGRESSO (no meio)
+        painter.setFont(QFont(DIMENSOES.fonte_familia, 12, QFont.Weight.DemiBold))
+        painter.setPen(QColor(cores.text_primary))
+        painter.drawText(
+            QRect(28, 108, width - 56, 30),
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+            "Sistema de Gestão Empresarial",
+        )
+        painter.setFont(QFont(DIMENSOES.fonte_familia, 10))
+        painter.setPen(QColor(cores.text_secondary))
+        painter.drawText(
+            QRect(28, 148, width - 56, 24),
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+            "Inicializando o sistema",
+        )
+
         if progress_message:
-            progress_font = QFont("Segoe UI", 10)
-            painter.setFont(progress_font)
-            painter.setPen(QColor("#ffffff"))
-            # Posiciona no meio da tela (Y: 180-200)
-            progress_rect = splash_pixmap.rect().adjusted(30, 180, -30, -80)
+            painter.fillRect(QRect(28, 185, 3, 42), QColor(cores.accent))
+            painter.setPen(QColor(cores.text_primary))
             painter.drawText(
-                progress_rect, Qt.AlignmentFlag.AlignCenter, progress_message
+                QRect(40, 185, width - 68, 42),
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+                | Qt.TextFlag.TextWordWrap,
+                progress_message,
             )
 
-        # Copyright (rodapé)
-        footer_font = QFont("Segoe UI", 8)
-        painter.setFont(footer_font)
-        painter.setPen(QColor("#888888"))
-        footer_rect = splash_pixmap.rect().adjusted(20, 0, -20, -15)
+        painter.setPen(QColor(cores.border))
+        painter.drawLine(28, 252, width - 29, 252)
+        painter.setFont(QFont(DIMENSOES.fonte_familia, 8))
+        painter.setPen(QColor(cores.text_secondary))
         painter.drawText(
-            footer_rect,
-            Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter,
+            QRect(28, 260, width - 56, 26),
+            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
             footer_text,
         )
-
+        painter.setPen(QColor(cores.border))
+        painter.drawRect(0, 0, width - 1, height - 1)
         painter.end()
         return splash_pixmap
 
@@ -186,12 +187,10 @@ def show_splash(
         def update_message(self, message):
             new_pixmap = create_splash_pixmap(message)
             self.setPixmap(new_pixmap)
-            self.setMask(new_pixmap.mask())
 
     # Cria splash inicial sem mensagem
     initial_pixmap = create_splash_pixmap()
     splash = SplashScreenComMensagem(initial_pixmap)
-    splash.setMask(initial_pixmap.mask())
 
     # Aplica ícone no splash se disponível
     icon = carregar_icone_aplicacao()
@@ -365,8 +364,7 @@ def main():
     ):
         app.installTranslator(translator)
 
-    # Aplicar tema DARK (única opção agora)
-    aplicar_tema_dark(app)
+    aplicar_tema(app, config.obter_tema())
 
     # Mostrar splash enquanto as tarefas reais de inicialização são executadas.
     splash = show_splash(config.APP_NAME)
@@ -421,6 +419,9 @@ def main():
     splash.finish(window)
     window.show()
     confirmar_abertura()
+    QTimer.singleShot(
+        0, lambda: mostrar_novidades_apos_atualizacao(window, config.APP_VERSION)
+    )
 
     # Executar aplicação
     try:

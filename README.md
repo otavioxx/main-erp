@@ -28,6 +28,16 @@ recebimentos, estoque e relatórios/etiquetas em PDF. Feito em Python com PyQt6 
 Detalhes, atualizações e rollback: [`distribuicao/LEIAME.md`](distribuicao/LEIAME.md).
 Histórico de versões: [`CHANGELOG.md`](CHANGELOG.md).
 
+Após uma atualização pelo launcher, as novidades são apresentadas uma vez na
+primeira abertura bem-sucedida. O diálogo inclui as versões intermediárias disponíveis
+no histórico; ele não aparece numa instalação nova nem ao voltar para uma versão
+anterior. O histórico completo continua disponível em **Sobre**. Se não for possível
+ler as notas ou registrar que foram vistas, o sistema avisa e tenta novamente ao abrir.
+
+Em **Configurações > Aparência**, escolha o tema claro ou escuro e clique em
+**Salvar tema**. A alteração é aplicada na próxima abertura. Sem configuração
+anterior, o padrão é claro; configurações antigas sem preferência mantêm o escuro.
+
 ## Onde ficam as coisas
 
 | O quê | Onde |

@@ -296,7 +296,7 @@ def test_fechamento_reinicia_agendamento_somente_se_interrompido(monkeypatch, ce
             raise OSError("falha simulada")
         return cenario != "recente"
 
-    monkeypatch.setattr(Dialogo, "should_show_dialog", staticmethod(verificar))
+    monkeypatch.setattr(Dialogo, "should_show_dialog", staticmethod(verificar), raising=False)
     monkeypatch.setattr(
         QMessageBox,
         "question",

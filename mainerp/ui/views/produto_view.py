@@ -33,6 +33,7 @@ from mainerp.reports.print_produto import PrintProduto
 from mainerp.ui.dialogs.produto_dialog import ProdutoDialog
 from mainerp.ui.dialogs.relatorio_produto_dialog import RelatorioProdutoDialog
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
+from mainerp.ui.styles import cores_ativas
 from mainerp.ui.tabela import configurar_interacao_listagem
 from mainerp.ui.table_items import NumericTableWidgetItem
 
@@ -507,9 +508,9 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         self.tabela_produtos.setSortingEnabled(False)
 
         # Cores para produtos inativos
-        cor_texto_inativo = QColor("#ff6b6b")
-        cor_lucro_positivo = QColor("#51cf66")
-        cor_lucro_negativo = QColor("#ff6b6b")
+        cor_texto_inativo = QColor(cores_ativas().danger_text)
+        cor_lucro_positivo = QColor(cores_ativas().success_text)
+        cor_lucro_negativo = QColor(cores_ativas().danger_text)
 
         for row, produto in enumerate(produtos):
             dados, lucro, markup = ProdutoUtils.formatar_item_produto(produto)

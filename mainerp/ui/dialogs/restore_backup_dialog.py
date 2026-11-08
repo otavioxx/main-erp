@@ -29,6 +29,7 @@ from mainerp.core.config import obter_config
 from mainerp.data.db_utils import DatabaseManager
 from mainerp.data.restore import preparar_restauracao
 from mainerp.ui.dialog_base import DialogBase
+from mainerp.ui.styles import cores_ativas
 
 
 class VerifyBackupThread(QThread):
@@ -228,13 +229,7 @@ class RestoreBackupDialog(DialogBase):
         # Título
         titulo = QLabel("RESTAURAÇÃO DE BACKUP")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        titulo.setStyleSheet("""
-            font-size: 18px;
-            font-weight: bold;
-            color: #1A4968;
-            padding: 10px;
-            border-radius: 8px;
-        """)
+        titulo.setProperty("class", "title")
         layout.addWidget(titulo)
 
         # Divisor
@@ -255,32 +250,13 @@ class RestoreBackupDialog(DialogBase):
         file_layout.addWidget(QLabel("Arquivo de backup:"))
 
         self.file_label = QLabel("Nenhum arquivo selecionado")
-        self.file_label.setStyleSheet("""
-            QLabel {
-                padding: 8px;
-                background-color: #404040;
-                border-radius: 4px;
-                min-height: 20px;
-            }
-        """)
+        self.file_label.setStyleSheet(f"padding: 8px; background-color: {cores_ativas().surface_alt}; color: {cores_ativas().text_primary};")
         self.file_label.setWordWrap(True)
         file_layout.addWidget(self.file_label, 1)
 
         btn_browse = QPushButton("Procurar...")
         btn_browse.clicked.connect(self._selecionar_arquivo)
-        btn_browse.setStyleSheet("""
-            QPushButton {
-                padding: 8px 16px;
-                background-color: #6c757d;
-                color: white;
-                border: none;
-                border-radius: 4px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #5a6268;
-            }
-        """)
+        btn_browse.setProperty("class", "secondary")
         file_layout.addWidget(btn_browse)
 
         top_layout.addLayout(file_layout)
@@ -318,14 +294,7 @@ class RestoreBackupDialog(DialogBase):
         self.info_text = QTextEdit()
         self.info_text.setReadOnly(True)
         self.info_text.setMaximumHeight(150)
-        self.info_text.setStyleSheet("""
-            QTextEdit {
-                background-color: #404040;
-                border-radius: 4px;
-                font-family: 'Consolas', monospace;
-                font-size: 10pt;
-            }
-        """)
+        self.info_text.setStyleSheet("font-family: Consolas, monospace; font-size: 10pt;")
         bottom_layout.addWidget(self.info_text)
 
         # Barra de progresso
@@ -353,62 +322,18 @@ class RestoreBackupDialog(DialogBase):
         self.btn_verify = QPushButton("Verificar Backup")
         self.btn_verify.clicked.connect(self._verificar_backup)
         self.btn_verify.setEnabled(False)
-        self.btn_verify.setStyleSheet("""
-            QPushButton {
-                padding: 10px 20px;
-                background-color: #17a2b8;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #138496;
-            }
-            QPushButton:disabled {
-                background-color: #6c757d;
-                color: #adb5bd;
-            }
-        """)
+        self.btn_verify.setProperty("class", "primary")
 
         # Botão Restaurar
         self.btn_restore = QPushButton("Restaurar Backup")
         self.btn_restore.clicked.connect(self._iniciar_restauracao)
         self.btn_restore.setEnabled(False)
-        self.btn_restore.setStyleSheet("""
-            QPushButton {
-                padding: 10px 20px;
-                background-color: #28a745;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #218838;
-            }
-            QPushButton:disabled {
-                background-color: #6c757d;
-                color: #adb5bd;
-            }
-        """)
+        self.btn_restore.setProperty("class", "success")
 
         # Botão Cancelar
         btn_cancel = QPushButton("Cancelar")
         btn_cancel.clicked.connect(self.reject)
-        btn_cancel.setStyleSheet("""
-            QPushButton {
-                padding: 10px 20px;
-                background-color: #dc3545;
-                color: white;
-                border: none;
-                border-radius: 6px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #c82333;
-            }
-        """)
+        btn_cancel.setProperty("class", "secondary")
 
         button_layout.addWidget(self.btn_verify)
         button_layout.addWidget(self.btn_restore)
@@ -509,7 +434,7 @@ class RestoreBackupDialog(DialogBase):
 
         self.status_label.setVisible(True)
         self.status_label.setText("Verificando arquivo de backup...")
-        self.status_label.setStyleSheet("color: #17a2b8; font-weight: bold;")
+        self.status_label.setStyleSheet(f"color: {cores_ativas().accent_text}; font-weight: bold;")
 
         # Criar e iniciar thread de verificação
         self.verify_thread = VerifyBackupThread(file_path)
@@ -561,7 +486,7 @@ class RestoreBackupDialog(DialogBase):
             self.btn_restore.setEnabled(True)
             self.status_label.setVisible(True)
             self.status_label.setText("✅ Backup verificado e válido para restauração")
-            self.status_label.setStyleSheet("color: #28a745; font-weight: bold;")
+            self.status_label.setStyleSheet(f"color: {cores_ativas().success_text}; font-weight: bold;")
 
         else:
             self.info_text.append("❌ BACKUP INVÁLIDO OU CORROMPIDO")
@@ -570,7 +495,7 @@ class RestoreBackupDialog(DialogBase):
 
             self.status_label.setVisible(True)
             self.status_label.setText("❌ Backup inválido - Não pode ser restaurado")
-            self.status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
+            self.status_label.setStyleSheet(f"color: {cores_ativas().danger_text}; font-weight: bold;")
 
         # Reabilitar botão de verificação
         self.btn_verify.setEnabled(True)
@@ -582,7 +507,7 @@ class RestoreBackupDialog(DialogBase):
 
         self.status_label.setVisible(True)
         self.status_label.setText("❌ Erro na verificação do backup")
-        self.status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
+        self.status_label.setStyleSheet(f"color: {cores_ativas().danger_text}; font-weight: bold;")
 
         QMessageBox.critical(
             self,
@@ -635,7 +560,7 @@ class RestoreBackupDialog(DialogBase):
 
         self.status_label.setVisible(True)
         self.status_label.setText("Iniciando restauração do backup...")
-        self.status_label.setStyleSheet("color: #17a2b8; font-weight: bold;")
+        self.status_label.setStyleSheet(f"color: {cores_ativas().accent_text}; font-weight: bold;")
 
         # Criar e iniciar thread de restauração
         self.restore_thread = RestoreBackupThread(
@@ -669,7 +594,7 @@ class RestoreBackupDialog(DialogBase):
         self.progress_bar.setValue(100)
 
         self.status_label.setText("✅ Restauração preparada!")
-        self.status_label.setStyleSheet("color: #28a745; font-weight: bold;")
+        self.status_label.setStyleSheet(f"color: {cores_ativas().success_text}; font-weight: bold;")
 
         # Mostrar mensagem de sucesso
         QMessageBox.information(
@@ -695,7 +620,7 @@ class RestoreBackupDialog(DialogBase):
 
         self.status_label.setVisible(True)
         self.status_label.setText("❌ Erro durante a restauração")
-        self.status_label.setStyleSheet("color: #dc3545; font-weight: bold;")
+        self.status_label.setStyleSheet(f"color: {cores_ativas().danger_text}; font-weight: bold;")
 
         QMessageBox.critical(
             self,
