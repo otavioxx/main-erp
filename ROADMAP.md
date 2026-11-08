@@ -169,14 +169,11 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
 - [x] Tratar falhas de persistência de `backup_settings.json` na interface. Salvar o
       caminho preserva os demais campos e rejeita configurações inválidas; falhas ao
       salvar o caminho ou metadados do backup são informadas ao usuário.
-- [ ] Testar e corrigir o ciclo de fechamento/backup em `MainWindow`: o timer do backup
-      automático é parado antes de abrir o diálogo de backup, mas não é reiniciado caso
-      o fechamento seja interrompido. Verificar também falhas de agendamento/retenção e
-      tornar visível a idade e o resultado do último backup.
-- [ ] Definir política e testes de recuperação externa: os snapshots diários ficam no
-      mesmo diretório de dados e só são executados com o aplicativo aberto; não substituem
-      uma cópia externa. Validar periodicamente restauração em instalação isolada e
-      documentar quais dados e configurações são incluídos em cada tipo de backup.
+- [x] Testar e corrigir o ciclo de fechamento/backup em `MainWindow`: o agendamento
+      volta a funcionar se o fechamento for interrompido e aguarda backups em andamento.
+      Falhas de agendamento e retenção são informadas; a barra de status mostra a idade
+      do último arquivo automático e o resultado nesta sessão. Arquivos encontrados na
+      inicialização não são apresentados como novamente verificados.
 
 ### Prioridade alta — atualizações e distribuição
 

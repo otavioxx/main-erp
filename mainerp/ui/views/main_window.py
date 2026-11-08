@@ -1,7 +1,8 @@
 import logging
 from collections.abc import Callable
+from datetime import datetime
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtWidgets import (
     QApplication,
     QButtonGroup,
@@ -57,6 +58,8 @@ class StatusBarWidget(QWidget):
         )
         self.label_version.setProperty("class", "version-label")
         layout.addWidget(self.label_version)
+        self.label_backup = QLabel("Backup automático: ainda não verificado")
+        layout.addWidget(self.label_backup)
 
 
 class MainWindow(QMainWindow):
@@ -110,9 +113,15 @@ class MainWindow(QMainWindow):
             self._backup_automatico_concluido
         )
         self.backup_automatico.backup_falhou.connect(self._backup_automatico_falhou)
+        self.backup_automatico.retencao_falhou.connect(self._retencao_backup_falhou)
+        self.backup_automatico.situacao_alterada.connect(self._atualizar_status_backup)
         self.backup_automatico.operacao_finalizada.connect(
             self._retomar_fechamento_apos_backup
         )
+        self._timer_status_backup = QTimer(self)
+        self._timer_status_backup.setInterval(60_000)
+        self._timer_status_backup.timeout.connect(self._atualizar_status_backup)
+        self._timer_status_backup.start()
         self.backup_automatico.iniciar()
 
         self.showMaximized()
@@ -276,36 +285,29 @@ class MainWindow(QMainWindow):
 
         self.backup_automatico.parar()
 
-        # Limpa timers
-        if hasattr(self, "status_widget"):
-            timers_to_stop = [
-                "timer_datetime",
-                "timer_keys",
-                "timer_system",
-                "timer_db",
-            ]
-            for timer_name in timers_to_stop:
-                if hasattr(self.status_widget, timer_name):
-                    timer = getattr(self.status_widget, timer_name)
-                    if timer.isActive():
-                        timer.stop()
-
         # Impede fechamento automático
         event.ignore()
-
-        # VERIFICAÇÃO DA DATA DO ÚLTIMO BACKUP
-        # Se backup foi feito nos últimos 7 dias, fecha direto sem mostrar nada
-        if not BackupDialog.should_show_dialog():
-            # Último backup foi recente (menos de 7 dias)
-            # Fecha a aplicação SILENCIOSAMENTE
-            logger.info("Backup recente detectado; fechando sistema")
+        fechar = False
+        try:
+            try:
+                mostrar_dialogo = BackupDialog.should_show_dialog()
+            except Exception:
+                logger.exception("Erro ao verificar necessidade de backup")
+                fechar = self._perguntar_fechamento_emergencial()
+            else:
+                if not mostrar_dialogo:
+                    logger.info("Backup recente detectado; fechando sistema")
+                    fechar = True
+                else:
+                    fechar = self._mostrar_dialogo_backup()
             app = QApplication.instance()
-            if app is not None:
+            if fechar and app is not None:
                 app.quit()
-            return
-
-        # Se backup antigo (7+ dias) ou nunca feito, mostra diálogo
-        self._mostrar_dialogo_backup()
+            else:
+                fechar = False
+        finally:
+            if not fechar:
+                self.backup_automatico.iniciar()
 
     def _backup_automatico_concluido(self, caminho: str):
         self.status_bar.showMessage(f"Backup automático salvo: {caminho}", 10000)
@@ -313,6 +315,22 @@ class MainWindow(QMainWindow):
     def _backup_automatico_falhou(self, erro: str):
         logger.error("Backup automático não foi concluído: %s", erro)
         self.status_bar.showMessage(f"Falha no backup automático: {erro}", 15000)
+
+    def _retencao_backup_falhou(self, erro: str):
+        self.status_bar.showMessage(f"Falha na retenção de backups: {erro}", 15000)
+
+    def _atualizar_status_backup(self):
+        ultimo = self.backup_automatico.ultimo_backup
+        if ultimo is None:
+            idade = "nenhum arquivo encontrado"
+        else:
+            minutos = max(0, int((datetime.now().timestamp() - ultimo.timestamp()) // 60))
+            dias, minutos = divmod(minutos, 1440)
+            horas, minutos = divmod(minutos, 60)
+            idade = f"{dias}d {horas}h {minutos}min"
+        self.status_widget.label_backup.setText(
+            f"Backup automático: {idade} — {self.backup_automatico.resultado}"
+        )
 
     def _retomar_fechamento_apos_backup(self):
         if not self._aguardando_backup_automatico:
@@ -336,13 +354,12 @@ class MainWindow(QMainWindow):
             # VERIFICAÇÃO EXPLÍCITA: Se o diálogo foi aceito, fecha o sistema
             if result == QDialog.DialogCode.Accepted:
                 logger.info("Backup concluído; fechando sistema")
-                app = QApplication.instance()
-                if app is not None:
-                    app.quit()
+                return True
+            return False
 
         except Exception:
             logger.exception("Erro ao mostrar diálogo de backup")
-            self._perguntar_fechamento_emergencial()
+            return self._perguntar_fechamento_emergencial()
 
     def _backup_concluido(self, backup_path):
         """Chamado quando o backup é concluído com sucesso"""
@@ -362,13 +379,10 @@ class MainWindow(QMainWindow):
         reply = QMessageBox.question(
             self,
             "Erro no Backup",
-            "Não foi possível abrir o diálogo de backup.\n\n"
+            "Não foi possível verificar ou abrir o diálogo de backup.\n\n"
             "Deseja fechar o sistema mesmo assim?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
 
-        if reply == QMessageBox.StandardButton.Yes:
-            app = QApplication.instance()
-            if app is not None:
-                app.quit()
+        return reply == QMessageBox.StandardButton.Yes

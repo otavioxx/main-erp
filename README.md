@@ -85,7 +85,11 @@ Antes de qualquer migração pendente é criado um backup em `dados\backups\pre_
 O sistema também cria snapshots SQLite automáticos nessa pasta, no máximo uma vez por dia
 enquanto estiver aberto, e mantém somente os últimos 30 dias. Se o aplicativo ficar fechado
 por mais de um dia, o backup vencido é feito na próxima inicialização; não há execução
-enquanto o aplicativo e o Windows estiverem fechados. A opção de gerar um backup manual em
+enquanto o aplicativo e o Windows estiverem fechados. A barra de status mostra a idade
+do arquivo automático mais recente e o resultado da operação nesta sessão, inclusive
+falhas de agendamento ou retenção. Ao reiniciar, um arquivo existente é informado sem
+afirmar que foi verificado novamente; essa informação não substitui testes de restauração.
+A opção de gerar um backup manual em
 outra pasta (por exemplo, uma pasta sincronizada ou unidade externa) continua disponível no
 fechamento do sistema. O ZIP manual contém um snapshot SQLite verificado, inclusive dados
 confirmados em WAL; mantenha cópias externas e verifique periodicamente sua recuperação.

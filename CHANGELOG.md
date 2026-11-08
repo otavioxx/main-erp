@@ -2,6 +2,8 @@
 
 ## Não publicado
 
+- O agendamento de backup automático é retomado após fechamento interrompido; a barra
+  de status informa idade, resultado e falhas de agendamento ou retenção.
 - Falhas na restauração não afirmam que houve reversão; orientam preservar o banco,
   a pendência e os snapshots para suporte.
 - A validação de restauração recusa valores não inteiros nos campos de centavos e
