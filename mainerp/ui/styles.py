@@ -80,7 +80,7 @@ class ConstrutorEstilos:
             background-color: {self.cores.background_tertiary};
             color: {self.cores.text_primary};
             border: {self.dimensoes.borda}px solid {self.cores.border_secondary};
-            padding: 6px 12px;
+            padding: 4px 12px;
             border-radius: {self.dimensoes.raio}px;
             font-weight: 400;
             font-size: {self.fonte.tamanho_pequeno}px;
@@ -165,7 +165,7 @@ class ConstrutorEstilos:
             color: {self.cores.text_primary};
             border: {self.dimensoes.borda}px solid {self.cores.border_secondary};
             border-radius: {self.dimensoes.raio}px;
-            padding: 5px {self.dimensoes.espacamento}px;
+            padding: 4px {self.dimensoes.espacamento}px;
             font-size: {self.fonte.tamanho_pequeno}px;
             min-height: {self.dimensoes.altura_controle_minima}px;
             selection-background-color: {self.cores.selection_bg};
@@ -304,7 +304,7 @@ class ConstrutorEstilos:
             color: {self.cores.text_primary};
             border: {self.dimensoes.borda}px solid {self.cores.border_secondary};
             border-radius: {self.dimensoes.raio}px;
-            padding: 5px 8px;
+            padding: 4px 8px;
             font-size: {self.fonte.tamanho_pequeno}px;
             selection-background-color: {self.cores.selection_bg};
             selection-color: {self.cores.selection_text};
@@ -519,12 +519,12 @@ class ConstrutorEstilos:
         
         /* Título da sidebar */
         QLabel[class="sidebar-title"] {{
-            font-size: 34px;
+            font-size: 22px;
             font-weight: bold;
             color: {self.cores.tokens.nav_text};
-            padding: 10px;
-            border-bottom: 2px solid {self.cores.border_primary};
-            margin-bottom: 15px;
+            padding: 8px;
+            border-bottom: {self.dimensoes.borda}px solid {self.cores.border_primary};
+            margin-bottom: 8px;
             background-color: transparent;
         }}
         
@@ -532,13 +532,14 @@ class ConstrutorEstilos:
         QPushButton[class="nav-button"] {{
             background-color: transparent;
             color: {self.cores.tokens.nav_text};
-            border: none;
-            padding: 12px 15px;
+            border: {self.dimensoes.borda}px solid transparent;
+            border-left: 4px solid transparent;
+            padding: 5px 10px;
             text-align: left;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             border-radius: {self.dimensoes.raio}px;
-            margin: 2px 5px;
+            margin: 0;
         }}
         
         QPushButton[class="nav-button"]:hover {{
@@ -547,9 +548,16 @@ class ConstrutorEstilos:
         }}
         
         QPushButton[class="nav-button"]:checked {{
-            background-color: {self.cores.accent_primary};
+            background-color: {self.cores.tokens.nav_hover};
+            border-left-color: {self.cores.tokens.nav_text};
             color: {self.cores.tokens.button_semantic_text};
             font-weight: 600;
+        }}
+
+        QPushButton[class="nav-button"]:focus {{
+            border-top-color: {self.cores.tokens.nav_text};
+            border-right-color: {self.cores.tokens.nav_text};
+            border-bottom-color: {self.cores.tokens.nav_text};
         }}
         
         QPushButton[class="nav-button"]:pressed {{
@@ -803,6 +811,9 @@ def aplicar_tema(app, tema: str, fonte_customizada: ConfiguracaoFonte | None = N
     stylesheet = construtor.construir_stylesheet()
     app.setStyleSheet(stylesheet)
     app.setProperty("mainerp_tema", tema)
+    from mainerp.ui.listagem_modelo import atualizar_icones_listagens
+
+    atualizar_icones_listagens()
 
 
 def aplicar_tema_dark(app, fonte_customizada: ConfiguracaoFonte | None = None):

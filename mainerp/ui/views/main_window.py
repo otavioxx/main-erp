@@ -26,6 +26,7 @@ from mainerp.ui.dialogs.backup_dialog import BackupDialog
 from mainerp.ui.dialogs.sobre_atualizacoes_dialog import SobreAtualizacoesDialog
 from mainerp.ui.icones import icone
 from mainerp.ui.styles import cores_ativas
+from mainerp.ui.theme_tokens import DIMENSOES
 from mainerp.ui.views.cliente_view import ClienteView
 from mainerp.ui.views.condicional_view import CondicionalView
 from mainerp.ui.views.config_view import ConfigView
@@ -53,6 +54,9 @@ class StatusBarWidget(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(5, 2, 5, 2)
         layout.setSpacing(15)
+
+        self.label_empresa = QLabel()
+        layout.addWidget(self.label_empresa)
 
         # Versão da aplicação
         self.label_version = QLabel(
@@ -136,6 +140,10 @@ class MainWindow(QMainWindow):
 
         # Widget personalizado para a status bar
         self.status_widget = StatusBarWidget(self)
+        self.status_widget.label_empresa.setText(self.config_view.empresa.nome)
+        self.config_view.empresa_alterada.connect(
+            self.status_widget.label_empresa.setText
+        )
 
         # Adicionar o widget personalizado à status bar
         self.status_bar.addPermanentWidget(self.status_widget, 1)
@@ -149,14 +157,14 @@ class MainWindow(QMainWindow):
         """Cria a barra de navegação vertical"""
         nav_frame = QFrame()
         nav_frame.setProperty("class", "sidebar")
-        nav_frame.setFixedWidth(220)  # Largura fixa para a barra lateral
+        nav_frame.setFixedWidth(DIMENSOES.largura_navegacao)
 
         # REMOVA O STYLESHEET INLINE - será aplicado pelo tema
         # Apenas defina classes para estilização via CSS
 
         nav_layout = QVBoxLayout(nav_frame)
-        nav_layout.setSpacing(5)
-        nav_layout.setContentsMargins(5, 15, 5, 15)
+        nav_layout.setSpacing(0)
+        nav_layout.setContentsMargins(0, 8, 0, 8)
 
         # Título da aplicação
         titulo = QLabel("MainERP")
@@ -185,7 +193,7 @@ class MainWindow(QMainWindow):
         for nome_icone, text in nav_items:
             btn = QPushButton(text)
             btn.setIcon(icone(nome_icone, cores.nav_text, cores.button_semantic_text))
-            btn.setIconSize(QSize(20, 20))
+            btn.setIconSize(QSize(DIMENSOES.tamanho_icone_navegacao, DIMENSOES.tamanho_icone_navegacao))
             btn.setProperty("class", "nav-button")
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -199,7 +207,9 @@ class MainWindow(QMainWindow):
 
         self.about_updates_button = QPushButton("SOBRE")
         self.about_updates_button.setIcon(icone("info", cores.nav_text))
-        self.about_updates_button.setIconSize(QSize(20, 20))
+        self.about_updates_button.setIconSize(
+            QSize(DIMENSOES.tamanho_icone_navegacao, DIMENSOES.tamanho_icone_navegacao)
+        )
         self.about_updates_button.setProperty("class", "nav-button")
         self.about_updates_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.about_updates_button.clicked.connect(self._mostrar_sobre_atualizacoes)

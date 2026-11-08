@@ -390,3 +390,79 @@ for create in constructors:
     assert "RestoreBackupDialog" in result.stdout
     assert "ProdutoVendaDialog" in result.stdout
     assert "MainWindow" in result.stdout
+
+
+@pytest.mark.parametrize("tema", ["light", "dark"])
+@pytest.mark.parametrize("escala", ["1", "1.25", "1.5"])
+def test_navegacao_compacta_e_alturas_com_fontes_e_escalas(tmp_path, tema, escala):
+    env = {
+        **os.environ,
+        "MAINERP_DATA": str(tmp_path),
+        "QT_QPA_PLATFORM": "offscreen",
+        "QT_SCALE_FACTOR": escala,
+        "PYTHONPATH": str(ROOT),
+    }
+    script = r"""
+import sys
+from PyQt6.QtGui import QColor
+from PyQt6.QtWidgets import QApplication, QComboBox, QLineEdit, QPushButton, QTableWidget
+from mainerp.data.automatic_backup import BackupAutomatico
+from mainerp.ui.styles import ConfiguracaoFonte, aplicar_tema
+from mainerp.ui.theme_tokens import DIMENSOES, cores_do_tema
+from mainerp.ui.views.main_window import MainWindow
+
+app = QApplication([])
+BackupAutomatico.iniciar = lambda self: None
+for tamanho in (12, 14):
+    aplicar_tema(app, sys.argv[1], ConfiguracaoFonte(tamanho_base=tamanho))
+    janela = MainWindow()
+    app.processEvents()
+    for classe in (QPushButton, QLineEdit, QComboBox):
+        controle = classe()
+        controle.show()
+        app.processEvents()
+        assert 28 <= controle.sizeHint().height() <= 34, (classe.__name__, controle.sizeHint().height())
+        controle.close()
+    assert janela.nav_bar.width() == DIMENSOES.largura_navegacao
+    assert len(janela.nav_buttons) == 8
+    for indice, botao in enumerate(janela.nav_buttons):
+        assert botao.height() <= 38, botao.height()
+        assert botao.fontMetrics().horizontalAdvance(botao.text()) + botao.iconSize().width() + 30 <= botao.width(), (botao.text(), botao.width(), botao.fontMetrics().horizontalAdvance(botao.text()), botao.font().pointSize(), botao.font().pixelSize())
+        botao.click()
+        app.processEvents()
+        assert janela.stacked_widget.currentIndex() == indice
+        assert sum(b.isChecked() for b in janela.nav_buttons) == 1
+        image = botao.grab().toImage()
+        dpr = image.devicePixelRatio()
+        assert image.pixelColor(round(dpr), round(image.height() / 2)) == QColor(cores_do_tema(sys.argv[1]).nav_text)
+        anterior = janela.nav_buttons[(indice + 1) % len(janela.nav_buttons)]
+        image = anterior.grab().toImage()
+        assert image.pixelColor(round(image.devicePixelRatio()), image.height() // 2) != QColor(cores_do_tema(sys.argv[1]).nav_text)
+    for view, nome in (
+        (janela.venda_view, "tabela_vendas"),
+        (janela.condicional_view, "tabela_condicionais"),
+        (janela.pedido_view, "tabela_pedidos"),
+        (janela.recebimento_view, "tabela_duplicatas"),
+        (janela.cliente_view, "tabela_clientes"),
+        (janela.produto_view, "tabela_produtos"),
+        (janela.fornecedor_view, "tabela_fornecedores"),
+    ):
+        tabela = getattr(view, nome)
+        assert isinstance(tabela, QTableWidget)
+        header = tabela.verticalHeader()
+        assert header.defaultSectionSize() == DIMENSOES.altura_linha, nome
+        assert tabela.fontMetrics().height() <= DIMENSOES.altura_linha - 2, (nome, tamanho, tabela.fontMetrics().height())
+    janela.hide()
+    janela.deleteLater()
+    app.processEvents()
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script, tema],
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

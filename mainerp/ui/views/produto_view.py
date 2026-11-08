@@ -32,12 +32,14 @@ from mainerp.domain.utils.produto_utils import ProdutoUtils
 from mainerp.reports.print_produto import PrintProduto
 from mainerp.ui.dialogs.produto_dialog import ProdutoDialog
 from mainerp.ui.dialogs.relatorio_produto_dialog import RelatorioProdutoDialog
+from mainerp.ui.listagem_modelo import configurar_modelo
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
 from mainerp.ui.styles import cores_ativas
 from mainerp.ui.tabela import configurar_interacao_listagem
 from mainerp.ui.table_items import NumericTableWidgetItem
 
 logger = logging.getLogger(__name__)
+
 
 # ========== Diálogo Simples para Busca Específica ==========
 class BuscaEspecificaDialog(QDialog):
@@ -95,6 +97,18 @@ class ProdutoView(TableScrollNavigationMixin, QWidget):
         self.ultimo_produto_selecionado_id = None  # ID do último produto selecionado
 
         self._init_ui()
+        configurar_modelo(
+            self,
+            self.tabela_produtos,
+            self.busca_edit,
+            [
+                (self.btn_novo, "plus", "Ctrl+N"),
+                (self.btn_editar, "pencil", "Ctrl+E"),
+                (self.btn_inativar, "circle-minus", None),
+                (self.btn_reativar, "rotate-ccw", None),
+                (self.btn_exportar, "printer", "Ctrl+P"),
+            ],
+        )
         self._carregar_produtos()
 
     def _init_ui(self):

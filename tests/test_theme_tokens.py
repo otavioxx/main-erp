@@ -113,3 +113,10 @@ def test_tokens_sao_imutaveis_e_tema_invalido_e_recusado():
         setattr(CLARO, "accent", "#000000")  # noqa: B010 - testa imutabilidade
     with pytest.raises(ValueError, match="Tema desconhecido"):
         cores_do_tema("invalido")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("cores", [CLARO, ESCURO])
+def test_navegacao_contraste_ativo_e_foco(cores):
+    assert contraste(cores.button_semantic_text, cores.nav_hover) >= 4.5
+    assert contraste(cores.nav_text, cores.nav_hover) >= 3
+    assert contraste(cores.nav_text, cores.nav_bg) >= 3

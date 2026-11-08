@@ -253,7 +253,10 @@ temporários nos testes, nunca dados de produção.
 - [ ] Declarar e validar Pillow como dependência direta enquanto os relatórios importarem
       `PIL`; testar instalação limpa e compatibilidade com as versões de Python usadas.
 - [ ] Confirmar alturas das listagens com fontes e escalas diferentes no Windows,
-      em conjunto com o protótipo visual da Fase 4.3.
+      em conjunto com o protótipo visual da Fase 4.3. As sete listagens usam 22
+      unidades Qt; testes com fontes base de 12 e 14 pt e escalas Qt simuladas
+      verificam a altura e a métrica do texto. Falta confirmação visual real em
+      125% e 150%, inclusive fontes e dados representativos.
 
 ## Fase 4.2 — Relatórios e visualizador embutido
 
@@ -305,6 +308,9 @@ consolidados (como o TOTVS): aparência plana, sóbria e densa, bordas retas e h
 contraste. É inspiração de padrão de uso; não copiar logotipos, ícones, textos ou outros
 ativos de terceiros. A fundação dos temas claro e escuro já foi aplicada, mas a
 validação visual e a migração de estilos locais continuam pendentes.
+
+Escopo visual atual: trabalhar e validar somente em 100% no Windows. Os registros de
+125% e 150% abaixo são históricos; não são critérios de conclusão desta etapa.
 
 - [x] Registrar os princípios de design em `docs/identidade_visual.md`: raio de borda zero, bordas de 1 px,
       sem sombras nem gradientes, controles e linhas compactos, cor usada para significado
@@ -376,15 +382,23 @@ validação visual e a migração de estilos locais continuam pendentes.
       de teclado, filtros em painel, grade com cabeçalho destacado e linhas zebradas,
       totais no rodapé e barra de status com empresa e versão. Formulários com grupos de
       título reto e botões primário, secundário e de perigo consistentes.
-- [ ] Revisar a navegação lateral (botões grandes) para um menu compacto de
+      As sete listagens receberam ícones e botão Pesquisar, atalhos locais e contagem
+      dos registros exibidos; a barra de status mostra empresa, versão e backup.
+      As ações disponíveis permanecem específicas de cada domínio, sem totais financeiros
+      presumidos. Os sete formulários principais usam ações primárias para salvar e
+      secundárias para cancelar. Conteúdo das sete listagens e formulários inspecionado
+      nos dois temas em Windows a 100%, com banco isolado e linhas ilustrativas;
+      revisar interações e dados representativos antes de concluir o item.
+- [x] Revisar a navegação lateral (botões grandes) para um menu compacto de
       ERP, com item ativo marcado por faixa reta, e rever o tamanho base da fonte (hoje
-      12 pt, Segoe UI) e a altura de linhas e controles para maior densidade, mantendo a
-      legibilidade em 125% e 150%. Fazer junto com a confirmação das alturas das
+      12 pt, Segoe UI) e a altura de linhas e controles para maior densidade. Fazer junto com a confirmação das alturas das
       listagens, prevista em "Manutenção relacionada" na Fase 4.1.
-- [ ] Prototipar antes de estender: aplicar o tema novo a Clientes e ao diálogo de cliente,
-      capturar imagens em 100%, 125% e 150% e só então seguir. Ordem sugerida: janela
-      principal e navegação, listagens, diálogos de entrada, diálogos de relatório e, por
-      fim, configurações e backup.
+      Implementado menu mais compacto, faixa de seleção e contorno de foco; botões,
+      campos e listas suspensas têm menor espaçamento vertical. Foram mantidos
+      12 pt para a fonte base e 22 unidades Qt para linhas, evitando reduzir a
+      legibilidade antes da validação visual. Menu inspecionado nos dois temas em
+      Windows a 100%; testes cobrem navegação, contraste, dimensões, fontes 12/14 pt
+      e escalas Qt simuladas. Permanecem pendentes as inspeções reais em 125% e 150%.
   - [x] Registrar capturas do tema atual em 100% e medir combinações candidatas da
         paleta em `docs/base_clientes_contraste.md`; há pares que exigem revisão.
         Capturas do tema novo e validação em 125% e 150% continuam pendentes.

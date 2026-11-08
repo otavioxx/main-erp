@@ -9,6 +9,7 @@ from mainerp.domain.utils.helpers import (
     criar_pasta_se_nao_existir,
     validar_data,
 )
+from mainerp.ui.listagem_modelo import configurar_modelo
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
 
 from .condicional_view_actions import _CondicionalViewActions
@@ -34,6 +35,20 @@ class CondicionalView(
         self.cliente_filtro = None
         self.dados = []
         self._init_ui()
+        configurar_modelo(
+            self,
+            self.tabela_condicionais,
+            self.busca_cliente,
+            [
+                (self.btn_nova_condicional, "plus", "Ctrl+N"),
+                (self.btn_editar_condicional, "pencil", "Ctrl+E"),
+                (self.btn_converter_venda, "arrow-right-left", None),
+                (self.btn_marcar_devolvida, "check", None),
+                (self.btn_excluir, "trash-2", None),
+                (self.btn_imprimir, "printer", "Ctrl+P"),
+                (self.btn_exportar, "printer", None),
+            ],
+        )
         self._carregar_condicionais()
         criar_pasta_se_nao_existir("relatorios")
 

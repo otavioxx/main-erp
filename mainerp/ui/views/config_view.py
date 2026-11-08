@@ -1,5 +1,5 @@
 # \erp\views\config_view.py
-from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtCore import QSize, Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QComboBox,
@@ -29,6 +29,8 @@ from mainerp.ui.styles import cores_ativas
 
 
 class ConfigView(QWidget):
+    empresa_alterada = pyqtSignal(str)
+
     def __init__(self):
         super().__init__()
         self.empresa = Empresa.buscar()
@@ -454,6 +456,7 @@ class ConfigView(QWidget):
                     self.empresa.logo = f.read()
 
             self.empresa.salvar()
+            self.empresa_alterada.emit(self.empresa.nome)
 
             self.atualizar_header_logo()
             self.toggle_edit_mode(False)

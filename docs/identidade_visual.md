@@ -18,13 +18,46 @@ Princípios:
   reais. Não depender apenas de cor: combinar com texto ou outro indicador reconhecível.
 - **Densidade com legibilidade:** controles, linhas e espaçamentos compactos, sem cortar
   textos ou dificultar a leitura, a seleção e o uso por teclado. As dimensões finais
-  dependem da validação visual nas escalas suportadas.
+  dependem da validação visual na escala atualmente priorizada de 100%.
 - **Ícones e texto:** ícones monocromáticos de conjunto com licença verificada; textos
   curtos e sóbrios, mantendo nomes de ações claros e avisos compreensíveis.
 - **Acessibilidade:** contraste mínimo de 4,5:1 para texto normal; foco visível, estados
   distinguíveis e navegação por teclado. Avaliar também textos desabilitados, bordas,
   ícones e seleção, sem supor que uma cor isolada garante contraste em todo contexto.
 - **Temas:** claro como padrão para configurações novas e escuro como opção.
+
+### Navegação e densidade
+
+A navegação lateral usa itens compactos com ícone e texto, faixa reta no item ativo
+e contorno visível para foco de teclado. A largura permanece em 220 unidades Qt para
+acomodar os rótulos; a altura dos itens medida no Windows a 100% foi de 32 unidades.
+O preenchimento vertical de botões, campos e listas suspensas foi reduzido. A fonte
+base permanece Segoe UI 12 pt e as linhas das sete listagens permanecem em 22 unidades:
+os estilos de tabela usam tamanhos em pixels, distintos dos pontos da fonte base.
+Testes também verificam as métricas para fontes base de 12 e 14 pt. O trabalho visual
+atual prioriza exclusivamente 100%; os registros anteriores de outras escalas são
+históricos, não critérios para a etapa atual.
+
+### Tela-modelo de listagem
+
+Cada listagem mantém título, painel de filtros, barra de ações e grade com cabeçalho
+destacado e linhas alternadas. A barra usa ícones Lucide monocromáticos e texto; as
+operações e seus nomes continuam próprios de cada domínio. Pesquisar leva o foco ao
+campo de filtro, que continua aplicando a busca como antes. O rodapé mostra a quantidade
+de registros exibidos após os filtros, não uma soma financeira.
+
+Os atalhos locais são Ctrl+F para pesquisa, Ctrl+N para inclusão, Ctrl+E para edição
+e Ctrl+P para impressão do documento ou relatório principal, quando disponíveis.
+Eles atuam somente na listagem ativa; F11 e os atalhos de busca específicos de Produtos
+permanecem disponíveis. A barra de status mostra empresa, versão e situação do backup;
+o nome da empresa é atualizado ao salvar as configurações.
+
+Nos formulários de Cliente, Fornecedor, Produto, Recebimento, Venda, Pedido e
+Condicional, confirmar ou salvar é primário e cancelar é secundário. Ações destrutivas
+continuam identificadas como perigo. Grupos usam o tema central de bordas retas.
+Capturas do conteúdo dessas sete telas e formulários foram inspecionadas nos dois
+temas em Windows a 100%, com banco isolado e linhas ilustrativas. Isso não substitui
+uma revisão detalhada de interações e dados representativos.
 
 ## 2. Paleta oficial de cores
 

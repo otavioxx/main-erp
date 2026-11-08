@@ -24,6 +24,8 @@ from mainerp.core.app_logging import registrar_excecao
 from mainerp.data.models.cliente import Cliente
 from mainerp.domain.utils.helpers import aplicar_maiuscula_formulario
 from mainerp.ui.dialog_geometry import ajustar_dialogo_a_tela
+from mainerp.ui.formulario import configurar_botoes_formulario
+from mainerp.ui.listagem_modelo import configurar_modelo
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
 from mainerp.ui.styles import cores_ativas
 from mainerp.ui.tabela import configurar_listagem_padrao
@@ -133,6 +135,7 @@ class ClienteDialog(QDialog):
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
+        configurar_botoes_formulario(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -159,6 +162,17 @@ class ClienteView(TableScrollNavigationMixin, QWidget):
         self.mostrar_inativos = False
         self.dados = []
         self._init_ui()
+        configurar_modelo(
+            self,
+            self.tabela_clientes,
+            self.busca_edit,
+            [
+                (self.btn_novo, "plus", "Ctrl+N"),
+                (self.btn_editar, "pencil", "Ctrl+E"),
+                (self.btn_inativar, "circle-minus", None),
+                (self.btn_reativar, "rotate-ccw", None),
+            ],
+        )
         self._carregar_clientes()
 
     def _init_ui(self):

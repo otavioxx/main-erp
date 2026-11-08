@@ -30,6 +30,7 @@ from mainerp.domain.utils.helpers import (
     aplicar_maiuscula_formulario,
 )
 from mainerp.ui.dialogs.fornecedor_selection_dialog import FornecedorSelectionDialog
+from mainerp.ui.formulario import configurar_botoes_formulario
 
 logger = logging.getLogger(__name__)
 
@@ -259,6 +260,7 @@ class ProdutoDialog(QDialog):
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
+        configurar_botoes_formulario(buttons)
         ok_button = buttons.button(QDialogButtonBox.StandardButton.Ok)
         if ok_button is not None:
             ok_button.setText("Salvar")

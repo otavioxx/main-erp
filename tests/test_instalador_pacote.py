@@ -29,6 +29,19 @@ def test_pacote_instalador_contem_codigo_e_componentes(tmp_path, monkeypatch):
             "mainerp/ui/theme_tokens.py",
             "mainerp/ui/icones.py",
             "mainerp/ui/icons/shopping-cart.svg",
+            "mainerp/ui/listagem_modelo.py",
+            "mainerp/ui/icons/plus.svg",
+            "mainerp/ui/icons/pencil.svg",
+            "mainerp/ui/icons/trash-2.svg",
+            "mainerp/ui/icons/search.svg",
+            "mainerp/ui/icons/printer.svg",
+            "mainerp/ui/icons/rotate-ccw.svg",
+            "mainerp/ui/icons/circle-minus.svg",
+            "mainerp/ui/icons/circle-x.svg",
+            "mainerp/ui/icons/arrow-right-left.svg",
+            "mainerp/ui/icons/check.svg",
+            "mainerp/ui/icons/package-check.svg",
+            "mainerp/ui/icons/hand-coins.svg",
             "mainerp/ui/icons/LICENSE-LUCIDE.txt",
             "mainerp/ui/icons/LICENSE-FEATHER.txt",
         } <= nomes
@@ -61,6 +74,8 @@ from mainerp.ui.styles import aplicar_tema
 app = QApplication([])
 aplicar_tema(app, "dark")
 assert not icone("shopping-cart", "#ffffff").pixmap(24, 24).isNull()
+for nome in ("plus", "pencil", "trash-2", "search", "printer", "rotate-ccw", "circle-minus", "circle-x", "arrow-right-left", "check", "package-check", "hand-coins"):
+    assert not icone(nome, "#ffffff").pixmap(24, 24).isNull(), nome
 """
     env = {
         **os.environ,

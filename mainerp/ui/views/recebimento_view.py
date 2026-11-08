@@ -15,6 +15,7 @@ from mainerp.domain.utils.helpers import (
 )
 from mainerp.reports.print_comprovante_recebimento import PrintComprovanteRecebimento
 from mainerp.ui.dialogs.cliente_selection_dialog import ClienteSelectionDialog
+from mainerp.ui.listagem_modelo import configurar_modelo
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
 
 from .recebimento_view_actions import _RecebimentoViewActions
@@ -42,6 +43,15 @@ class RecebimentoView(
         self._parcelas_cache = {}  # Cache para total de parcelas
         self._loaded = False  # Flag para carregamento lazy
         self._init_ui()
+        configurar_modelo(
+            self,
+            self.tabela_duplicatas,
+            self.busca_cliente,
+            [
+                (self.btn_receber, "hand-coins", None),
+                (self.btn_imprimir_relatorio, "printer", "Ctrl+P"),
+            ],
+        )
         criar_pasta_se_nao_existir("relatorios")
 
     def showEvent(self, event):

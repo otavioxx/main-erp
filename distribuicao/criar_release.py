@@ -41,6 +41,9 @@ ICONES = (
     "shopping-cart.svg", "clipboard-check.svg", "clipboard-list.svg", "wallet.svg",
     "users.svg", "package.svg", "truck.svg", "settings.svg", "info.svg",
     "hard-drive-download.svg", "folder-open.svg", "building-2.svg",
+    "plus.svg", "pencil.svg", "trash-2.svg", "search.svg", "printer.svg",
+    "rotate-ccw.svg", "circle-minus.svg", "circle-x.svg",
+    "arrow-right-left.svg", "check.svg", "package-check.svg", "hand-coins.svg",
     "LICENSE-LUCIDE.txt", "LICENSE-FEATHER.txt",
 )
 VERSAO_ESTAVEL = re.compile(r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)")

@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 from mainerp.data.models.fornecedor import Fornecedor
 from mainerp.domain.utils.helpers import SelectAllLineEdit, aplicar_maiuscula_formulario
 from mainerp.ui.dialog_geometry import ajustar_dialogo_a_tela
+from mainerp.ui.formulario import configurar_botoes_formulario
 
 
 class FornecedorDialog(QDialog):
@@ -160,6 +161,7 @@ class FornecedorDialog(QDialog):
         cancel_button = buttons.button(QDialogButtonBox.StandardButton.Cancel)
         if ok_button is None or cancel_button is None:
             raise RuntimeError("Não foi possível criar os botões do diálogo.")
+        configurar_botoes_formulario(buttons)
         ok_button.setToolTip("Salvar as informações do fornecedor")
         cancel_button.setToolTip("Cancelar e fechar sem salvar")
 

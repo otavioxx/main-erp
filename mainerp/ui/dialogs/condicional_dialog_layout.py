@@ -337,7 +337,7 @@ class _CondicionalDialogLayout(ComponentMixin):
 
         # Botão salvar
         self.btn_salvar = QPushButton("F5 - Salvar Condicional")
-        self.btn_salvar.setProperty("class", "success")
+        self.btn_salvar.setProperty("class", "primary")
         self.btn_salvar.setEnabled(False)
         self.btn_salvar.clicked.connect(self._salvar_condicional)
         self.btn_salvar.setAutoDefault(False)
@@ -355,7 +355,7 @@ class _CondicionalDialogLayout(ComponentMixin):
 
         # Botão cancelar
         btn_cancelar = QPushButton("Cancelar")
-        btn_cancelar.setProperty("class", "danger")
+        btn_cancelar.setProperty("class", "secondary")
         btn_cancelar.setAutoDefault(False)
         btn_cancelar.clicked.connect(self._cancelar_condicional)
         buttons_layout.addWidget(btn_cancelar)

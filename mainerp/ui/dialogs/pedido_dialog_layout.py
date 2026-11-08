@@ -245,7 +245,7 @@ class _PedidoDialogLayout(ComponentMixin):
         buttons_layout = QHBoxLayout()
 
         self.btn_finalizar = QPushButton("F5 - Salvar Pedido")
-        self.btn_finalizar.setProperty("class", "success")
+        self.btn_finalizar.setProperty("class", "primary")
         self.btn_finalizar.setEnabled(False)
         self.btn_finalizar.clicked.connect(self._finalizar_pedido)
         # Evitar que Enter acione o botão
@@ -262,7 +262,7 @@ class _PedidoDialogLayout(ComponentMixin):
         buttons_layout.addStretch()
 
         btn_cancelar = QPushButton("Cancelar")
-        btn_cancelar.setProperty("class", "danger")
+        btn_cancelar.setProperty("class", "secondary")
         btn_cancelar.setAutoDefault(False)
         btn_cancelar.clicked.connect(
             self._cancelar_pedido

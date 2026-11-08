@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
 from mainerp.core.app_logging import registrar_excecao
 from mainerp.data.models.fornecedor import Fornecedor
 from mainerp.ui.dialogs.fornecedor_dialog import FornecedorDialog
+from mainerp.ui.listagem_modelo import configurar_modelo
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
 from mainerp.ui.styles import cores_ativas
 from mainerp.ui.tabela import configurar_listagem_padrao
@@ -32,6 +33,17 @@ class FornecedorView(TableScrollNavigationMixin, QWidget):
         self.mostrar_inativos = False
         self.dados = []
         self._init_ui()
+        configurar_modelo(
+            self,
+            self.tabela_fornecedores,
+            self.busca_edit,
+            [
+                (self.btn_novo, "plus", "Ctrl+N"),
+                (self.btn_editar, "pencil", "Ctrl+E"),
+                (self.btn_inativar, "circle-minus", None),
+                (self.btn_reativar, "rotate-ccw", None),
+            ],
+        )
         self._carregar_fornecedores()
 
     def _init_ui(self):

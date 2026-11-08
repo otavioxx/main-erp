@@ -28,6 +28,7 @@ from mainerp.domain.utils.helpers import (
     formatar_moeda,
     validar_data,
 )
+from mainerp.ui.formulario import configurar_botoes_formulario
 from mainerp.ui.styles import definir_estado_visual
 
 logger = logging.getLogger(__name__)
@@ -182,6 +183,7 @@ class RecebimentoDialog(QDialog):
         button_box = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
+        configurar_botoes_formulario(button_box)
         button_box.accepted.connect(self._verificar_e_aceitar)
         button_box.rejected.connect(self.reject)
 

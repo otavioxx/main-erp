@@ -50,6 +50,8 @@ class CoresTema:
 class DimensoesTema:
     altura_linha: int = 22
     altura_controle_minima: int = 20
+    largura_navegacao: int = 220
+    tamanho_icone_navegacao: int = 18
     espacamento: int = 8
     raio: int = 0
     borda: int = 1

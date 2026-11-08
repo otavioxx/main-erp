@@ -35,12 +35,14 @@ from mainerp.domain.utils.pedido_utils import PedidoUtils
 from mainerp.reports.print_pedido import PrintPedido
 from mainerp.reports.print_relat_pedido import PrintRelatPedido
 from mainerp.ui.dialogs.pedido_dialog import PedidoDialog
+from mainerp.ui.listagem_modelo import configurar_modelo
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
 from mainerp.ui.styles import cores_ativas
 from mainerp.ui.tabela import configurar_listagem_padrao
 from mainerp.ui.table_items import NumericTableWidgetItem
 
 logger = logging.getLogger(__name__)
+
 
 class PedidoView(TableScrollNavigationMixin, QWidget):
     """View de gestão de pedidos otimizada - CORRIGIDA para nova estrutura"""
@@ -51,6 +53,19 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
         self.dados = []
         criar_pasta_se_nao_existir("relatorios")
         self._init_ui()
+        configurar_modelo(
+            self,
+            self.tabela_pedidos,
+            self.busca_fornecedor,
+            [
+                (self.btn_novo_pedido, "plus", "Ctrl+N"),
+                (self.btn_receber, "package-check", None),
+                (self.btn_editar, "pencil", "Ctrl+E"),
+                (self.btn_cancelar, "circle-x", None),
+                (self.btn_imprimir, "printer", "Ctrl+P"),
+                (self.btn_exportar, "printer", None),
+            ],
+        )
         self._carregar_dados()
 
     def _init_ui(self):

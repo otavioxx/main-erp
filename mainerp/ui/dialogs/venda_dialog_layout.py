@@ -309,7 +309,7 @@ class _VendaDialogLayout(ComponentMixin):
 
         # Botão finalizar
         self.btn_finalizar = QPushButton("F5 - Finalizar Venda")
-        self.btn_finalizar.setProperty("class", "success")
+        self.btn_finalizar.setProperty("class", "primary")
         self.btn_finalizar.setEnabled(False)
         self.btn_finalizar.clicked.connect(self._finalizar_venda)
         self.btn_finalizar.setAutoDefault(False)
@@ -327,7 +327,7 @@ class _VendaDialogLayout(ComponentMixin):
 
         # Botão cancelar
         btn_cancelar = QPushButton("Cancelar")
-        btn_cancelar.setProperty("class", "danger")
+        btn_cancelar.setProperty("class", "secondary")
         btn_cancelar.setAutoDefault(False)
         btn_cancelar.clicked.connect(self._cancelar_venda)
         buttons_layout.addWidget(btn_cancelar)

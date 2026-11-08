@@ -33,6 +33,7 @@ from mainerp.domain.utils.venda_utils import VendaUtils
 from mainerp.reports.print_relat_venda import PrintRelatVenda
 from mainerp.reports.print_venda import PrintVenda
 from mainerp.ui.dialogs.venda_dialog import ProdutoVendaDialog
+from mainerp.ui.listagem_modelo import configurar_modelo
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
 from mainerp.ui.tabela import configurar_interacao_listagem
 from mainerp.ui.table_items import NumericTableWidgetItem
@@ -46,6 +47,17 @@ class VendaView(TableScrollNavigationMixin, QWidget):
         self.cliente_filtro = None
         self.dados = []
         self._init_ui()
+        configurar_modelo(
+            self,
+            self.tabela_vendas,
+            self.busca_cliente,
+            [
+                (self.btn_nova_venda, "plus", "Ctrl+N"),
+                (self.btn_excluir, "trash-2", None),
+                (self.btn_imprimir, "printer", "Ctrl+P"),
+                (self.btn_exportar, "printer", None),
+            ],
+        )
         self._carregar_vendas()
         criar_pasta_se_nao_existir("relatorios")
 
