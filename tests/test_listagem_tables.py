@@ -135,7 +135,9 @@ def test_coluna_nome_clientes_ocupa_espaco_disponivel_com_largura_minima(
     view.resize(900, 600)
     app.processEvents()
     verificar()
-    assert table.horizontalScrollBar().maximum() > 0
+    horizontal_scrollbar = table.horizontalScrollBar()
+    assert horizontal_scrollbar is not None
+    assert horizontal_scrollbar.maximum() > 0
     view.resize(1400, 600)
     app.processEvents()
     verificar()

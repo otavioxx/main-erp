@@ -49,6 +49,12 @@ class PedidoView(TableScrollNavigationMixin, QWidget):
 
     def __init__(self):
         super().__init__()
+        self.btn_novo_pedido: QPushButton
+        self.btn_receber: QPushButton
+        self.btn_editar: QPushButton
+        self.btn_cancelar: QPushButton
+        self.btn_imprimir: QPushButton
+        self.btn_exportar: QPushButton
         self.fornecedor_filtro = None
         self.dados = []
         criar_pasta_se_nao_existir("relatorios")

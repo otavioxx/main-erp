@@ -72,7 +72,9 @@ def test_novidades_apenas_apos_atualizacao_e_uma_vez(releases):
     assert preparar_novidades("0.12.0", atual, dados, ok) is None
     _criar_release(base, "0.10.5")
     _criar_release(base, "0.11.0", confirmada=False)
-    marcador, notas = preparar_novidades("0.12.0", atual, dados, ok)
+    resultado = preparar_novidades("0.12.0", atual, dados, ok)
+    assert resultado is not None
+    marcador, notas = resultado
     assert "Nova tela" in notas and "Nova função" in notas
     assert "Antiga" not in notas
     assert "08/11/2026" in notas
@@ -109,7 +111,9 @@ def test_falha_ao_registrar_nao_cria_marcador(releases, monkeypatch):
     def falhar(*args):
         raise OSError("falha simulada")
 
-    monkeypatch.setattr("mainerp.ui.dialogs.sobre_atualizacoes_dialog.os.replace", falhar)
+    monkeypatch.setattr(
+        "mainerp.ui.dialogs.sobre_atualizacoes_dialog.os.replace", falhar
+    )
     with pytest.raises(OSError, match="falha simulada"):
         registrar_novidades_lidas(marcador)
     assert not marcador.exists()
@@ -203,8 +207,14 @@ app.main()
     resultados = []
     for _ in range(2):
         resultado = subprocess.run(
-            [sys.executable, "-c", script], cwd=root, env=env, capture_output=True,
-            text=True, errors="replace", timeout=45, check=False,
+            [sys.executable, "-c", script],
+            cwd=root,
+            env=env,
+            capture_output=True,
+            text=True,
+            errors="replace",
+            timeout=45,
+            check=False,
         )
         assert resultado.returncode == 0, resultado.stdout + resultado.stderr
         resultados.append(resultado.stdout)
@@ -232,7 +242,12 @@ assert "Nova tela" in dialog.novidades.toPlainText()
 assert not dialog.isVisible()
 """
     resultado = subprocess.run(
-        [sys.executable, "-c", script, tema], cwd=root, env=env,
-        capture_output=True, text=True, timeout=30, check=False,
+        [sys.executable, "-c", script, tema],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
     )
     assert resultado.returncode == 0, resultado.stdout + resultado.stderr

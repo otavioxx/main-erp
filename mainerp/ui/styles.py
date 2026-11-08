@@ -39,7 +39,8 @@ class ConfiguracaoFonte:
     """Configurações de fonte"""
 
     def __init__(
-        self, familia: str = DIMENSOES.fonte_familia,
+        self,
+        familia: str = DIMENSOES.fonte_familia,
         tamanho_base: int = DIMENSOES.fonte_tamanho_pt,
     ):
         self.familia = familia
@@ -87,28 +88,28 @@ class ConstrutorEstilos:
             min-width: 70px;
             min-height: {self.dimensoes.altura_controle_minima}px;
         }}
-        
+
         QPushButton:hover {{
             background-color: {self.cores.hover_bg};
             border-color: {self.cores.border_primary};
         }}
-        
+
         QPushButton:pressed {{
             background-color: {self.cores.background_secondary};
         }}
-        
+
         QPushButton:disabled {{
             background-color: {self.cores.tokens.surface_disabled};
             color: {self.cores.text_disabled};
             border-color: {self.cores.border_primary};
         }}
-        
+
         QPushButton[class="success"] {{
             background-color: {self.cores.success};
             border-color: {self.cores.success_border};
             color: {self.cores.tokens.button_semantic_text};
         }}
-        
+
         QPushButton[class="danger"] {{
             background-color: {self.cores.danger};
             border-color: {self.cores.danger_border};
@@ -124,23 +125,23 @@ class ConstrutorEstilos:
         QPushButton[class="warning"]:hover, QPushButton[class="warning"]:pressed {{
             background-color: {self.cores.warning};
         }}
-        
+
         QPushButton[class="warning"] {{
             background-color: {self.cores.warning};
             border-color: {self.cores.warning_border};
             color: {self.cores.tokens.warning_text};
         }}
-        
+
         QPushButton[class="primary"] {{
             background-color: {self.cores.accent_primary};
             border-color: {self.cores.accent_hover};
             color: {self.cores.tokens.button_semantic_text};
         }}
-        
+
         QPushButton[class="primary"]:hover {{
             background-color: {self.cores.accent_hover};
         }}
-        
+
         QPushButton[class="secondary"] {{
             background-color: {self.cores.hover_bg};
             border-color: {self.cores.border_primary};
@@ -170,17 +171,17 @@ class ConstrutorEstilos:
             min-height: {self.dimensoes.altura_controle_minima}px;
             selection-background-color: {self.cores.selection_bg};
         }}
-        
+
         QComboBox:hover {{
             background-color: {self.cores.hover_bg};
             border-color: {self.cores.border_primary};
         }}
-        
+
         QComboBox:focus {{
             border: {self.dimensoes.borda}px solid {self.cores.border_focus};
             background-color: {self.cores.hover_bg};
         }}
-        
+
         QComboBox QAbstractItemView {{
             background-color: {self.cores.background_tertiary};
             border: {self.dimensoes.borda}px solid {self.cores.border_secondary};
@@ -190,18 +191,18 @@ class ConstrutorEstilos:
             selection-color: {self.cores.selection_text};
             outline: none;
         }}
-        
+
         QComboBox QAbstractItemView::item {{
             height: 28px;
             padding: 4px 8px;
             border-radius: {self.dimensoes.raio}px;
             margin: 1px;
         }}
-        
+
         QComboBox QAbstractItemView::item:hover {{
             background-color: {self.cores.hover_bg};
         }}
-        
+
         QComboBox QAbstractItemView::item:selected {{
             background-color: {self.cores.selection_bg};
             color: {self.cores.selection_text};
@@ -222,7 +223,7 @@ class ConstrutorEstilos:
             font-size: {self.fonte.tamanho_pequeno}px;
             outline: 0;
         }}
-        
+
         QTableWidget::item {{
             padding: 4px 6px;
             border-bottom: {self.dimensoes.borda}px solid {self.cores.border_primary};
@@ -236,32 +237,32 @@ class ConstrutorEstilos:
             padding: 1px 2px;
             font-size: 11px;
         }}
-        
+
         QTableWidget::item:selected {{
             background-color: {self.cores.selection_bg};
             color: {self.cores.selection_text};
         }}
-        
+
         /* HOVER: Destaca toda a linha quando o mouse passa sobre qualquer célula */
         QTableWidget::item:hover {{
             background-color: {self.cores.hover_bg};
         }}
-        
+
         /* Hover mais suave para linhas alternadas */
         QTableWidget::item:alternate:hover {{
             background-color: {self.cores.hover_bg};
         }}
-        
+
         /* Quando a linha está selecionada E tem hover */
         QTableWidget::item:selected:hover {{
             background-color: {self.cores.selection_bg};
         }}
-        
+
         /* Estilo específico para células inativas com hover */
         QTableWidget::item[class="inativo"]:hover {{
             background-color: {self.cores.tokens.danger_bg};
         }}
-        
+
         QHeaderView::section {{
             background-color: {self.cores.tokens.table_header};
             color: {self.cores.text_secondary};
@@ -272,11 +273,11 @@ class ConstrutorEstilos:
             font-weight: 500;
             font-size: {self.fonte.tamanho_pequeno}px;
         }}
-        
+
         QHeaderView::section:hover {{
             background-color: {self.cores.hover_bg};
         }}
-        
+
         /* Melhorar a visualização da barra de scroll da tabela */
         QTableWidget QScrollBar:vertical {{
             background-color: {self.cores.background_primary};
@@ -284,13 +285,13 @@ class ConstrutorEstilos:
             width: 12px;
             border-radius: {self.dimensoes.raio}px;
         }}
-        
+
         QTableWidget QScrollBar::handle:vertical {{
             background-color: {self.cores.border_secondary};
             border-radius: {self.dimensoes.raio}px;
             min-height: {self.dimensoes.altura_controle_minima}px;
         }}
-        
+
         QTableWidget QScrollBar::handle:vertical:hover {{
             background-color: {self.cores.text_disabled};
         }}
@@ -310,12 +311,12 @@ class ConstrutorEstilos:
             selection-color: {self.cores.selection_text};
             min-height: {self.dimensoes.altura_controle_minima}px;
         }}
-        
+
         QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {{
             border: {self.dimensoes.borda}px solid {self.cores.border_focus};
             background-color: {self.cores.hover_bg};
         }}
-        
+
         QSpinBox::up-button, QSpinBox::down-button,
         QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {{
             width: 0px;
@@ -332,7 +333,7 @@ class ConstrutorEstilos:
             background-color: {self.cores.background_secondary};
             margin: 4px;
         }}
-        
+
         QTabBar::tab {{
             background-color: transparent;
             color: {self.cores.text_secondary};
@@ -344,13 +345,13 @@ class ConstrutorEstilos:
             font-weight: 400;
             font-size: {self.fonte.tamanho_base}px;
         }}
-        
+
         QTabBar::tab:selected {{
             color: {self.cores.tokens.accent_text};
             border-bottom: 2px solid {self.cores.accent_primary};
             font-weight: 500;
         }}
-        
+
         QTabBar::tab:hover {{
             color: {self.cores.text_primary};
             background-color: {self.cores.background_tertiary};
@@ -366,22 +367,22 @@ class ConstrutorEstilos:
             font-size: {self.fonte.tamanho_pequeno}px;
             background-color: transparent;
         }}
-        
+
         QCheckBox::indicator, QRadioButton::indicator {{
             width: 16px;
             height: 16px;
             border: {self.dimensoes.borda}px solid {self.cores.border_primary};
             background-color: transparent;
         }}
-        
+
         QCheckBox::indicator {{
             border-radius: {self.dimensoes.raio}px;
         }}
-        
+
         QRadioButton::indicator {{
             border-radius: {self.dimensoes.raio}px;
         }}
-        
+
         QCheckBox::indicator:checked, QRadioButton::indicator:checked {{
             background-color: {self.cores.accent_primary};
             border: {self.dimensoes.borda}px solid {self.cores.accent_primary};
@@ -398,19 +399,19 @@ class ConstrutorEstilos:
             margin: 0px;
             padding: 0px;
         }}
-        
+
         /* Barras horizontais */
         QScrollBar:horizontal {{
             height: 8px;
             border-radius: {self.dimensoes.raio}px;
         }}
-        
+
         /* Barras verticais */
         QScrollBar:vertical {{
             width: 8px;
             border-radius: {self.dimensoes.raio}px;
         }}
-        
+
         /* Handle (a parte que arrastamos) */
         QScrollBar::handle:horizontal, QScrollBar::handle:vertical {{
             background-color: {self.cores.border_primary};
@@ -418,15 +419,15 @@ class ConstrutorEstilos:
             min-height: {self.dimensoes.altura_controle_minima}px;
             min-width: 20px;
         }}
-        
+
         QScrollBar::handle:horizontal:hover, QScrollBar::handle:vertical:hover {{
             background-color: {self.cores.text_disabled};
         }}
-        
+
         QScrollBar::handle:horizontal:pressed, QScrollBar::handle:vertical:pressed {{
             background-color: {self.cores.accent_primary};
         }}
-        
+
         /* Botões de seta (normalmente escondidos em designs modernos) */
         QScrollBar::add-line, QScrollBar::sub-line {{
             background: none;
@@ -434,27 +435,27 @@ class ConstrutorEstilos:
             height: 0px;
             width: 0px;
         }}
-        
+
         QScrollBar::add-page, QScrollBar::sub-page {{
             background: none;
         }}
-        
+
         /* Estilo específico para áreas de texto */
         QTextEdit QScrollBar:vertical, QTextEdit QScrollBar:horizontal,
         QPlainTextEdit QScrollBar:vertical, QPlainTextEdit QScrollBar:horizontal {{
             background-color: {self.cores.background_primary};
         }}
-        
+
         /* Estilo para tabelas */
         QTableWidget QScrollBar:vertical, QTableWidget QScrollBar:horizontal {{
             background-color: {self.cores.background_secondary};
         }}
-        
+
         /* Estilo para listas */
         QListWidget QScrollBar:vertical, QListWidget QScrollBar:horizontal {{
             background-color: {self.cores.background_secondary};
         }}
-        
+
         /* Estilo para tree views */
         QTreeWidget QScrollBar:vertical, QTreeWidget QScrollBar:horizontal {{
             background-color: {self.cores.background_secondary};
@@ -471,11 +472,11 @@ class ConstrutorEstilos:
             color: {self.cores.text_secondary};
             padding: 2px 5px;
         }}
-        
+
         QStatusBar::item {{
             border: none;
         }}
-        
+
         /* Estilos para indicadores de teclas na status bar */
         QLabel[class="key-indicator"] {{
             font-size: 10px;
@@ -485,7 +486,7 @@ class ConstrutorEstilos:
             min-width: 25px;
             text-align: center;
         }}
-        
+
         QLabel[class="key-indicator-active"] {{
             color: {self.cores.tokens.button_semantic_text};
             font-weight: bold;
@@ -495,7 +496,7 @@ class ConstrutorEstilos:
             min-width: 25px;
             text-align: center;
         }}
-        
+
         QLabel[class="key-indicator-inactive"] {{
             color: {self.cores.text_disabled};
             background: {self.cores.background_tertiary};
@@ -511,12 +512,12 @@ class ConstrutorEstilos:
         """Estilos específicos para barra lateral (sidebar)"""
         return f"""
         /* Estilos para a barra lateral principal */
-        QFrame[class="sidebar"], 
+        QFrame[class="sidebar"],
         QWidget[class="sidebar"] {{
             background-color: {self.cores.tokens.nav_bg};
             border-right: {self.dimensoes.borda}px solid {self.cores.border_primary};
         }}
-        
+
         /* Título da sidebar */
         QLabel[class="sidebar-title"] {{
             font-size: 22px;
@@ -527,7 +528,7 @@ class ConstrutorEstilos:
             margin-bottom: 8px;
             background-color: transparent;
         }}
-        
+
         /* Botões de navegação na sidebar */
         QPushButton[class="nav-button"] {{
             background-color: transparent;
@@ -541,12 +542,12 @@ class ConstrutorEstilos:
             border-radius: {self.dimensoes.raio}px;
             margin: 0;
         }}
-        
+
         QPushButton[class="nav-button"]:hover {{
             background-color: {self.cores.tokens.nav_hover};
             color: {self.cores.tokens.nav_text};
         }}
-        
+
         QPushButton[class="nav-button"]:checked {{
             background-color: {self.cores.tokens.nav_hover};
             border-left-color: {self.cores.tokens.nav_text};
@@ -559,11 +560,11 @@ class ConstrutorEstilos:
             border-right-color: {self.cores.tokens.nav_text};
             border-bottom-color: {self.cores.tokens.nav_text};
         }}
-        
+
         QPushButton[class="nav-button"]:pressed {{
             background-color: {self.cores.accent_pressed};
         }}
-        
+
         /* Status bar */
         QStatusBar[class="main-statusbar"] {{
             background-color: {self.cores.background_primary};
@@ -572,12 +573,12 @@ class ConstrutorEstilos:
             color: {self.cores.text_secondary};
             padding: 2px 5px;
         }}
-        
+
         /* Widget da status bar */
         QWidget[class="statusbar-widget"] {{
             background-color: transparent;
         }}
-        
+
         QLabel[class="version-label"] {{
             color: {self.cores.text_muted};
             font-size: 11px;
@@ -599,7 +600,7 @@ class ConstrutorEstilos:
             background-color: {self.cores.background_secondary};
             padding-bottom: 8px;
         }}
-        
+
         QGroupBox::title {{
             subcontrol-origin: margin;
             subcontrol-position: top left;
@@ -609,25 +610,25 @@ class ConstrutorEstilos:
             margin-left: 5px;
             font-weight: 500;
         }}
-        
+
         QMenu {{
             background-color: {self.cores.background_tertiary};
             border: {self.dimensoes.borda}px solid {self.cores.border_secondary};
             border-radius: {self.dimensoes.raio}px;
             padding: 4px;
         }}
-        
+
         QMenu::item {{
             padding: 6px 16px;
             border-radius: {self.dimensoes.raio}px;
             font-size: {self.fonte.tamanho_pequeno}px;
         }}
-        
+
         QMenu::item:selected {{
             background-color: {self.cores.accent_primary};
             color: {self.cores.tokens.button_semantic_text};
         }}
-        
+
         QToolTip {{
             background-color: {self.cores.background_tertiary};
             color: {self.cores.text_primary};
@@ -636,26 +637,26 @@ class ConstrutorEstilos:
             padding: 6px;
             font-size: {self.fonte.tamanho_pequeno}px;
         }}
-        
+
         QLabel {{
             font-size: {self.fonte.tamanho_pequeno}px;
             color: {self.cores.text_secondary};
             font-weight: 400;
             background-color: transparent;
         }}
-        
+
         QLabel[class="title"] {{
             font-size: {self.fonte.tamanho_titulo}px;
             font-weight: 500;
             color: {self.cores.text_primary};
             padding: 2px 0px;
         }}
-        
+
         QLabel[class="highlight"] {{
             font-weight: bold;
             color: {self.cores.tokens.accent_text};
         }}
-        
+
         QLabel[class="muted"] {{
             font-size: {self.fonte.tamanho_pequeno}px;
             color: {self.cores.text_muted};
@@ -704,23 +705,23 @@ class ConstrutorEstilos:
         QFrame[estiloVisual="separador"] {{
             color: {self.cores.border_primary};
         }}
-        
+
         /* Estilos para status de cadastros */
         QTableWidgetItem[class="inativo"] {{
             background-color: {self.cores.tokens.danger_bg};
             color: {self.cores.tokens.danger_text};
         }}
-        
+
         QTableWidgetItem[class="pendente"] {{
             background-color: {self.cores.tokens.warning_bg};
             color: {self.cores.tokens.warning_text};
         }}
-        
+
         QTableWidgetItem[class="concluido"] {{
             background-color: {self.cores.tokens.success_bg};
             color: {self.cores.tokens.success_text};
         }}
-        
+
         QTableWidgetItem[class="novo"] {{
             background-color: {self.cores.tokens.info_bg};
             color: {self.cores.tokens.info_text};
@@ -753,8 +754,9 @@ def definir_estado_visual(widget: QWidget, estado: str) -> None:
         return
     widget.setProperty("estadoVisual", estado)
     style = widget.style()
-    style.unpolish(widget)
-    style.polish(widget)
+    if style is not None:
+        style.unpolish(widget)
+        style.polish(widget)
     widget.update()
 
 
@@ -823,7 +825,9 @@ def aplicar_tema_dark(app, fonte_customizada: ConfiguracaoFonte | None = None):
 
 def cores_ativas() -> CoresTema:
     app = QApplication.instance()
-    return ESCURO if app is not None and app.property("mainerp_tema") == "dark" else CLARO
+    return (
+        ESCURO if app is not None and app.property("mainerp_tema") == "dark" else CLARO
+    )
 
 
 def aplicar_estilos(app, fonte_customizada: ConfiguracaoFonte | None = None):

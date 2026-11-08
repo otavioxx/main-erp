@@ -49,9 +49,18 @@ def test_icones_monocromaticos_por_tema_e_estado(tema, cores):
     app = QApplication.instance() or QApplication([])
     aplicar_tema(app, tema)
     nomes = (
-        "shopping-cart", "clipboard-check", "clipboard-list", "wallet", "users",
-        "package", "truck", "settings", "info", "hard-drive-download",
-        "folder-open", "building-2",
+        "shopping-cart",
+        "clipboard-check",
+        "clipboard-list",
+        "wallet",
+        "users",
+        "package",
+        "truck",
+        "settings",
+        "info",
+        "hard-drive-download",
+        "folder-open",
+        "building-2",
     )
     for nome in nomes:
         simbolo = icone(nome, cores.nav_text, cores.button_semantic_text)
@@ -158,8 +167,12 @@ def test_configuracao_corrompida_nao_e_sobrescrita(tmp_path):
 @pytest.mark.parametrize("tema,cores", [("light", CLARO), ("dark", ESCURO)])
 def test_tema_aplica_paleta_raio_e_estado_desabilitado(tema, cores):
     app = QApplication.instance() or QApplication([])
+    assert isinstance(app, QApplication)
     aplicar_tema(app, tema)
-    assert app.palette().color(QPalette.ColorRole.Window).name().upper() == cores.background_window
+    assert (
+        app.palette().color(QPalette.ColorRole.Window).name().upper()
+        == cores.background_window
+    )
     raios = re.findall(
         r"border(?:-(?:top|bottom)-(?:left|right))?-radius\s*:\s*([^;}]+)",
         app.styleSheet(),
@@ -185,7 +198,9 @@ def test_seletor_avisa_e_persiste_ou_mostra_erro(tmp_path, monkeypatch):
     monkeypatch.setattr(config_view, "obter_config", lambda: config)
     monkeypatch.setattr(config_view.Empresa, "buscar", lambda: config_view.Empresa())
     mensagens = []
-    monkeypatch.setattr(QMessageBox, "information", lambda *args: mensagens.append(args))
+    monkeypatch.setattr(
+        QMessageBox, "information", lambda *args: mensagens.append(args)
+    )
     monkeypatch.setattr(QMessageBox, "warning", lambda *args: mensagens.append(args))
     view = config_view.ConfigView()
     view.tema_combo.setCurrentIndex(view.tema_combo.findData("dark"))
@@ -301,7 +316,12 @@ assert not janela.isVisible()
 """
     result = subprocess.run(
         [sys.executable, "-c", script, tema],
-        cwd=ROOT, env=env, capture_output=True, text=True, timeout=30, check=False,
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
 
@@ -383,7 +403,12 @@ for create in constructors:
 """
     result = subprocess.run(
         [sys.executable, "-c", script, tema],
-        cwd=ROOT, env=env, capture_output=True, text=True, timeout=120, check=False,
+        cwd=ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
     assert "ClienteView" in result.stdout
