@@ -99,8 +99,11 @@ de dados; se não houver suporte, a preparação falha sem substituir uma pendê
 O launcher precisa ser atualizado pelo instalador para usar esse fluxo. Em execução direta
 de `main.py`, abra o sistema novamente após solicitar a restauração. Se ocorrer falha na
 restauração, o sistema não abre; preserve o backup anterior e os arquivos pendentes para
-diagnóstico. A validação verifica integridade, tabelas e nomes de colunas após migrar uma
-cópia temporária; não garante a correção de todos os dados, tipos e restrições.
+diagnóstico. A validação verifica integridade, tabelas, nomes de colunas, valores inteiros
+em centavos e referências estrangeiras declaradas após migrar uma cópia temporária.
+Backups com referências órfãs ou valores inválidos em centavos são recusados; preserve o
+original para diagnóstico. A validação não garante a correção de todos os dados, tipos,
+restrições ou regras de negócio, nem detecta relacionamentos não declarados no esquema.
 
 ## Publicar uma nova versão
 

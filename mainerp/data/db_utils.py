@@ -73,15 +73,38 @@ class DatabaseManager:
                             return False
                         banco = Database(str(candidato))
                         try:
+                            candidato_conn = banco.get_connection()
                             for tabela in tabelas:
                                 esperadas = set(referencia._colunas(
                                     referencia_conn.cursor(), tabela
                                 ))
                                 atuais = set(banco._colunas(
-                                    banco.get_connection().cursor(), tabela
+                                    candidato_conn.cursor(), tabela
                                 ))
                                 if not esperadas <= atuais:
                                     return False
+                                monetarias = sorted(
+                                    coluna for coluna in esperadas
+                                    if coluna.endswith("_centavos")
+                                )
+                                if monetarias:
+                                    tabela_sql = '"' + tabela.replace('"', '""') + '"'
+                                    condicoes = " OR ".join(
+                                        'typeof("' + coluna.replace('"', '""')
+                                        + '") != \'integer\''
+                                        for coluna in monetarias
+                                    )
+                                    if candidato_conn.execute(
+                                        f"SELECT 1 FROM {tabela_sql} WHERE {condicoes} LIMIT 1"
+                                    ).fetchone():
+                                        logger.warning(
+                                            "Backup inválido: valor em centavos não inteiro "
+                                            "na tabela %s", tabela
+                                        )
+                                        return False
+                            if candidato_conn.execute("PRAGMA foreign_key_check").fetchone():
+                                logger.warning("Backup inválido: há referências inconsistentes")
+                                return False
                             return True
                         finally:
                             banco.close_connection()

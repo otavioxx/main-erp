@@ -140,20 +140,22 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
       Nomes únicos evitam a sobrescrita de dois backups criados no mesmo segundo.
       Falhas simuladas não equivalem a testar falhas reais de hardware ou energia;
       os demais riscos de restauração e recuperação externa permanecem nos itens abaixo.
-- [ ] Redesenhar a restauração em `mainerp/data/db_utils.py` e
+- [x] Redesenhar a restauração em `mainerp/data/db_utils.py` e
       `mainerp/ui/dialogs/restore_backup_dialog.py`: coordenar o encerramento das conexões
       e do backup automático. A restauração agora é preparada e aplicada antes da abertura,
       após snapshot SQLite anterior; falhas bloqueiam a abertura e preservam a pendência.
       O launcher precisa ser atualizado pelo instalador. A validação verifica integridade,
-      tabelas e nomes de colunas após migrar uma cópia, mas não confere todos os dados,
-      tipos e restrições. Testes terminam
+      tabelas, colunas, centavos inteiros e chaves estrangeiras declaradas após migrar
+      uma cópia; não verifica relacionamentos não declarados. Testes terminam
       o processo durante cópia em WAL e journal padrão e verificam a recuperação.
       Falhas simuladas em fsync, publicação e cópia preservam a pendência e permitem
       repetição; testes em WAL e journal padrão verificam a integridade. Preparações e
       aplicações concorrentes não substituem nem aplicam duas vezes a pendência. A
-      restauração mantém bloqueio SQLite exclusivo entre o snapshot e a validação;
+      aquisição da trava reserva a escrita antes do modo exclusivo; testes exercitam
+      aplicações simultâneas em WAL e journal padrão. A restauração mantém bloqueio
+      SQLite exclusivo entre o snapshot e a validação;
       testes verificam escritores externos ativos e bloqueados antes e depois da cópia.
-      Ainda é necessário validar tipos, restrições e regras de negócio dos backups;
+      Ainda é necessário validar os demais tipos, restrições e regras de negócio;
       falhas reais de hardware e processos que alterem arquivos fora do SQLite não são
       cobertos pelos testes.
 - [ ] Não prometer reversão bem-sucedida quando a recuperação também falhar:

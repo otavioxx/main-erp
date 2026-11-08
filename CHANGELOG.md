@@ -2,6 +2,11 @@
 
 ## Não publicado
 
+- A validação de restauração recusa valores não inteiros nos campos de centavos e
+  referências estrangeiras declaradas inconsistentes, antes de alterar o banco atual.
+- A aquisição da trava de restauração reserva a escrita antes do modo exclusivo,
+  evitando bloqueios mútuos observados em aplicações simultâneas no Windows.
+
 - Preparações simultâneas de restauração deixam de sobrescrever a pendência existente.
 - A restauração mantém um bloqueio SQLite exclusivo desde o snapshot anterior até a
   validação, impedindo escritas concorrentes nesse intervalo.

@@ -356,11 +356,57 @@ conn.close()
             proc.wait(timeout=10)
 
 
-def test_aplicacoes_concorrentes_nao_restauram_pendencia_duas_vezes(tmp_path):
+@pytest.mark.parametrize("journal_mode", ["DELETE", "WAL"])
+def test_restauracao_reserva_escrita_antes_do_modo_exclusivo(
+    tmp_path, monkeypatch, journal_mode
+):
     atual = tmp_path / "atual.db"
     origem = tmp_path / "origem.db"
     criar_banco(atual, "atual")
     criar_banco(origem, "anterior")
+    conn = sqlite3.connect(atual)
+    conn.execute(f"PRAGMA journal_mode={journal_mode}")
+    conn.close()
+    preparar_restauracao(origem, atual)
+    comandos = []
+    conectar = sqlite3.connect
+
+    class ConexaoObservada(sqlite3.Connection):
+        def execute(self, sql, *args, **kwargs):
+            comandos.append(sql)
+            return super().execute(sql, *args, **kwargs)
+
+        def commit(self):
+            comandos.append("COMMIT")
+            return super().commit()
+
+    def conectar_observando(caminho, *args, **kwargs):
+        if caminho == atual.resolve():
+            kwargs["factory"] = ConexaoObservada
+        return conectar(caminho, *args, **kwargs)
+
+    monkeypatch.setattr(sqlite3, "connect", conectar_observando)
+    anterior = aplicar_restauracao_pendente(atual)
+
+    assert comandos[:4] == [
+        "BEGIN IMMEDIATE", "PRAGMA locking_mode=EXCLUSIVE", "COMMIT", "BEGIN EXCLUSIVE"
+    ]
+    assert anterior is not None
+    assert ler_valor(anterior) == "atual"
+    assert ler_valor(atual) == "anterior"
+
+
+@pytest.mark.parametrize("journal_mode", ["DELETE", "WAL"])
+def test_aplicacoes_concorrentes_nao_restauram_pendencia_duas_vezes(
+    tmp_path, journal_mode
+):
+    atual = tmp_path / "atual.db"
+    origem = tmp_path / "origem.db"
+    criar_banco(atual, "atual")
+    criar_banco(origem, "anterior")
+    conn = sqlite3.connect(atual)
+    conn.execute(f"PRAGMA journal_mode={journal_mode}")
+    conn.close()
     preparar_restauracao(origem, atual)
     codigo = """
 import sys, time

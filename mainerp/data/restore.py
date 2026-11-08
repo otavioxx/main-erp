@@ -74,9 +74,12 @@ def aplicar_restauracao_pendente(target_db: str | Path) -> Path | None:
     anterior = pasta / f"pre_restore_{timestamp}.db"
     destino = sqlite3.connect(target, timeout=30)
     try:
+        # Serializa escritores antes da tentativa de adquirir o bloqueio exclusivo.
+        destino.execute("BEGIN IMMEDIATE")
         modo = destino.execute("PRAGMA locking_mode=EXCLUSIVE").fetchone()
         if not modo or modo[0].lower() != "exclusive":
             raise RuntimeError("Não foi possível obter bloqueio exclusivo do banco")
+        destino.commit()
         destino.execute("BEGIN EXCLUSIVE")
         destino.commit()
         if not pendente.exists():
