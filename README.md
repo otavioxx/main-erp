@@ -104,8 +104,10 @@ afirmar que foi verificado novamente; essa informação não substitui testes de
 Um backup manual pode ser iniciado em **Configurações > Criar Backup**. Ao fechar, o
 sistema solicita um backup manual se não houver data registrada ou se ela tiver pelo menos
 um dia; o backup automático não substitui essa exigência. O diálogo usa a última pasta
-válida ou a Área de Trabalho e permite escolher outra. A decisão de solicitá-lo usa a
-data registrada e não verifica automaticamente se o ZIP anterior ainda existe.
+válida ou a Área de Trabalho e permite escolher outra. Antes de dispensar um backup
+recente, o sistema verifica se o ZIP está acessível e íntegro e confere o hash quando
+disponível; se a verificação falhar, avisa e solicita um novo backup. Isso não substitui
+um teste de restauração.
 
 O ZIP manual contém um snapshot SQLite verificado, inclusive dados confirmados em WAL,
 um `README.txt` e, se presente no diretório de trabalho, `config.ini`. Não é uma cópia

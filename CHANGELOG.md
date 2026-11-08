@@ -2,6 +2,8 @@
 
 ## Não publicado
 
+- Backups manuais recentes são verificados antes de dispensar o diálogo ao fechar;
+  arquivos ausentes, corrompidos ou inacessíveis geram aviso.
 - O agendamento de backup automático é retomado após fechamento interrompido; a barra
   de status informa idade, resultado e falhas de agendamento ou retenção.
 - Falhas na restauração não afirmam que houve reversão; orientam preservar o banco,

@@ -174,15 +174,16 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
       Falhas de agendamento e retenção são informadas; a barra de status mostra a idade
       do último arquivo automático e o resultado nesta sessão. Arquivos encontrados na
       inicialização não são apresentados como novamente verificados.
-- [ ] Orientar uma rotina simples de cópia externa e teste periódico de restauração:
+- [x] Orientar uma rotina simples de cópia externa e teste periódico de restauração:
       `docs/backup_recuperacao.md` descreve o conteúdo e os limites dos backups e um
       procedimento manual com dados isolados. Teste automatizado cria um ZIP em pasta
       externa simulada e restaura em dados temporários separados na inicialização.
       Falta validar o procedimento em uma instalação isolada com o instalador e o
       launcher. A verificação periódica das cópias reais permanece operacional.
-- [ ] Evitar que um backup manual recente ausente ou corrompido dispense o aviso ao
-      fechar: atualmente a decisão usa a data registrada, sem verificar o arquivo.
-      Testar remoção, corrupção e destino externo indisponível, com aviso claro.
+- [x] Evitar que um backup manual recente ausente ou corrompido dispense o aviso ao
+      fechar: o ZIP e o hash disponível são verificados antes de dispensar o diálogo.
+      Testes cobrem remoção, corrupção, hash divergente e destino indisponível simulado;
+      o usuário recebe aviso e pode escolher outra pasta para um novo backup.
 - [ ] Avaliar como detectar um backup automático recente corrompido ou um relógio
       incorreto sem impedir o uso do ERP: o agendamento usa a data do arquivo, não sua
       integridade. Testar avisos e repetição sem sobrescrever backups anteriores.
@@ -294,7 +295,8 @@ Decisão: manter o frontend em PyQt6/Qt Widgets, sem migrar para web ou QML, e i
 estilo e melhoria geral de usabilidade. A referência é o padrão visual de ERPs corporativos
 consolidados (como o TOTVS): aparência plana, sóbria e densa, bordas retas e hierarquia por
 contraste. É inspiração de padrão de uso; não copiar logotipos, ícones, textos ou outros
-ativos de terceiros. Os itens abaixo são propostas, não alterações já aplicadas. Hoje o
+ativos de terceiros. A paleta já está definida em documentação, mas sua aplicação à
+interface ainda está pendente. Hoje o
 tema é único e escuro (`mainerp/ui/styles.py`, fundo `#1a1a1a`), há 32 chamadas de
 `setStyleSheet` em 12 arquivos, ≈ 77 cores hexadecimais fixas em `mainerp/ui/`,
 `border-radius` em 23 pontos de `styles.py` e nos diálogos de backup e restauração, e
@@ -303,7 +305,8 @@ emojis como ícones (barra lateral em `main_window.py`, botões em `config_view.
 - [ ] Registrar os princípios de design em `docs/`: raio de borda zero, bordas de 1 px,
       sem sombras nem gradientes, controles e linhas compactos, cor usada para significado
       (acento, estado, alerta) e não para decoração, ícones monocromáticos e texto sóbrio.
-- [ ] Definir a paleta de ERP conforme em docs/identidade_visual.md.
+- [x] Definir a paleta de ERP em `docs/identidade_visual.md`, com tokens para os temas
+      claro e escuro. A implementação e a validação de contraste continuam pendentes.
 - [ ] Reestruturar `CoresPaleta` e `ConstrutorEstilos` para tokens (superfície, texto,
       borda, acento, estados, semânticas, altura de controle, espaçamento, raio igual a
       zero e fonte) com tema claro como padrão e o escuro como opção, e persistir a

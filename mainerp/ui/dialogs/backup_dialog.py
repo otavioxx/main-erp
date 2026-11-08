@@ -160,7 +160,7 @@ class BackupConfig:
             saved_hash = data.get("last_backup_hash", "")
 
             if not backup_file or not os.path.exists(backup_file):
-                return False, "Arquivo de backup não encontrado"
+                return False, "Arquivo de backup não encontrado ou destino indisponível"
 
             # Verificar integridade do arquivo zip
             try:
@@ -183,7 +183,10 @@ class BackupConfig:
             # Verificar hash se disponível
             if saved_hash:
                 with open(backup_file, "rb") as f:
-                    current_hash = hashlib.md5(f.read()).hexdigest()
+                    digest = hashlib.md5()
+                    for bloco in iter(lambda: f.read(1024 * 1024), b""):
+                        digest.update(bloco)
+                    current_hash = digest.hexdigest()
                     if current_hash != saved_hash:
                         return (
                             False,
@@ -385,10 +388,21 @@ class BackupDialog(QDialog):
         Returns:
             True se deve mostrar o diálogo, False caso contrário
         """
-        if force_show:
+        if force_show or BackupConfig.should_show_backup_dialog():
             return True
 
-        return BackupConfig.should_show_backup_dialog()
+        valido, motivo = BackupConfig.validate_last_backup()
+        if valido:
+            return False
+        logger.warning("Não foi possível validar o último backup manual: %s", motivo)
+        QMessageBox.warning(
+            None,
+            "Backup anterior indisponível ou inválido",
+            f"Não foi possível validar o último backup manual: {motivo}.\n\n"
+            "Verifique se o destino está acessível ou selecione outra pasta "
+            "e faça um novo backup.",
+        )
+        return True
 
     def _init_ui(self):
         """Inicializa interface do diálogo"""

@@ -5,7 +5,7 @@ import subprocess
 import sys
 import threading
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -68,6 +68,109 @@ def test_backup_manual_corrompido_nao_publica_zip(tmp_path):
     assert not concluidos
     assert erros
     assert not list(tmp_path.glob("*.zip"))
+
+
+@pytest.mark.parametrize(
+    "estado", ["valido", "removido", "corrompido", "alterado", "inacessivel"]
+)
+def test_backup_recente_so_dispensa_dialogo_se_for_validado(
+    tmp_path, monkeypatch, estado
+):
+    from PyQt6.QtWidgets import QApplication, QMessageBox
+
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(BackupConfig, "CONFIG_FILE", str(tmp_path / "settings.json"))
+    arquivo = tmp_path / "backup.zip"
+    banco = tmp_path / "erp.db"
+    with sqlite3.connect(banco) as conn:
+        conn.execute("CREATE TABLE teste (id INTEGER)")
+    with zipfile.ZipFile(arquivo, "w") as zf:
+        zf.write(banco, "erp.db")
+    assert BackupConfig.save_last_backup_date(datetime.now(), str(arquivo))
+    if estado == "removido":
+        arquivo.unlink()
+    elif estado == "corrompido":
+        arquivo.write_bytes(b"arquivo corrompido")
+    elif estado == "alterado":
+        with zipfile.ZipFile(arquivo, "w") as zf:
+            zf.writestr("erp.db", b"banco alterado")
+    elif estado == "inacessivel":
+        def negar(*args, **kwargs):
+            raise PermissionError("destino indisponível")
+
+        monkeypatch.setattr("mainerp.ui.dialogs.backup_dialog.zipfile.ZipFile", negar)
+
+    avisos = []
+    monkeypatch.setattr(QMessageBox, "warning", lambda *args: avisos.append(args))
+    assert BackupDialog.should_show_dialog() is (estado != "valido")
+    if estado == "valido":
+        assert not avisos
+    else:
+        assert len(avisos) == 1
+        assert "backup" in avisos[0][2].lower()
+        assert "novo" in avisos[0][2].lower()
+    app.processEvents()
+
+
+def test_fechamento_nao_dispensa_dialogo_ao_perder_backup_recente(tmp_path, monkeypatch):
+    from PyQt6.QtGui import QCloseEvent
+    from PyQt6.QtWidgets import QApplication, QMessageBox
+
+    from mainerp.ui.views.main_window import MainWindow
+
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(BackupConfig, "CONFIG_FILE", str(tmp_path / "settings.json"))
+    assert BackupConfig.save_last_backup_date(datetime.now(), str(tmp_path / "ausente.zip"))
+    avisos, operacoes = [], []
+    monkeypatch.setattr(QMessageBox, "warning", lambda *args: avisos.append(args))
+    monkeypatch.setattr(app, "quit", lambda: operacoes.append("quit"))
+    janela = SimpleNamespace(
+        backup_automatico=SimpleNamespace(
+            em_execucao=False,
+            parar=lambda: operacoes.append("parar"),
+            iniciar=lambda: operacoes.append("iniciar"),
+        ),
+        _mostrar_dialogo_backup=lambda: operacoes.append("dialogo") or False,
+    )
+    evento = QCloseEvent()
+    MainWindow.closeEvent(janela, evento)
+    assert not evento.isAccepted()
+    assert operacoes == ["parar", "dialogo", "iniciar"]
+    assert len(avisos) == 1
+    app.processEvents()
+
+
+def test_backup_legado_sem_hash_ainda_verifica_conteudo_zip(tmp_path, monkeypatch):
+    from PyQt6.QtWidgets import QApplication, QMessageBox
+
+    app = QApplication.instance() or QApplication([])
+    monkeypatch.setattr(BackupConfig, "CONFIG_FILE", str(tmp_path / "settings.json"))
+    arquivo = tmp_path / "backup.zip"
+    with zipfile.ZipFile(arquivo, "w") as zf:
+        zf.writestr("erp.db", b"banco legado")
+    Path(BackupConfig.CONFIG_FILE).write_text(
+        json.dumps({"last_backup_date": datetime.now().isoformat(),
+                    "last_backup_file": str(arquivo)}),
+        encoding="utf-8",
+    )
+    avisos = []
+    monkeypatch.setattr(QMessageBox, "warning", lambda *args: avisos.append(args))
+    assert not BackupDialog.should_show_dialog()
+    arquivo.write_bytes(b"corrompido")
+    assert BackupDialog.should_show_dialog()
+    assert len(avisos) == 1
+    app.processEvents()
+
+
+def test_backup_vencido_solicita_dialogo_sem_validar_arquivo(tmp_path, monkeypatch):
+    monkeypatch.setattr(BackupConfig, "CONFIG_FILE", str(tmp_path / "settings.json"))
+    assert BackupConfig.save_last_backup_date(datetime.now() - timedelta(days=2))
+
+    def nao_validar():
+        raise AssertionError("backup vencido não precisa ser validado")
+
+    monkeypatch.setattr(BackupConfig, "validate_last_backup", nao_validar)
+    assert BackupDialog.should_show_dialog()
 
 
 def test_falha_ao_criar_snapshot_nao_publica_backup(tmp_path, monkeypatch):
