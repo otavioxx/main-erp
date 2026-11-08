@@ -91,6 +91,13 @@ Botões sólidos de confirmação e ações destrutivas possuem cores próprias:
 
 Essas cores são específicas para botões sólidos e não substituem os tokens semânticos de texto, fundo e borda.
 
+### Referências
+
+Imagens de referencia:
+Tema claro: docs\tema-claro.png
+Tema escuro: docs\tema-escuro.png
+HTML: docs\previa_paleta_erp_claro_escuro.html
+
 ## 3. Regras de utilização
 
 1. Não utilizar cores hexadecimais diretamente nos componentes da interface.
