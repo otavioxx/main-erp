@@ -128,9 +128,10 @@ MainERP/
 
 ## Fase 4.1 — Pontos de atenção identificados na revisão
 
-Os itens abaixo são propostas de trabalho, não correções já aplicadas. Priorizar proteção
-dos dados e recuperação antes das melhorias estruturais. Os testes de backup e restauração
-devem usar apenas bancos e instalações temporários, nunca dados de produção.
+Os itens marcados registram o que já foi feito; os pendentes separam validações e riscos
+remanescentes. Priorizar recuperação e atualização antes das melhorias estruturais, sem
+exigir testes destrutivos de hardware para prosseguir. Usar bancos, instalações e dados
+temporários nos testes, nunca dados de produção.
 
 ### Prioridade alta — backup e restauração
 
@@ -172,8 +173,8 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
 - [x] Testar e corrigir o ciclo de fechamento/backup em `MainWindow`: o agendamento
       volta a funcionar se o fechamento for interrompido e aguarda backups em andamento.
       Falhas de agendamento e retenção são informadas; a barra de status mostra a idade
-      do último arquivo automático e o resultado nesta sessão. Arquivos encontrados na
-      inicialização não são apresentados como novamente verificados.
+      do último arquivo automático elegível e o resultado nesta sessão. A verificação de
+      integridade do arquivo recente ocorre em segundo plano, conforme item abaixo.
 - [x] Orientar uma rotina simples de cópia externa e teste periódico de restauração:
       `docs/backup_recuperacao.md` descreve o conteúdo e os limites dos backups e um
       procedimento manual com dados isolados. Teste automatizado cria um ZIP em pasta
@@ -192,77 +193,103 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
 
 ### Prioridade alta — atualizações e distribuição
 
-- [ ] Isolar ou recuperar as dependências no rollback: `launcher.pyw` instala dependências
-      no runtime compartilhado na instalação inicial e o rollback troca apenas o código.
-      O launcher atualizado cria runtimes por release; testes usam dependências locais
-      incompatíveis, falha parcial do pip e rollback. Instalações existentes precisam do
-      bootstrap. Validar o fluxo completo de distribuição no ambiente do cliente.
-- [ ] Tornar a trava de atualização resistente a operações demoradas e interrupções:
-      o launcher atualizado usa trava do sistema operacional, sem prazo de expiração;
-      teste com processos concorrentes verifica que uma trava antiga permanece ativa.
-      Testar interrupção abrupta do processo e tratar o diretório de trava legado.
-- [ ] Revisar o conteúdo de cada release antes da publicação. O gerador agora limita
-      arquivos da raiz e pacotes Python, com testes de exclusão de caches e dados; ele
-      ainda inclui arquivos Python locais presentes nos diretórios permitidos.
-- [ ] Corrigir o destino personalizado: o instalador agora confere se a versão ativa é
-      válida e não é anterior à versão solicitada, mesmo se o launcher ocultar uma falha.
-      A opção `--destino` cria outra pasta de dados, mas o launcher não define
-      `MAINERP_DATA` para ela; para novas instalações, usar o destino padrão. Uma correção deve
-      preservar o local de dados de instalações existentes. Testar reinstalação,
-      falha de pacote/dependências e uso do atalho com destino não padrão.
-- [ ] Planejar a atualização segura do launcher fixo e a rotação da chave de assinatura,
-      com migração de instalações antigas e procedimento de recuperação. Uma release de
-      código não substitui `launcher.pyw`; testar também manifesto indisponível,
-      assinatura ausente/inválida e compatibilidade de rollback com migrações do banco.
+- [x] Isolar dependências de atualizações em runtimes por release e testar rollback,
+      falha parcial de instalação e versões incompatíveis. A instalação inicial ainda
+      usa o runtime principal; instalações antigas precisam atualizar o launcher.
+- [x] Usar trava do sistema operacional, sem expiração por tempo. Testes cobrem
+      concorrência, idade da trava e liberação após saída abrupta do processo.
+- [x] Restringir o conteúdo do ZIP de release a arquivos de runtime e pacotes
+      explicitados, com testes de exclusão de caches e dados. O gerador ainda aceita
+      qualquer arquivo Python presente nos diretórios de pacotes permitidos.
+- [x] Preparar `cryptography` no runtime principal pelo instalador 0.10.5, inclusive
+      em instalações existentes; testes cobrem o preparo e a falha. A instalação pela
+      release de código não atualiza o instalador nem o launcher fixo.
+
+### Rota pendente — operação e segurança
+
+1. [x] Validar em diretórios isolados no Windows os instaladores publicados 0.10.4 e
+       0.10.5 e o launcher: atualização online assinada de 0.10.4 para 0.10.5,
+       abertura da versão atualizada e preservação de banco fictício. Uma falha
+       simulada de runtime na versão nova reativou e abriu a anterior. Sem
+       `cryptography`, houve aviso e preservação da versão anterior; o instalador
+       0.10.5 reparou o runtime. Com instalação de dependências bloqueada, informou
+       a falha e preservou o launcher existente. Os avisos foram capturados em
+       console; a interface foi aberta offscreen e sem criar atalhos.
+   - [ ] Complementar em Windows limpo ou máquina virtual: testar destino padrão,
+         atalhos e apresentação visual dos avisos, sem dados de produção. A validação
+         em diretórios isolados não comprova esses aspectos nem uma falha real de rede.
+2. [ ] Validar uma cópia externa e sua restauração em instalação isolada com instalador
+       e launcher, conferindo registros e totais. Manter a rotina periódica descrita em
+       `docs/backup_recuperacao.md`; não usar dados de produção nos testes automatizados.
+3. [ ] Definir um procedimento seguro para a trava legada `.update.lock`, que atualmente
+       adia atualizações enquanto existir. Distinguir instalação antiga ativa de resíduo
+       antes de qualquer remoção; testar concorrência e recuperação sem apagar uma trava
+       em uso.
+4. [ ] Corrigir ou restringir explicitamente `--destino`: o instalador cria uma pasta
+       de dados no destino, mas o launcher não define `MAINERP_DATA` para ela. Preservar
+       o local de dados de instalações existentes e testar reinstalação, falhas e atalho
+       com destino não padrão. Até lá, usar o destino padrão para instalações novas.
+5. [ ] Planejar atualização segura do launcher fixo e eventual rotação da chave de
+       assinatura, com migração de instalações antigas e recuperação. Já há testes de
+       assinatura ausente, inválida e pacote alterado; complementar com manifesto
+       indisponível e rollback após migrações do banco, sem enfraquecer a assinatura.
+6. [ ] Antes de cada publicação, revisar o conteúdo efetivo do ZIP e do instalador,
+       versões, hashes e assinaturas; os testes de seleção não excluem automaticamente
+       todos os arquivos Python locais em diretórios permitidos. Considerar automatizar
+       essa conferência se a rotina passar a ser frequente.
+7. [ ] Avaliar gradualmente validações adicionais de tipos, restrições e regras de
+       negócio na restauração, com casos representativos de bancos legados. Os testes
+       atuais não reproduzem falhas reais de hardware/energia nem interrupções na
+       confirmação nativa do SQLite; documentar limites, sem alegar garantia total.
+
+### Manutenção relacionada
+
+- [ ] Declarar e validar Pillow como dependência direta enquanto os relatórios importarem
+      `PIL`; testar instalação limpa e compatibilidade com as versões de Python usadas.
+- [ ] Confirmar alturas das listagens com fontes e escalas diferentes no Windows,
+      em conjunto com o protótipo visual da Fase 4.3.
 
 ## Fase 4.2 — Relatórios e visualizador embutido
 
-Prioridade atual do projeto, junto com a Fase 4.3. Os itens abaixo são propostas, não
-alterações já aplicadas. Os itens de proteção de dados da Fase 4.1 continuam tendo
-precedência sobre melhorias estruturais: decidir se esta fase começa depois deles ou em
-paralelo. Os nove módulos de `mainerp/reports/` (≈ 4,9 mil linhas, ReportLab/Platypus)
-repetem estilos, cabeçalho da empresa e tabelas, e o PDF pronto é aberto fora do sistema.
-O frontend permanece em PyQt6/Qt Widgets (Fase 4.3): o `QPdfView` é o visualizador
-escolhido e ser independente de Qt deixa de ser critério para o motor de geração; o peso
-da instalação continua sendo.
+Os nove módulos atuais geram PDFs com ReportLab/Platypus e usam Pillow; a abertura é
+externa. Não foram encontrados motor de templates nem visualizador PDF embutido.
+Esta fase pode começar após as validações prioritárias de instalação e recuperação da
+Fase 4.1, e avançar junto com a Fase 4.3 sem depender de uma troca de motor. Para uso
+pessoal, manter o ReportLab é a alternativa inicial de menor mudança.
 
-- [ ] Prototipar o relatório de vendas (`mainerp/reports/print_relat_venda.py`) em
-      HTML/CSS + Jinja2 e comparar o PDF com o atual: fidelidade visual, cabeçalho/rodapé
-      e numeração de páginas, tabelas longas com quebra de página e instalação limpa no
-      Windows sem dependências de sistema. Motores candidatos: QtWebEngine (`printToPdf`,
-      assíncrono) e WeasyPrint (exige Pango/GTK no Windows). Manter o ReportLab refatorado
-      como alternativa de menor risco. Registrar a escolha neste roadmap.
-- [ ] Criar `mainerp/reports/engine.py` com `render_pdf(template, contexto) -> Path` e
-      `mainerp/reports/templates/` com um `base.html` compartilhado (cabeçalho da empresa,
-      estilos, tabela zebrada, rodapé), eliminando a repetição entre os módulos.
-      As cores e a identidade visual seguem os tokens da Fase 4.3.
-- [ ] Migrar um relatório por vez, cada módulo reduzido a consulta + contexto (centavos
-      convertidos apenas na formatação): vendas, pedidos, condicionais, recebimentos,
-      produtos, comprovante de recebimento e documentos individuais (venda, condicional,
-      pedido). Cada migração com teste de geração (arquivo criado e não vazio, número de
-      páginas, totais formatados) e comparação visual com o PDF anterior.
-- [ ] Criar `mainerp/ui/dialogs/pdf_viewer_dialog.py` com `QPdfView`
-      (`PyQt6.QtPdfWidgets`): zoom, ajustar à largura, navegação por página, busca,
-      salvar como, abrir no programa externo e imprimir (renderizando as páginas do
-      `QPdfDocument` em um `QPrinter`).
-- [ ] Trocar a abertura externa pelo visualizador embutido. Os pontos de entrada são
-      `ExportUtils.abrir_arquivo` (pedidos, condicionais e recebimentos) e
-      `ProdutoView._abrir_arquivo`; manter "abrir externo" como botão e como alternativa
-      se o visualizador falhar.
-- [ ] Validar a impressão a partir do visualizador em impressoras reais e em tamanhos de
-      página personalizados (etiquetas), no ambiente do cliente. Testes automatizados não
-      cobrem drivers de impressora.
-- [ ] Declarar as novas dependências em `requirements.txt` com limites de versão (Jinja2 e
-      o motor escolhido, como `PyQt6-WebEngine` ou WeasyPrint) e validar instalação limpa e
-      o runtime por release do launcher. Verificar se `distribuicao/criar_release.py`, que
-      restringe os arquivos incluídos, empacota `mainerp/reports/templates/` (HTML/CSS) e
-      testar o ZIP gerado.
-- [ ] Remover o ReportLab de `requirements.txt` ao concluir a migração de todos os
-      relatórios, revendo junto o item sobre Pillow na seção de qualidade.
-- [ ] Avaliar a licença antes de distribuir o ERP a terceiros: o PyQt6 é GPL e o PySide6
-      (LGPL) é a alternativa. Sem impacto para uso pessoal em um único PC.
+### Rota proposta
 
-Os relatórios gerenciais da Fase 5 devem reutilizar o `engine.py` e o `base.html`.
+1. [ ] Inventariar os nove relatórios, seus pontos de abertura, tamanhos de página,
+       totais, logos e impressão. Criar uma linha de base de geração e comparação visual
+       em dados isolados, incluindo tabelas longas e valores em centavos.
+2. [ ] Prototipar `QPdfView` em diálogo independente, mantendo ReportLab: navegação,
+       zoom, ajuste de largura, busca, salvar como, abrir externamente e impressão com
+       `QPdfDocument`/`QPrinter`. Verificar disponibilidade e instalação no Windows,
+       falhas de carregamento e alternativa externa, sem substituir o fluxo existente.
+3. [ ] Integrar gradualmente o visualizador após o protótipo: chamadas de
+       `ExportUtils.abrir_arquivo` incluem vendas, pedidos, condicionais e recebimentos;
+       produtos usa `ProdutoView._abrir_arquivo`. Preservar abertura externa como opção
+       e alternativa em falhas, e testar os pontos de entrada e arquivos gerados.
+4. [ ] Validar impressão em impressoras reais e tamanhos personalizados, incluindo
+       etiquetas, quando aplicável. Registrar limites: testes automatizados não cobrem
+       drivers ou todas as impressoras.
+5. [ ] Comparar um protótipo de vendas em HTML/CSS + Jinja2 com o ReportLab atual e uma
+       refatoração compartilhada em ReportLab. Avaliar fidelidade, paginação, tabelas
+       longas, peso e instalação limpa no Windows; QtWebEngine e WeasyPrint são candidatos,
+       não decisões. Registrar a escolha antes de migrar ou adicionar dependências.
+6. [ ] Conforme a escolha, extrair componentes compartilhados de cabeçalho, estilos e
+       tabelas e migrar um relatório por vez, preservando centavos e resultados. Se for
+       escolhido HTML, definir `engine.py` e templates compartilhados; alinhar cores
+       aos tokens da Fase 4.3. Testar geração, páginas, totais e comparação visual.
+7. [ ] Se houver novas dependências ou arquivos HTML/CSS, declará-los com limites de
+       versão e incluí-los explicitamente no gerador de release; testar instalação limpa,
+       runtime por release e conteúdo do ZIP. Remover ReportLab ou Pillow somente quando
+       não houver mais uso direto ou indireto necessário.
+8. [ ] Avaliar as condições de licença aplicáveis ao PyQt6 e às dependências antes de
+       distribuir a terceiros; considerar alternativas apenas se necessário.
+
+Os relatórios gerenciais da Fase 5 devem reutilizar os componentes compartilhados
+efetivamente escolhidos, sem pressupor templates HTML.
 
 ## Fase 4.3 — Identidade visual e padrão de ERP
 
@@ -306,14 +333,14 @@ emojis como ícones (barra lateral em `main_window.py`, botões em `config_view.
       ERP, com item ativo marcado por faixa reta, e rever o tamanho base da fonte (hoje
       12 pt, Segoe UI) e a altura de linhas e controles para maior densidade, mantendo a
       legibilidade em 125% e 150%. Fazer junto com a confirmação das alturas das
-      listagens, já prevista em "Qualidade e manutenção".
+      listagens, prevista em "Manutenção relacionada" na Fase 4.1.
 - [ ] Prototipar antes de estender: aplicar o tema novo a Clientes e ao diálogo de cliente,
       capturar imagens em 100%, 125% e 150% e só então seguir. Ordem sugerida: janela
       principal e navegação, listagens, diálogos de entrada, diálogos de relatório e, por
       fim, configurações e backup.
 - [ ] Alinhar os relatórios em PDF à mesma identidade (cabeçalho, cores, tabela), usando os
-      mesmos tokens no `base.html` da Fase 4.2. Definir a paleta antes de migrar os
-      templates.
+      tokens nos componentes compartilhados escolhidos na Fase 4.2. Definir a paleta antes
+      de migrar os relatórios.
 
 ## Fase 5 — Produto (conforme a necessidade)
 
