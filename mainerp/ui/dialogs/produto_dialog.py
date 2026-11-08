@@ -6,6 +6,7 @@ import logging
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
+    QAbstractSpinBox,
     QCheckBox,
     QDialog,
     QDialogButtonBox,
@@ -31,6 +32,7 @@ from mainerp.domain.utils.helpers import (
 )
 from mainerp.ui.dialogs.fornecedor_selection_dialog import FornecedorSelectionDialog
 from mainerp.ui.formulario import configurar_botoes_formulario
+from mainerp.ui.theme_tokens import DIMENSOES
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +162,9 @@ class ProdutoDialog(QDialog):
         self.preco_custo_spin = SelectAllDoubleSpinBox()
         self.preco_custo_spin.setMaximum(999999.99)
         self.preco_custo_spin.setValue(self.produto.preco_custo)
-        self.preco_custo_spin.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
+        self._ajustar_recuo_campo_numerico(self.preco_custo_spin)
+        # NoButtons com o QSS do Qt reduz o editor interno a um pixel;
+        # o tema já oculta os botões sem alterar o modo do controle.
         self.preco_custo_spin.setMinimumHeight(35)
         self.campos_navegacao.append(self.preco_custo_spin)
         valores_layout.addWidget(self.preco_custo_spin)
@@ -170,7 +174,7 @@ class ProdutoDialog(QDialog):
         self.preco_venda_spin = SelectAllDoubleSpinBox()
         self.preco_venda_spin.setMaximum(999999.99)
         self.preco_venda_spin.setValue(self.produto.preco_venda)
-        self.preco_venda_spin.setButtonSymbols(QDoubleSpinBox.ButtonSymbols.NoButtons)
+        self._ajustar_recuo_campo_numerico(self.preco_venda_spin)
         self.preco_venda_spin.setMinimumHeight(35)
         self.campos_navegacao.append(self.preco_venda_spin)
         valores_layout.addWidget(self.preco_venda_spin)
@@ -181,13 +185,20 @@ class ProdutoDialog(QDialog):
             self.estoque_spin = SelectAllSpinBox()
             self.estoque_spin.setMaximum(999999)
             self.estoque_spin.setValue(self.produto.estoque)
-            self.estoque_spin.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
+            self._ajustar_recuo_campo_numerico(self.estoque_spin)
             self.estoque_spin.setMinimumHeight(35)
             self.campos_navegacao.append(self.estoque_spin)
             valores_layout.addWidget(self.estoque_spin)
 
         grupo_valores.setLayout(valores_layout)
         layout.addWidget(grupo_valores)
+
+    @staticmethod
+    def _ajustar_recuo_campo_numerico(campo: QAbstractSpinBox) -> None:
+        editor = campo.findChild(QLineEdit)
+        if editor is None:
+            raise RuntimeError("Campo numérico sem editor de texto.")
+        editor.setTextMargins(DIMENSOES.espacamento, 0, DIMENSOES.espacamento, 0)
 
     def _criar_grupo_fornecedor(self, layout):
         """Cria grupo de fornecedor"""
