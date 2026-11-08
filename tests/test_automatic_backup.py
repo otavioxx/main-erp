@@ -2,6 +2,7 @@ import os
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -209,7 +210,7 @@ def test_falha_retencao_nao_oculta_backup_criado(tmp_path, monkeypatch):
     service.backup_concluido.connect(concluidos.append)
     service.retencao_falhou.connect(falhas.append)
 
-    def falhar(*args):
+    def falhar(*_args):
         raise PermissionError("retenção negada")
 
     monkeypatch.setattr(automatic_backup, "aplicar_retencao_backups", falhar)
@@ -233,13 +234,19 @@ def test_falha_retencao_nao_oculta_backup_criado(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "cenario", [
-        "cancelado", "aceito", "erro_recusado", "erro_aceito", "recente",
+    "cenario",
+    [
+        "cancelado",
+        "aceito",
+        "erro_recusado",
+        "erro_aceito",
+        "recente",
         "verificacao_falha",
-    ]
+    ],
 )
 def test_fechamento_reinicia_agendamento_somente_se_interrompido(monkeypatch, cenario):
     from types import SimpleNamespace
+    from typing import cast
 
     from PyQt6.QtGui import QCloseEvent
     from PyQt6.QtWidgets import QApplication, QDialog, QMessageBox
@@ -255,9 +262,11 @@ def test_fechamento_reinicia_agendamento_somente_se_interrompido(monkeypatch, ce
     )
     janela = SimpleNamespace(
         backup_automatico=service,
-        _mostrar_dialogo_backup=lambda: MainWindow._mostrar_dialogo_backup(janela),
+        _mostrar_dialogo_backup=lambda: MainWindow._mostrar_dialogo_backup(
+            cast(MainWindow, janela)
+        ),
         _perguntar_fechamento_emergencial=lambda: (
-            MainWindow._perguntar_fechamento_emergencial(janela)
+            MainWindow._perguntar_fechamento_emergencial(cast(MainWindow, janela))
         ),
         windowTitle=lambda: "MainERP",
     )
@@ -267,37 +276,42 @@ def test_fechamento_reinicia_agendamento_somente_se_interrompido(monkeypatch, ce
         def __init__(self, _parent):
             if cenario.startswith("erro"):
                 raise RuntimeError("erro simulado")
-            self.backup_realizado = SimpleNamespace(connect=lambda slot: None)
+            self.backup_realizado = SimpleNamespace(connect=lambda _slot: None)
 
         def setWindowTitle(self, _titulo):
             pass
 
         def exec(self):
             return (
-                QDialog.DialogCode.Accepted if cenario == "aceito"
+                QDialog.DialogCode.Accepted
+                if cenario == "aceito"
                 else QDialog.DialogCode.Rejected
             )
 
-    janela._backup_concluido = lambda caminho: None
+    janela._backup_concluido = lambda _caminho: None
     monkeypatch.setattr("mainerp.ui.views.main_window.BackupDialog", Dialogo)
+
     def verificar():
         if cenario == "verificacao_falha":
             raise OSError("falha simulada")
         return cenario != "recente"
 
-    Dialogo.should_show_dialog = staticmethod(verificar)
+    monkeypatch.setattr(Dialogo, "should_show_dialog", staticmethod(verificar))
     monkeypatch.setattr(
-        QMessageBox, "question",
-        lambda *args: (
-            QMessageBox.StandardButton.Yes if cenario == "erro_aceito"
+        QMessageBox,
+        "question",
+        lambda *_args: (
+            QMessageBox.StandardButton.Yes
+            if cenario == "erro_aceito"
             else QMessageBox.StandardButton.No
         ),
     )
     evento = QCloseEvent()
-    MainWindow.closeEvent(janela, evento)
+    MainWindow.closeEvent(cast(MainWindow, janela), evento)
     assert not evento.isAccepted()
     assert operacoes == (
-        ["parar", "quit"] if cenario in ("aceito", "erro_aceito", "recente")
+        ["parar", "quit"]
+        if cenario in ("aceito", "erro_aceito", "recente")
         else ["parar", "iniciar"]
     )
 
@@ -318,7 +332,7 @@ def test_fechamento_cancelado_reativa_timer_real(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(BackupDialog, "should_show_dialog", lambda: True)
     evento = QCloseEvent()
-    MainWindow.closeEvent(janela, evento)
+    MainWindow.closeEvent(cast(MainWindow, janela), evento)
     assert not evento.isAccepted()
     assert service._timer.isActive()
     service.parar()
@@ -328,6 +342,7 @@ def test_fechamento_cancelado_reativa_timer_real(tmp_path, monkeypatch):
 
 def test_fechamento_aguarda_worker_e_retoma_uma_vez():
     from types import SimpleNamespace
+    from typing import cast
 
     from PyQt6.QtGui import QCloseEvent
 
@@ -341,18 +356,19 @@ def test_fechamento_aguarda_worker_e_retoma_uma_vez():
         close=lambda: operacoes.append("close"),
     )
     evento = QCloseEvent()
-    MainWindow.closeEvent(janela, evento)
-    MainWindow.closeEvent(janela, QCloseEvent())
+    MainWindow.closeEvent(cast(MainWindow, janela), evento)
+    MainWindow.closeEvent(cast(MainWindow, janela), QCloseEvent())
     assert not evento.isAccepted()
     assert len(operacoes) == 1
-    MainWindow._retomar_fechamento_apos_backup(janela)
-    MainWindow._retomar_fechamento_apos_backup(janela)
+    MainWindow._retomar_fechamento_apos_backup(cast(MainWindow, janela))
+    MainWindow._retomar_fechamento_apos_backup(cast(MainWindow, janela))
     assert operacoes[-1] == "close"
     assert operacoes.count("close") == 1
 
 
 def test_status_mostra_idade_e_ultima_falha():
     from types import SimpleNamespace
+    from typing import cast
 
     from PyQt6.QtWidgets import QApplication, QLabel
 
@@ -368,7 +384,7 @@ def test_status_mostra_idade_e_ultima_falha():
         ),
         status_widget=SimpleNamespace(label_backup=label),
     )
-    MainWindow._atualizar_status_backup(janela)
+    MainWindow._atualizar_status_backup(cast(MainWindow, janela))
     assert "2d 3h 4min" in label.text()
     assert "falha na retenção: acesso negado" in label.text()
     label.close()
@@ -414,11 +430,13 @@ def test_backup_recente_corrompido_avisa_e_repete_apos_falha(tmp_path, monkeypat
         em_segundo_plano.append(QThread.currentThread() != app.thread())
         verificar(caminho)
 
-    def falhar(*args):
+    def falhar(*_args):
         raise PermissionError("destino indisponível")
 
     monkeypatch.setattr(automatic_backup, "criar_backup_automatico", falhar)
-    monkeypatch.setattr(automatic_backup, "verificar_integridade_backup", verificar_na_thread)
+    monkeypatch.setattr(
+        automatic_backup, "verificar_integridade_backup", verificar_na_thread
+    )
     service.iniciar()
     _aguardar_backup(service)
     assert avisos and "inválido ou inacessível" in avisos[0]
@@ -491,10 +509,12 @@ def test_backups_simultaneos_no_mesmo_segundo_nao_sobrescrevem(tmp_path):
         conn.execute("CREATE TABLE teste (id INTEGER)")
     agora = datetime(2026, 11, 7, 9, 30)
     with ThreadPoolExecutor(max_workers=4) as executor:
-        resultados = list(executor.map(
-            lambda _: criar_backup_automatico(banco, tmp_path / "backups", agora),
-            range(4),
-        ))
+        resultados = list(
+            executor.map(
+                lambda _: criar_backup_automatico(banco, tmp_path / "backups", agora),
+                range(4),
+            )
+        )
     assert len(set(resultados)) == 4
     for arquivo in resultados:
         automatic_backup.verificar_integridade_backup(arquivo)
@@ -511,7 +531,9 @@ def test_colisao_de_nome_nao_sobrescreve_backup_existente(tmp_path, monkeypatch)
     pasta.mkdir()
     existente = pasta / f"{BACKUP_PREFIX}20261107_093000_fixo.db"
     existente.write_bytes(b"backup anterior")
-    monkeypatch.setattr(automatic_backup.uuid, "uuid4", lambda: SimpleNamespace(hex="fixo"))
+    monkeypatch.setattr(
+        automatic_backup.uuid, "uuid4", lambda: SimpleNamespace(hex="fixo")
+    )
 
     with pytest.raises(FileExistsError):
         criar_backup_automatico(banco, pasta, datetime(2026, 11, 7, 9, 30))
@@ -554,7 +576,8 @@ def test_status_preserva_aviso_apos_backup_concluido():
     label = QLabel()
     janela = create_autospec(MainWindow, instance=True)
     janela.backup_automatico = SimpleNamespace(
-        ultimo_backup=datetime.now(), resultado="Concluído",
+        ultimo_backup=datetime.now(),
+        resultado="Concluído",
         aviso_pendente="Backup anterior corrompido",
     )
     janela.status_widget = SimpleNamespace(label_backup=label)

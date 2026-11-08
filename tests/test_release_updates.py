@@ -9,6 +9,7 @@ import subprocess
 import sys
 import zipfile
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 from cryptography.hazmat.primitives import serialization
@@ -22,7 +23,9 @@ UPDATE_MANIFEST_URL = (
 
 def _carregar_modulo(caminho: Path, nome: str):
     loader = importlib.machinery.SourceFileLoader(nome, str(caminho))
-    spec = importlib.util.spec_from_file_location(nome, caminho, loader=loader)
+    spec = importlib.util.spec_from_file_location(
+        nome, caminho, loader=cast(Any, loader)
+    )
     if spec is None or spec.loader is None:
         raise ImportError(f"Não foi possível carregar {caminho}")
     modulo = importlib.util.module_from_spec(spec)
@@ -59,10 +62,13 @@ def criador():
     )
 
 
-def test_instalador_prepara_assinatura_no_runtime_principal(instalador, tmp_path, monkeypatch):
+def test_instalador_prepara_assinatura_no_runtime_principal(
+    instalador, tmp_path, monkeypatch
+):
     chamadas = []
     monkeypatch.setattr(
-        instalador.subprocess, "run",
+        instalador.subprocess,
+        "run",
         lambda args, **kwargs: chamadas.append((args, kwargs)),
     )
     instalador.garantir_criptografia_launcher(tmp_path / "runtime")

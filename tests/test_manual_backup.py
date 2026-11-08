@@ -95,6 +95,7 @@ def test_backup_recente_so_dispensa_dialogo_se_for_validado(
         with zipfile.ZipFile(arquivo, "w") as zf:
             zf.writestr("erp.db", b"banco alterado")
     elif estado == "inacessivel":
+
         def negar(*args, **kwargs):
             raise PermissionError("destino indisponível")
 
@@ -112,7 +113,9 @@ def test_backup_recente_so_dispensa_dialogo_se_for_validado(
     app.processEvents()
 
 
-def test_fechamento_nao_dispensa_dialogo_ao_perder_backup_recente(tmp_path, monkeypatch):
+def test_fechamento_nao_dispensa_dialogo_ao_perder_backup_recente(
+    tmp_path, monkeypatch
+):
     from PyQt6.QtGui import QCloseEvent
     from PyQt6.QtWidgets import QApplication, QMessageBox
 
@@ -120,7 +123,9 @@ def test_fechamento_nao_dispensa_dialogo_ao_perder_backup_recente(tmp_path, monk
 
     app = QApplication.instance() or QApplication([])
     monkeypatch.setattr(BackupConfig, "CONFIG_FILE", str(tmp_path / "settings.json"))
-    assert BackupConfig.save_last_backup_date(datetime.now(), str(tmp_path / "ausente.zip"))
+    assert BackupConfig.save_last_backup_date(
+        datetime.now(), str(tmp_path / "ausente.zip")
+    )
     avisos, operacoes = [], []
     monkeypatch.setattr(QMessageBox, "warning", lambda *args: avisos.append(args))
     monkeypatch.setattr(app, "quit", lambda: operacoes.append("quit"))
@@ -133,7 +138,7 @@ def test_fechamento_nao_dispensa_dialogo_ao_perder_backup_recente(tmp_path, monk
         _mostrar_dialogo_backup=lambda: operacoes.append("dialogo") or False,
     )
     evento = QCloseEvent()
-    MainWindow.closeEvent(janela, evento)
+    MainWindow.closeEvent(cast(MainWindow, janela), evento)
     assert not evento.isAccepted()
     assert operacoes == ["parar", "dialogo", "iniciar"]
     assert len(avisos) == 1
@@ -149,8 +154,12 @@ def test_backup_legado_sem_hash_ainda_verifica_conteudo_zip(tmp_path, monkeypatc
     with zipfile.ZipFile(arquivo, "w") as zf:
         zf.writestr("erp.db", b"banco legado")
     Path(BackupConfig.CONFIG_FILE).write_text(
-        json.dumps({"last_backup_date": datetime.now().isoformat(),
-                    "last_backup_file": str(arquivo)}),
+        json.dumps(
+            {
+                "last_backup_date": datetime.now().isoformat(),
+                "last_backup_file": str(arquivo),
+            }
+        ),
         encoding="utf-8",
     )
     avisos = []
@@ -461,8 +470,12 @@ def test_backup_externo_restaurado_em_dados_isolados(tmp_path):
     assert concluidos and not erros
 
     sinal = tmp_path / "aberto"
-    env = dict(os.environ, MAINERP_DATA=str(dados), MAINERP_OK_FILE=str(sinal),
-               QT_QPA_PLATFORM="offscreen")
+    env = dict(
+        os.environ,
+        MAINERP_DATA=str(dados),
+        MAINERP_OK_FILE=str(sinal),
+        QT_QPA_PLATFORM="offscreen",
+    )
     env.pop("MAINERP_LAUNCHER", None)
     codigo = """
 from PyQt6.QtCore import QTimer
@@ -478,8 +491,13 @@ QApplication.exec = staticmethod(executar)
 app.main()
 """
     resultado = subprocess.run(
-        [sys.executable, "-c", codigo], env=env, capture_output=True,
-        text=True, errors="replace", timeout=45, check=False,
+        [sys.executable, "-c", codigo],
+        env=env,
+        capture_output=True,
+        text=True,
+        errors="replace",
+        timeout=45,
+        check=False,
     )
     assert resultado.returncode == 0, resultado.stdout + resultado.stderr
     assert sinal.is_file(), resultado.stdout + resultado.stderr
