@@ -60,6 +60,28 @@ def python_do_runtime(runtime: Path, gui: bool = False) -> Path:
     return runtime / "bin" / "python"
 
 
+def garantir_criptografia_launcher(runtime: Path) -> None:
+    """Instala no runtime principal a dependência de assinatura do launcher."""
+    linhas = (PROJETO / "requirements.txt").read_text(encoding="utf-8").splitlines()
+    requisitos = [
+        linha.strip() for linha in linhas
+        if re.match(r"^cryptography(?:[<>=!~;\s]|$)", linha.strip(), re.IGNORECASE)
+    ]
+    if len(requisitos) != 1:
+        raise ValueError("Não foi possível identificar a dependência cryptography.")
+    python = str(python_do_runtime(runtime))
+    subprocess.run(
+        [python, "-m", "pip", "install", requisitos[0],
+         "--disable-pip-version-check", "--no-input"],
+        check=True,
+    )
+    subprocess.run(
+        [python, "-c",
+         "from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey"],
+        check=True,
+    )
+
+
 def configurar_launcher(config_path: Path) -> None:
     """Define o manifesto padrão sem sobrescrever uma URL já configurada."""
     if config_path.exists():
@@ -168,6 +190,15 @@ def main():
         venv.EnvBuilder(with_pip=True).create(runtime)
     else:
         print("Ambiente Python já existe; mantendo.")
+
+    print("Verificando dependência de assinatura do launcher...")
+    try:
+        garantir_criptografia_launcher(runtime)
+    except (OSError, ValueError, subprocess.CalledProcessError) as erro:
+        sys.exit(
+            "Falha ao preparar a verificação de assinaturas do launcher. "
+            f"Confira o Python e a conexão com a internet: {erro}"
+        )
 
     # 2) launcher, ícone e configuração do launcher
     launcher = sistema / "launcher.pyw"

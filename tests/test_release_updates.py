@@ -59,6 +59,46 @@ def criador():
     )
 
 
+def test_instalador_prepara_assinatura_no_runtime_principal(instalador, tmp_path, monkeypatch):
+    chamadas = []
+    monkeypatch.setattr(
+        instalador.subprocess, "run",
+        lambda args, **kwargs: chamadas.append((args, kwargs)),
+    )
+    instalador.garantir_criptografia_launcher(tmp_path / "runtime")
+    python = str(instalador.python_do_runtime(tmp_path / "runtime"))
+    assert chamadas[0][0][:4] == [python, "-m", "pip", "install"]
+    assert chamadas[0][0][4] == "cryptography>=44,<47"
+    assert chamadas[1][0][0:2] == [python, "-c"]
+    assert "Ed25519PublicKey" in chamadas[1][0][2]
+    assert all(opcoes["check"] for _, opcoes in chamadas)
+
+
+def test_instalador_nao_altera_launcher_se_preparo_de_assinatura_falhar(
+    instalador, tmp_path, monkeypatch
+):
+    sistema = tmp_path / "sistema"
+    python = instalador.python_do_runtime(sistema / "runtime")
+    python.parent.mkdir(parents=True)
+    python.touch()
+    launcher = sistema / "launcher.pyw"
+    launcher.write_text("launcher anterior", encoding="utf-8")
+    dados = tmp_path / "dados"
+    dados.mkdir()
+    banco = dados / "erp.db"
+    banco.write_bytes(b"banco anterior")
+    monkeypatch.setattr("sys.argv", ["instalar.py", "--destino", str(tmp_path)])
+
+    def falhar(_):
+        raise subprocess.CalledProcessError(1, ["pip"])
+
+    monkeypatch.setattr(instalador, "garantir_criptografia_launcher", falhar)
+    with pytest.raises(SystemExit, match="Falha ao preparar"):
+        instalador.main()
+    assert launcher.read_text(encoding="utf-8") == "launcher anterior"
+    assert banco.read_bytes() == b"banco anterior"
+
+
 def test_installer_uses_same_windows_identity_as_application(instalador, monkeypatch):
     chamadas = []
     sistema = Path("sistema")
@@ -244,6 +284,7 @@ def test_installer_main_checks_launcher_result_and_active_release(
     monkeypatch.setattr("sys.argv", ["instalar.py", "--destino", str(tmp_path)])
     monkeypatch.setattr(instalador.criar_release, "construir_zip", lambda _: None)
     monkeypatch.setattr(instalador.criar_release, "ler_versao", lambda: "0.10.0")
+    monkeypatch.setattr(instalador, "garantir_criptografia_launcher", lambda _: None)
     monkeypatch.setattr(
         instalador.subprocess,
         "run",
@@ -277,6 +318,7 @@ def test_installer_can_skip_shortcuts_for_isolated_install(
     )
     monkeypatch.setattr(instalador.criar_release, "construir_zip", lambda _: None)
     monkeypatch.setattr(instalador.criar_release, "ler_versao", lambda: "0.10.0")
+    monkeypatch.setattr(instalador, "garantir_criptografia_launcher", lambda _: None)
     monkeypatch.setattr(
         instalador.subprocess,
         "run",
@@ -321,6 +363,7 @@ def test_installer_cleans_source_only_after_success(
     monkeypatch.setattr("sys.argv", ["instalar.py", "--destino", str(destino)])
     monkeypatch.setattr(instalador.criar_release, "construir_zip", lambda _: None)
     monkeypatch.setattr(instalador.criar_release, "ler_versao", lambda: "0.10.0")
+    monkeypatch.setattr(instalador, "garantir_criptografia_launcher", lambda _: None)
     monkeypatch.setattr(
         instalador.subprocess,
         "run",

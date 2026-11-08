@@ -47,6 +47,24 @@ aplicativo, ele procura atualizações locais e, se configurado, consulta o serv
 O código de cada versão fica isolado em `releases\<versão>\`; banco, configurações,
 backups e relatórios ficam em `dados\`.
 
+Se uma atualização informar `No module named 'cryptography'`, confira a mensagem e
+feche o ERP. No PowerShell da mesma conta Windows, para uma instalação no caminho padrão:
+
+```powershell
+$python = Join-Path $env:LOCALAPPDATA 'MainERP\sistema\runtime\Scripts\python.exe'
+& $python -m pip install 'cryptography>=44,<47'
+if ($LASTEXITCODE -eq 0) {
+    & $python -c 'from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey'
+}
+```
+
+O comando exige acesso ao repositório de pacotes configurado para o pip. Se falhar,
+preserve a mensagem e consulte `sistema\logs\launcher.log`; não desative a verificação de
+assinatura. Após o comando terminar sem erros, abra o atalho novamente. Para instalações
+em outro destino, use o `python.exe` do runtime principal desse destino.
+Instaladores que incluam esta correção preparam a dependência no runtime principal antes
+de instalar ou atualizar o launcher; releases do código não substituem o launcher fixo.
+
 ## Primeira instalação
 
 1. Python 3.10 ou superior instalado (recomendado: 3.12), com o "py launcher".

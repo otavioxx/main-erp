@@ -171,6 +171,8 @@ O launcher atualizado instala cada atualização em um runtime próprio, preserv
 dependências das versões anteriores para rollback. Isso requer espaço em disco e acesso
 às dependências na instalação. Instalações existentes precisam primeiro atualizar o
 launcher pelo instalador; uma atualização de código não substitui o launcher fixo.
+Se a atualização acusar ausência de `cryptography`, consulte o procedimento de reparo
+do runtime principal em [distribuicao/LEIAME.md](distribuicao/LEIAME.md).
 
 Para gerar e inspecionar o pacote localmente: `python distribuicao/criar_release.py`
 (cria `dist/MainERP-<versão>.zip` e `dist/version.json`; isso não publica a release).

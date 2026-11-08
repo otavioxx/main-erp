@@ -1,5 +1,10 @@
 # Histórico de versões
 
+## 0.10.5 - 2026-11-08
+
+- O instalador prepara a dependência de assinatura no runtime principal do launcher,
+  inclusive em instalações existentes, antes de tentar atualizar o aplicativo.
+
 ## 0.10.4 - 2026-11-08
 
 - Corrigida a execução dos testes de atualização no Linux usado pelo pipeline.
