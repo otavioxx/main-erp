@@ -20,24 +20,6 @@ Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém só o qu
 Objetivo: a perda do disco do PC não pode significar perda do sistema.
 
 - [ ] Destino da cópia: pasta sincronizada de nuvem (OneDrive, Google Drive etc.), pendrive/HD externo, ou os dois. A pasta sincronizada é o caminho mais simples, porque não exige API.
-      1. Quando o usuário abrir o MainERP pela primeira vez, o sistema já terá uma pasta padrão para backups locais
-      2. O usuário poderia selecionar, por exemplo:
-            - C:\Users\Usuario\OneDrive\MainERP
-            - C:\Users\Usuario\Google Drive\MainERP
-            - D:\Dropbox\MainERP
-            O ERP não precisaria saber qual serviço está sendo utilizado.
-            Ele simplesmente gravaria os backups naquela pasta.
-      3. E se o usuário não tiver sincronização instalada?
-            Não acontece nada de errado.
-            O sistema continuaria funcionando normalmente com os backups locais.
-      4. Um detalhe técnico importante
-            Eu recomendaria que o MainERP verificasse:
-                  Se a pasta selecionada ainda existe.
-                  Se o Windows permite gravar nela.
-                  Se há espaço disponível.
-                  Se o arquivo de backup foi criado corretamente.
-                  Se o arquivo foi efetivamente gravado antes de sinalizar sucesso.
-            Uma ressalva: gravar na pasta não significa que a nuvem já recebeu o arquivo. O ERP deve distinguir backup criado localmente de sincronização confirmada pelo serviço.
 - [ ] Copiar automaticamente cada backup diário para o destino externo, com retenção própria.
 - [ ] Verificar a cópia depois de gravar (tamanho e hash) e avisar na interface se falhar.
 - [ ] Tratar destino ausente (pendrive desconectado, pasta indisponível): avisar sem travar o sistema e tentar de novo na próxima oportunidade.
