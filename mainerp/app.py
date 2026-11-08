@@ -387,8 +387,11 @@ def main():
         QMessageBox.critical(
             None,
             "Erro na restauração",
-            "O sistema não será aberto para proteger os dados. A restauração "
-            f"pendente e os backups foram preservados.\n\n{erro!s}",
+            "O sistema não será aberto para proteger os dados. O estado do banco "
+            "pode ter sido alterado e não é possível confirmar uma reversão.\n\n"
+            "Não exclua nem altere o banco, a restauração pendente ou os backups. "
+            "Procure suporte para verificar os arquivos antes de tentar novamente.\n\n"
+            f"Detalhes: {erro!s}",
         )
         sys.exit(EXIT_RESTAURACAO_FALHOU)
 

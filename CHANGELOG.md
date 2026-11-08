@@ -2,6 +2,8 @@
 
 ## Não publicado
 
+- Falhas na restauração não afirmam que houve reversão; orientam preservar o banco,
+  a pendência e os snapshots para suporte.
 - A validação de restauração recusa valores não inteiros nos campos de centavos e
   referências estrangeiras declaradas inconsistentes, antes de alterar o banco atual.
 - A aquisição da trava de restauração reserva a escrita antes do modo exclusivo,

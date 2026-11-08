@@ -158,10 +158,14 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
       Ainda é necessário validar os demais tipos, restrições e regras de negócio;
       falhas reais de hardware e processos que alterem arquivos fora do SQLite não são
       cobertos pelos testes.
-- [ ] Não prometer reversão bem-sucedida quando a recuperação também falhar:
+- [x] Não prometer reversão bem-sucedida quando a recuperação também falhar:
       a nova restauração preserva snapshot anterior e pendência caso a aplicação falhe;
-      o sistema bloqueia a abertura. Validar recuperação e mensagens em falhas e
-      interrupções reais, inclusive durante a confirmação da escrita no SQLite.
+      falhas antes da cópia e após sua conclusão (confirmação ambígua simulada) mantêm
+      snapshot e pendência, bloqueiam a abertura e permitem nova tentativa; a mensagem
+      não afirma que houve reversão e orienta preservar os arquivos. Testes terminam
+      o processo durante a cópia e após sua conclusão em WAL e journal padrão e
+      verificam a recuperação. Ainda faltam falhas reais de hardware/energia e
+      interrupções durante a confirmação nativa do SQLite.
 - [x] Tratar falhas de persistência de `backup_settings.json` na interface. Salvar o
       caminho preserva os demais campos e rejeita configurações inválidas; falhas ao
       salvar o caminho ou metadados do backup são informadas ao usuário.

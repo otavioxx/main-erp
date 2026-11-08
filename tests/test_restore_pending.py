@@ -576,6 +576,57 @@ app.main()
     assert ler_valor(atual) == "atual"
 
 
+@pytest.mark.parametrize("momento", ["antes_da_copia", "apos_a_copia"])
+def test_falha_ambigua_na_copia_bloqueia_abertura_e_preserva_recuperacao(
+    tmp_path, momento
+):
+    dados = tmp_path / "dados"
+    dados.mkdir()
+    atual = dados / "erp.db"
+    origem = tmp_path / "origem.db"
+    criar_banco(atual, "atual")
+    criar_banco(origem, "anterior")
+    pendente = preparar_restauracao(origem, atual)
+    sinal = tmp_path / "aberto"
+    env = dict(os.environ, MAINERP_DATA=str(dados), MAINERP_OK_FILE=str(sinal),
+               QT_QPA_PLATFORM="offscreen")
+    codigo = """
+import sqlite3, sys
+from PyQt6.QtWidgets import QMessageBox
+import mainerp.app as app
+import mainerp.data.restore as restore
+app.verificar_instancia_unica = lambda nome: True
+QMessageBox.critical = lambda *args: print("ERRO:", args[2], flush=True)
+original = restore._copiar_banco
+momento = sys.argv[1]
+def falhar(origem, destino, progress=None):
+    if momento == "apos_a_copia":
+        original(origem, destino, progress=progress)
+    raise sqlite3.OperationalError("falha simulada na confirmação da cópia")
+restore._copiar_banco = falhar
+app.main()
+"""
+    resultado = subprocess.run(
+        [sys.executable, "-c", codigo, momento], env=env, capture_output=True,
+        text=True, errors="replace", timeout=45, check=False,
+    )
+
+    assert resultado.returncode == 4, resultado.stdout + resultado.stderr
+    assert "o estado do banco pode ter sido alterado" in resultado.stdout.lower()
+    assert "não é possível confirmar uma reversão" in resultado.stdout.lower()
+    assert "não exclua nem altere o banco" in resultado.stdout.lower()
+    assert "falha simulada na confirmação da cópia" in resultado.stdout
+    assert not sinal.exists()
+    assert pendente.exists()
+    anterior, = (dados / "backups").glob("pre_restore_*.db")
+    assert ler_valor(anterior) == "atual"
+    assert ler_valor(atual) == ("anterior" if momento == "apos_a_copia" else "atual")
+
+    aplicar_restauracao_pendente(atual)
+    assert ler_valor(atual) == "anterior"
+    assert not pendente.exists()
+
+
 @pytest.mark.parametrize("journal_mode", ["DELETE", "WAL"])
 def test_interrupcao_durante_copia_preserva_banco_e_permite_repetir(
     tmp_path, journal_mode
@@ -617,6 +668,64 @@ r.aplicar_restauracao_pendente(sys.argv[1])
     backups = list((tmp_path / "backups").glob("pre_restore_*.db"))
     assert len(backups) == 1
     assert ler_valor(backups[0]) == "atual"
+    aplicar_restauracao_pendente(atual)
+    assert ler_valor(atual) == "anterior"
+    assert not pendente.exists()
+
+
+@pytest.mark.parametrize("journal_mode", ["DELETE", "WAL"])
+def test_processo_terminado_apos_copia_permite_recuperacao(tmp_path, journal_mode):
+    atual = tmp_path / "atual.db"
+    origem = tmp_path / "origem.db"
+    criar_banco(atual, "atual")
+    criar_banco(origem, "anterior")
+    conn = sqlite3.connect(atual)
+    conn.execute(f"PRAGMA journal_mode={journal_mode}")
+    conn.close()
+    pendente = preparar_restauracao(origem, atual)
+    pronto = tmp_path / "copia-concluida"
+    codigo = """
+import sys, time
+from pathlib import Path
+import mainerp.data.restore as r
+original = r._copiar_banco
+def esperar(origem, destino):
+    original(origem, destino)
+    Path(sys.argv[2]).touch()
+    while True:
+        time.sleep(0.1)
+r._copiar_banco = esperar
+r.aplicar_restauracao_pendente(sys.argv[1])
+"""
+    proc = subprocess.Popen(
+        [sys.executable, "-c", codigo, str(atual), str(pronto)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    try:
+        limite = time.monotonic() + 30
+        while not pronto.exists():
+            if proc.poll() is not None or time.monotonic() >= limite:
+                raise RuntimeError("O processo não concluiu a cópia")
+            time.sleep(0.01)
+        proc.kill()
+        saida, erro = proc.communicate(timeout=10)
+        assert proc.returncode != 0, (saida, erro)
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait(timeout=10)
+
+    assert pendente.exists()
+    anterior, = (tmp_path / "backups").glob("pre_restore_*.db")
+    assert ler_valor(anterior) == "atual"
+    assert ler_valor(atual) == "anterior"
+    for banco in (atual, anterior, pendente):
+        conn = sqlite3.connect(banco)
+        try:
+            assert conn.execute("PRAGMA integrity_check").fetchall() == [("ok",)]
+        finally:
+            conn.close()
+
     aplicar_restauracao_pendente(atual)
     assert ler_valor(atual) == "anterior"
     assert not pendente.exists()
