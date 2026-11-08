@@ -4,3 +4,4 @@ pytz
 psutil>=5.9
 cryptography>=44,<47
 pywin32>=306; sys_platform == "win32"
+pillow>=13.0,<14
