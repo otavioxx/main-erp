@@ -174,10 +174,12 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
       Falhas de agendamento e retenção são informadas; a barra de status mostra a idade
       do último arquivo automático e o resultado nesta sessão. Arquivos encontrados na
       inicialização não são apresentados como novamente verificados.
-- [ ] Orientar uma rotina simples de cópia externa e teste periódico de restauração
-      em instalação isolada: os backups automáticos ficam no mesmo dispositivo do banco
-      e não protegem contra perda do computador ou disco. Documentar quais dados e
-      configurações cada backup inclui e quais a restauração efetivamente recupera.
+- [ ] Orientar uma rotina simples de cópia externa e teste periódico de restauração:
+      `docs/backup_recuperacao.md` descreve o conteúdo e os limites dos backups e um
+      procedimento manual com dados isolados. Teste automatizado cria um ZIP em pasta
+      externa simulada e restaura em dados temporários separados na inicialização.
+      Falta validar o procedimento em uma instalação isolada com o instalador e o
+      launcher. A verificação periódica das cópias reais permanece operacional.
 - [ ] Evitar que um backup manual recente ausente ou corrompido dispense o aviso ao
       fechar: atualmente a decisão usa a data registrada, sem verificar o arquivo.
       Testar remoção, corrupção e destino externo indisponível, com aviso claro.

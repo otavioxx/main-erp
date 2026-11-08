@@ -9,8 +9,9 @@ recebimentos, estoque e relatórios/etiquetas em PDF. Feito em Python com PyQt6 
 
 - Windows 10/11
 - Python 3.10 ou superior (recomendado 3.12), com o "py launcher" instalado
-- Dependências de execução em `requirements.txt` (PyQt6, reportlab, pytz, psutil, pywin32)
-- Desenvolvimento: `requirements-dev.txt` (dependências de execução + Ruff)
+- Dependências de execução em `requirements.txt` (incluindo PyQt6, reportlab e cryptography)
+- Desenvolvimento: `requirements-dev.txt` (dependências de execução, pytest e Ruff)
+- Acesso à internet para instalar dependências e receber atualizações online
 
 ## Instalação (uso diário)
 
@@ -21,7 +22,8 @@ recebimentos, estoque e relatórios/etiquetas em PDF. Feito em Python com PyQt6 
    removidos da pasta extraída após o sucesso, exceto em checkouts Git.
 2. Abra o **MainERP** pelo atalho da Área de Trabalho ou do Menu Iniciar. Também há
    um atalho de reserva em `%LOCALAPPDATA%\MainERP\sistema\MainERP.lnk`.
-3. Na primeira vez, restaure seu backup em *Configurações*.
+3. Se já tiver dados, restaure seu backup em *Configurações*. Uma instalação nova sem
+   dados anteriores começa com o banco vazio.
 
 Detalhes, atualizações e rollback: [`distribuicao/LEIAME.md`](distribuicao/LEIAME.md).
 Histórico de versões: [`CHANGELOG.md`](CHANGELOG.md).
@@ -31,13 +33,16 @@ Histórico de versões: [`CHANGELOG.md`](CHANGELOG.md).
 | O quê | Onde |
 |---|---|
 | Código instalado e versões | `%LOCALAPPDATA%\MainERP\sistema\releases\<versão>\` |
-| Banco e configurações | `%LOCALAPPDATA%\MainERP\dados\` |
-| Backups automáticos e de migração | `%LOCALAPPDATA%\MainERP\dados\backups\` |
+| Banco de dados padrão | `%LOCALAPPDATA%\MainERP\dados\erp.db` |
+| Configurações | `%LOCALAPPDATA%\MainERP\dados\` |
+| Backups automáticos, anteriores a migrações e restaurações | `%LOCALAPPDATA%\MainERP\dados\backups\` |
+| Backups manuais | Pasta escolhida no diálogo; por padrão, Área de Trabalho |
 | Relatórios | `%LOCALAPPDATA%\MainERP\dados\relatorios\` |
 | Logs da aplicação | `%LOCALAPPDATA%\MainERP\dados\logs\sistema.log` (rotativo) |
 | Logs do launcher | `%LOCALAPPDATA%\MainERP\sistema\logs\launcher.log` |
 
-Nenhuma atualização altera a pasta `dados\`. Para usar outra pasta de dados, defina a
+As atualizações de código preservam a pasta `dados\`; ao abrir uma nova versão, migrações
+pendentes podem alterar o esquema do banco. Para usar outra pasta de dados, defina a
 variável de ambiente `MAINERP_DATA`.
 
 ## Desenvolvimento
@@ -54,6 +59,11 @@ set MAINERP_DATA=C:\dev\mainerp-dados
 pytest
 python main.py
 ```
+
+Os comandos acima usam o Prompt de Comando (`cmd`). No PowerShell, ative com
+`.\.venv\Scripts\Activate.ps1` e defina a pasta com
+`$env:MAINERP_DATA = 'C:\dev\mainerp-dados'`. A execução direta de `main.py` não
+consulta atualizações: essa verificação é feita pelo launcher do atalho instalado.
 
 Antes de gerar uma release, execute `verificar.bat` na raiz do projeto. O script usa
 `.venv` quando disponível e interrompe com código de erro se Ruff ou pytest falhar.
@@ -81,18 +91,30 @@ O esquema é versionado por `PRAGMA user_version`. Para alterar o banco:
 3. mantenha a mudança **aditiva** (nova tabela/coluna), para que uma versão anterior do
    sistema continue funcionando com o banco já migrado.
 
-Antes de qualquer migração pendente é criado um backup em `dados\backups\pre_migracao_*.db`.
-O sistema também cria snapshots SQLite automáticos nessa pasta, no máximo uma vez por dia
-enquanto estiver aberto, e mantém somente os últimos 30 dias. Se o aplicativo ficar fechado
-por mais de um dia, o backup vencido é feito na próxima inicialização; não há execução
-enquanto o aplicativo e o Windows estiverem fechados. A barra de status mostra a idade
+Antes de migrar um banco existente com tabelas, é criado um backup em
+`dados\backups\pre_migracao_*.db`. O sistema também verifica backups automáticos ao abrir
+e a cada hora enquanto estiver aberto: se não houver um arquivo recente ou o último tiver
+ao menos 24 horas, tenta criar um snapshot SQLite. Após uma criação bem-sucedida, aplica
+retenção de 30 dias aos backups automáticos. Se o aplicativo ficar fechado por mais de
+um dia, a tentativa ocorre na próxima inicialização; não há execução enquanto estiver
+fechado. A barra de status mostra a idade
 do arquivo automático mais recente e o resultado da operação nesta sessão, inclusive
 falhas de agendamento ou retenção. Ao reiniciar, um arquivo existente é informado sem
 afirmar que foi verificado novamente; essa informação não substitui testes de restauração.
-A opção de gerar um backup manual em
-outra pasta (por exemplo, uma pasta sincronizada ou unidade externa) continua disponível no
-fechamento do sistema. O ZIP manual contém um snapshot SQLite verificado, inclusive dados
-confirmados em WAL; mantenha cópias externas e verifique periodicamente sua recuperação.
+Um backup manual pode ser iniciado em **Configurações > Criar Backup**. Ao fechar, o
+sistema solicita um backup manual se não houver data registrada ou se ela tiver pelo menos
+um dia; o backup automático não substitui essa exigência. O diálogo usa a última pasta
+válida ou a Área de Trabalho e permite escolher outra. A decisão de solicitá-lo usa a
+data registrada e não verifica automaticamente se o ZIP anterior ainda existe.
+
+O ZIP manual contém um snapshot SQLite verificado, inclusive dados confirmados em WAL,
+um `README.txt` e, se presente no diretório de trabalho, `config.ini`. Não é uma cópia
+completa de `dados\`: a restauração aplica o banco, não configurações ou relatórios.
+Os backups automáticos ficam no mesmo computador que o banco; mantenha cópias manuais
+externas, com acesso protegido, e teste periodicamente sua recuperação em uma instalação
+isolada. Os backups não são criptografados pelo aplicativo.
+Consulte o [guia de cópia externa e restauração isolada](docs/backup_recuperacao.md)
+para uma rotina prática e os limites de cada tipo de backup.
 Uma restauração é preparada enquanto o sistema está aberto e aplicada na próxima
 inicialização, antes de abrir o banco; um snapshot anterior é mantido em `dados\backups`.
 Durante a aplicação, uma trava SQLite exclusiva impede gravações de outros processos
@@ -128,11 +150,14 @@ restrições ou regras de negócio, nem detecta relacionamentos não declarados 
 4. Execute `verificar.bat` localmente. Atualize e envie o commit para `main`.
 5. Crie e envie uma tag anotada que corresponda exatamente a `APP_VERSION`, por exemplo:
    `git tag -a v0.10.1 -m "MainERP 0.10.1"` e `git push origin v0.10.1`.
-6. O GitHub Actions valida a tag, executa Ruff e pytest, gera o ZIP e o manifesto, assina o
-   ZIP com Ed25519 e publica os três assets (`.zip`, `.zip.sig` e `version.json`) como latest.
-   Não recicle tags já publicadas.
-7. Usuários com o launcher configurado para o manifesto da GitHub Release recebem a versão
-   ao fechar e abrir o MainERP pelo atalho.
+6. O GitHub Actions valida a tag, executa Ruff e pytest, gera o ZIP de atualização, o
+   instalador `.pyz` e o manifesto, assina ambos os pacotes com Ed25519 e publica esses
+   arquivos, as assinaturas, `instalador.sha256` e `version.json` como latest. Não recicle
+   tags já publicadas.
+7. Ao abrir pelo atalho, o launcher configurado consulta o manifesto e tenta instalar
+   versões superiores após validar assinatura, SHA256 e versão. Sem rede, com atualização
+   desativada ou se ela falhar, o sistema permanece na versão instalada; consulte
+   `sistema\logs\launcher.log` em caso de dúvida.
 
 O launcher atualizado instala cada atualização em um runtime próprio, preservando as
 dependências das versões anteriores para rollback. Isso requer espaço em disco e acesso

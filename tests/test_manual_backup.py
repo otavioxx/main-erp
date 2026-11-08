@@ -6,6 +6,7 @@ import sys
 import threading
 import zipfile
 from datetime import datetime
+from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
 
@@ -319,6 +320,74 @@ app.main()
             ).fetchall() == [(esperado,), ("dois",)]
         finally:
             conn.close()
+
+
+def test_backup_externo_restaurado_em_dados_isolados(tmp_path):
+    origem = tmp_path / "origem" / "erp.db"
+    origem.parent.mkdir()
+    banco = Database(str(origem))
+    banco.get_connection().execute(
+        "INSERT INTO clientes (id, nome) VALUES (1, 'Cliente de teste')"
+    )
+    banco.get_connection().commit()
+    banco.close_connection()
+    antes_origem = origem.read_bytes()
+
+    externo = tmp_path / "copia_externa"
+    externo.mkdir()
+    worker = BackupThread(str(origem), str(externo))
+    concluidos, erros = [], []
+    worker.backup_completed.connect(concluidos.append)
+    worker.backup_error.connect(erros.append)
+    worker.run()
+    assert len(concluidos) == 1 and not erros
+    arquivo = Path(concluidos[0])
+    antes_backup = arquivo.read_bytes()
+    assert VerifyBackupThread(str(arquivo))._get_zip_info()["is_valid"]
+
+    dados = tmp_path / "instalacao_isolada" / "dados"
+    dados.mkdir(parents=True)
+    destino = dados / "erp.db"
+    banco = Database(str(destino))
+    banco.close_connection()
+    restauracao = RestoreBackupThread(str(arquivo), str(destino))
+    concluidos, erros = [], []
+    restauracao.restore_complete.connect(concluidos.append)
+    restauracao.restore_error.connect(erros.append)
+    restauracao.run()
+    assert concluidos and not erros
+
+    sinal = tmp_path / "aberto"
+    env = dict(os.environ, MAINERP_DATA=str(dados), MAINERP_OK_FILE=str(sinal),
+               QT_QPA_PLATFORM="offscreen")
+    env.pop("MAINERP_LAUNCHER", None)
+    codigo = """
+from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QApplication, QMessageBox
+import mainerp.app as app
+app.verificar_instancia_unica = lambda nome: True
+QMessageBox.critical = lambda *args: print("ERRO:", args[2], flush=True)
+original = QApplication.exec
+def executar():
+    QTimer.singleShot(1000, lambda: QApplication.exit(0))
+    return original()
+QApplication.exec = staticmethod(executar)
+app.main()
+"""
+    resultado = subprocess.run(
+        [sys.executable, "-c", codigo], env=env, capture_output=True,
+        text=True, errors="replace", timeout=45, check=False,
+    )
+    assert resultado.returncode == 0, resultado.stdout + resultado.stderr
+    assert sinal.is_file(), resultado.stdout + resultado.stderr
+    assert not caminho_restauracao_pendente(destino).exists()
+    with sqlite3.connect(destino) as conn:
+        assert conn.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+        assert conn.execute("SELECT nome FROM clientes WHERE id=1").fetchone() == (
+            "Cliente de teste",
+        )
+    assert origem.read_bytes() == antes_origem
+    assert arquivo.read_bytes() == antes_backup
 
 
 def test_salvar_caminho_preserva_metadados(tmp_path, monkeypatch):
