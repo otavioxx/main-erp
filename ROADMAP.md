@@ -184,9 +184,11 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
       fechar: o ZIP e o hash disponível são verificados antes de dispensar o diálogo.
       Testes cobrem remoção, corrupção, hash divergente e destino indisponível simulado;
       o usuário recebe aviso e pode escolher outra pasta para um novo backup.
-- [ ] Avaliar como detectar um backup automático recente corrompido ou um relógio
-      incorreto sem impedir o uso do ERP: o agendamento usa a data do arquivo, não sua
-      integridade. Testar avisos e repetição sem sobrescrever backups anteriores.
+- [x] Verificar em segundo plano a integridade SQLite do backup automático recente;
+      avisar e tentar outra cópia se estiver inválido ou inacessível. Datas futuras
+      geram alerta e suspendem a retenção sem bloquear novos backups. Testes cobrem
+      falhas, repetição e publicação concorrente sem sobrescrever arquivos. Alterações
+      de relógio sem arquivos futuros e regras de negócio não são totalmente detectáveis.
 
 ### Prioridade alta — atualizações e distribuição
 
@@ -212,33 +214,6 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
       com migração de instalações antigas e procedimento de recuperação. Uma release de
       código não substitui `launcher.pyw`; testar também manifesto indisponível,
       assinatura ausente/inválida e compatibilidade de rollback com migrações do banco.
-
-### Qualidade e manutenção
-
-- [ ] Confirmar as alturas das listagens com diferentes fontes e escalas no Windows.
-      A altura padrão agora é definida após os limites mínimo e máximo, evitando que
-      o Qt nativo a limite ao mínimo anterior de 24 pixels.
-- [ ] Aplicar uma política de formatação e integrá-la à verificação automatizada.
-      `ruff check .` passou nesta revisão, mas `ruff format --check .` apontou seis
-      arquivos; formatar separadamente de mudanças funcionais para facilitar a revisão.
-- [ ] Corrigir o diagnóstico Pylance `reportArgumentType` em
-      `tests/test_release_updates.py`, no carregamento de `SourceFileLoader`, mantendo
-      a execução do teste em Windows e Linux. Não havia imports não resolvidos no
-      interpretador selecionado durante esta revisão.
-- [ ] Declarar e validar dependências usadas diretamente: relatórios importam `PIL`,
-      mas Pillow não está listado diretamente em `requirements.txt`. Testar instalação
-      limpa com as versões de Python suportadas e avaliar limites/pinos para builds
-      reproduzíveis e atualizações seguras de dependências.
-- [ ] Adicionar CI em pushes e pull requests, incluindo Windows e testes de instalação,
-      inicialização, backup/restauração e atualização em ambiente isolado. O workflow
-      atual executa Ruff e testes apenas ao enviar tags, em Ubuntu.
-- [ ] Refatorar gradualmente componentes ainda extensos, como `produto_view.py`,
-      `pedido_view.py`, `backup_dialog.py` e `restore_backup_dialog.py`, com testes de
-      comportamento. Em `main_window.py`, reduzir a duplicação entre cadastro de botões,
-      criação de views e atualização por aba, preservando a ordem, sinais e progresso.
-- [ ] Revisar progressivamente os `except Exception` e os caminhos com falha silenciosa,
-      priorizando backup, restauração e atualização; manter exceções amplas apenas em
-      limites de recuperação justificados, com registro e sinalização ao usuário.
 
 ## Fase 4.2 — Relatórios e visualizador embutido
 

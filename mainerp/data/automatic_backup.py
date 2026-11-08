@@ -1,6 +1,8 @@
 import logging
 import os
 import sqlite3
+import tempfile
+import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -54,16 +56,20 @@ def criar_backup_automatico(
     pasta_backups.mkdir(parents=True, exist_ok=True)
     agora = agora or datetime.now()
     timestamp = agora.strftime("%Y%m%d_%H%M%S")
-    destino = pasta_backups / f"{BACKUP_PREFIX}{timestamp}.db"
-    temporario = pasta_backups / f"{BACKUP_PREFIX}{timestamp}.tmp"
+    nome = f"{BACKUP_PREFIX}{timestamp}_{uuid.uuid4().hex}"
+    destino = pasta_backups / f"{nome}.db"
+    descritor, nome_temporario = tempfile.mkstemp(
+        prefix=f"{BACKUP_PREFIX}{timestamp}_", suffix=".tmp", dir=pasta_backups
+    )
+    temporario = Path(nome_temporario)
 
     try:
+        os.close(descritor)
         criar_snapshot_sqlite(caminho_banco, temporario)
-        os.replace(temporario, destino)
+        os.link(temporario, destino)
         return destino
-    except Exception:
+    finally:
         temporario.unlink(missing_ok=True)
-        raise
 
 
 def backup_automatico_vencido(
@@ -82,17 +88,40 @@ def backup_automatico_vencido(
 
 def ultimo_backup_automatico(pasta_backups: str | Path) -> datetime | None:
     """Obtém a data do arquivo automático mais recente, sem validar seu conteúdo."""
+    ultimo = arquivo_backup_mais_recente(pasta_backups)
+    return datetime.fromtimestamp(ultimo[1]) if ultimo else None
+
+
+def arquivo_backup_mais_recente(pasta_backups: str | Path) -> tuple[Path, float] | None:
+    arquivos = listar_backups_automaticos(pasta_backups)
+    return max(arquivos, key=lambda item: item[1]) if arquivos else None
+
+
+def listar_backups_automaticos(pasta_backups: str | Path) -> list[tuple[Path, float]]:
     try:
         entradas = os.scandir(pasta_backups)
     except FileNotFoundError:
-        return None
+        return []
     with entradas:
-        datas = [
-            entrada.stat().st_mtime for entrada in entradas
+        return [
+            (Path(entrada.path), entrada.stat().st_mtime)
+            for entrada in entradas
             if entrada.name.startswith(BACKUP_PREFIX)
             and entrada.name.endswith(".db") and entrada.is_file()
         ]
-    return datetime.fromtimestamp(max(datas)) if datas else None
+
+
+def verificar_integridade_backup(caminho: Path) -> None:
+    conn = sqlite3.connect(caminho.resolve().as_uri() + "?mode=ro", uri=True, timeout=5)
+    try:
+        if conn.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
+            raise sqlite3.DatabaseError("verificação de integridade falhou")
+        if not conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' LIMIT 1"
+        ).fetchone():
+            raise sqlite3.DatabaseError("backup não contém tabelas")
+    finally:
+        conn.close()
 
 
 def aplicar_retencao_backups(
@@ -125,17 +154,47 @@ class _BackupWorker(QThread):
     backup_criado = pyqtSignal(str)
     backup_falhou = pyqtSignal(str)
     retencao_falhou = pyqtSignal(str)
+    aviso = pyqtSignal(str)
+    backup_verificado = pyqtSignal()
 
-    def __init__(self, caminho_banco: Path, pasta_backups: Path):
+    def __init__(
+        self, caminho_banco: Path, pasta_backups: Path,
+        recente: Path | None = None, suspender_retencao: bool = False,
+    ):
         super().__init__()
         self.caminho_banco = caminho_banco
         self.pasta_backups = pasta_backups
+        self.recente = recente
+        self.suspender_retencao = suspender_retencao
 
     def run(self):
         try:
+            if self.recente is not None:
+                try:
+                    verificar_integridade_backup(self.recente)
+                except (sqlite3.Error, OSError) as erro:
+                    self.aviso.emit(
+                        f"Backup automático recente inválido ou inacessível: {erro}. "
+                        "Será tentada uma nova cópia."
+                    )
+                else:
+                    self.backup_verificado.emit()
+                    return
             backup = criar_backup_automatico(self.caminho_banco, self.pasta_backups)
             self.backup_criado.emit(str(backup))
             try:
+                if self.suspender_retencao:
+                    return
+                agora = datetime.now().timestamp()
+                if any(
+                    data > agora + 60
+                    for _, data in listar_backups_automaticos(self.pasta_backups)
+                ):
+                    self.aviso.emit(
+                        "Data de backup no futuro; confira o relógio do sistema. "
+                        "A retenção automática foi suspensa."
+                    )
+                    return
                 removidos = aplicar_retencao_backups(self.pasta_backups)
                 if removidos:
                     logger.info("Retenção removeu %d backup(s) automático(s)", len(removidos))
@@ -153,6 +212,7 @@ class BackupAutomatico(QObject):
     backup_concluido = pyqtSignal(str)
     backup_falhou = pyqtSignal(str)
     retencao_falhou = pyqtSignal(str)
+    aviso = pyqtSignal(str)
     situacao_alterada = pyqtSignal()
     operacao_finalizada = pyqtSignal()
 
@@ -165,6 +225,8 @@ class BackupAutomatico(QObject):
         self._worker: _BackupWorker | None = None
         self.ultimo_backup: datetime | None = None
         self.resultado = "Ainda não verificado"
+        self.aviso_pendente = ""
+        self._data_futura = False
         self._timer = QTimer(self)
         self._timer.setInterval(self.VERIFICACAO_INTERVALO_MS)
         self._timer.timeout.connect(self.verificar_e_executar)
@@ -185,24 +247,34 @@ class BackupAutomatico(QObject):
         if not self._timer.isActive() or self.em_execucao:
             return
         try:
-            self.ultimo_backup = ultimo_backup_automatico(self.pasta_backups)
+            agora = datetime.now().timestamp()
+            arquivos = listar_backups_automaticos(self.pasta_backups)
+            self._data_futura = any(data > agora + 60 for _, data in arquivos)
+            elegiveis = [item for item in arquivos if item[1] <= agora + 60]
+            recente = max(elegiveis, key=lambda item: item[1]) if elegiveis else None
+            self.ultimo_backup = datetime.fromtimestamp(recente[1]) if recente else None
         except OSError as erro:
             self._ao_falhar(f"Falha ao verificar agendamento: {erro}")
             return
-        if self.ultimo_backup is not None and (
-            datetime.now().timestamp() - self.ultimo_backup.timestamp()
-            < BACKUP_INTERVAL.total_seconds()
-        ):
-            if self.resultado == "Ainda não verificado":
-                self.resultado = "Arquivo existente (não verificado nesta sessão)"
-            self.situacao_alterada.emit()
-            return
-        self.resultado = "Backup em andamento"
+        idade = agora - recente[1] if recente else None
+        if self._data_futura:
+            self._ao_aviso(
+                "Data de backup no futuro; confira o relógio do sistema. "
+                "A retenção automática está suspensa."
+            )
+        verificar = recente[0] if recente and idade is not None and idade < (
+            BACKUP_INTERVAL.total_seconds()
+        ) else None
+        self.resultado = "Verificando backup" if verificar else "Backup em andamento"
         self.situacao_alterada.emit()
-        self._worker = _BackupWorker(self.caminho_banco, self.pasta_backups)
+        self._worker = _BackupWorker(
+            self.caminho_banco, self.pasta_backups, verificar, self._data_futura
+        )
         self._worker.backup_criado.connect(self._ao_criar_backup)
         self._worker.backup_falhou.connect(self._ao_falhar)
         self._worker.retencao_falhou.connect(self._ao_falhar_retencao)
+        self._worker.aviso.connect(self._ao_aviso)
+        self._worker.backup_verificado.connect(self._ao_verificar_backup)
         self._worker.finished.connect(self._ao_finalizar_operacao)
         try:
             self._worker.start()
@@ -217,6 +289,20 @@ class BackupAutomatico(QObject):
         self.resultado = "Concluído"
         self.situacao_alterada.emit()
         self.backup_concluido.emit(caminho)
+
+    def _ao_verificar_backup(self):
+        if not self._data_futura:
+            self.aviso_pendente = ""
+        self.resultado = "Integridade SQLite verificada"
+        self.situacao_alterada.emit()
+
+    def _ao_aviso(self, mensagem: str):
+        logger.warning("%s", mensagem)
+        if mensagem not in self.aviso_pendente:
+            self.aviso_pendente = " ".join(filter(None, (self.aviso_pendente, mensagem)))
+        self.resultado = mensagem
+        self.situacao_alterada.emit()
+        self.aviso.emit(mensagem)
 
     def _ao_falhar(self, erro: str):
         logger.error("Backup automático: %s", erro)

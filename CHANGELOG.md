@@ -1,7 +1,10 @@
 # Histórico de versões
 
-## Não publicado
+## 0.10.3 - 2026-11-08
 
+- Backups automáticos recentes são verificados em segundo plano; arquivos inválidos ou
+  inacessíveis geram alerta e nova tentativa. Datas futuras suspendem a retenção e
+  geram aviso, sem impedir novos backups; cópias não sobrescrevem arquivos existentes.
 - Backups manuais recentes são verificados antes de dispensar o diálogo ao fechar;
   arquivos ausentes, corrompidos ou inacessíveis geram aviso.
 - O agendamento de backup automático é retomado após fechamento interrompido; a barra
@@ -12,7 +15,6 @@
   referências estrangeiras declaradas inconsistentes, antes de alterar o banco atual.
 - A aquisição da trava de restauração reserva a escrita antes do modo exclusivo,
   evitando bloqueios mútuos observados em aplicações simultâneas no Windows.
-
 - Preparações simultâneas de restauração deixam de sobrescrever a pendência existente.
 - A restauração mantém um bloqueio SQLite exclusivo desde o snapshot anterior até a
   validação, impedindo escritas concorrentes nesse intervalo.

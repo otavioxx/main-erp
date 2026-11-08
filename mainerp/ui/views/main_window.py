@@ -114,6 +114,7 @@ class MainWindow(QMainWindow):
         )
         self.backup_automatico.backup_falhou.connect(self._backup_automatico_falhou)
         self.backup_automatico.retencao_falhou.connect(self._retencao_backup_falhou)
+        self.backup_automatico.aviso.connect(self._aviso_backup_automatico)
         self.backup_automatico.situacao_alterada.connect(self._atualizar_status_backup)
         self.backup_automatico.operacao_finalizada.connect(
             self._retomar_fechamento_apos_backup
@@ -319,6 +320,9 @@ class MainWindow(QMainWindow):
     def _retencao_backup_falhou(self, erro: str):
         self.status_bar.showMessage(f"Falha na retenção de backups: {erro}", 15000)
 
+    def _aviso_backup_automatico(self, mensagem: str):
+        self.status_bar.showMessage(mensagem, 15000)
+
     def _atualizar_status_backup(self):
         ultimo = self.backup_automatico.ultimo_backup
         if ultimo is None:
@@ -328,9 +332,17 @@ class MainWindow(QMainWindow):
             dias, minutos = divmod(minutos, 1440)
             horas, minutos = divmod(minutos, 60)
             idade = f"{dias}d {horas}h {minutos}min"
-        self.status_widget.label_backup.setText(
-            f"Backup automático: {idade} — {self.backup_automatico.resultado}"
-        )
+        texto = f"Backup automático: {idade} — {self.backup_automatico.resultado}"
+        if self.backup_automatico.aviso_pendente:
+            texto = f"Backup automático: {idade} — alerta"
+            detalhes = (
+                f"{self.backup_automatico.resultado}\n"
+                f"{self.backup_automatico.aviso_pendente}"
+            )
+        else:
+            detalhes = texto
+        self.status_widget.label_backup.setText(texto)
+        self.status_widget.label_backup.setToolTip(detalhes)
 
     def _retomar_fechamento_apos_backup(self):
         if not self._aguardando_backup_automatico:

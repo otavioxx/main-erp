@@ -94,13 +94,19 @@ O esquema é versionado por `PRAGMA user_version`. Para alterar o banco:
 Antes de migrar um banco existente com tabelas, é criado um backup em
 `dados\backups\pre_migracao_*.db`. O sistema também verifica backups automáticos ao abrir
 e a cada hora enquanto estiver aberto: se não houver um arquivo recente ou o último tiver
-ao menos 24 horas, tenta criar um snapshot SQLite. Após uma criação bem-sucedida, aplica
-retenção de 30 dias aos backups automáticos. Se o aplicativo ficar fechado por mais de
-um dia, a tentativa ocorre na próxima inicialização; não há execução enquanto estiver
-fechado. A barra de status mostra a idade
-do arquivo automático mais recente e o resultado da operação nesta sessão, inclusive
-falhas de agendamento ou retenção. Ao reiniciar, um arquivo existente é informado sem
-afirmar que foi verificado novamente; essa informação não substitui testes de restauração.
+ao menos 24 horas, tenta criar um snapshot SQLite. Um arquivo recente é verificado em
+segundo plano; se estiver inválido ou inacessível, o sistema avisa e tenta criar outro.
+Arquivos com data mais de um minuto no futuro provocam um alerta para conferir o relógio:
+não contam como recentes e suspendem a retenção, mas não impedem novos backups.
+Após uma criação bem-sucedida, normalmente aplica retenção de 30 dias aos backups
+automáticos. A publicação exige suporte a hard links no volume de backups e não
+sobrescreve arquivos anteriores; falhas são exibidas e a tentativa é repetida.
+Se o aplicativo ficar fechado por mais de um dia, a tentativa ocorre na próxima
+inicialização; não há execução enquanto estiver fechado. A barra de status mostra a idade
+do backup elegível mais recente e o resultado da sessão; alertas persistentes podem ser
+consultados ao passar o mouse sobre o indicador. A verificação SQLite não garante a
+validade de todas as regras de negócio nem substitui testes de restauração. Sem uma
+fonte de tempo confiável, não é possível detectar todas as alterações incorretas do relógio.
 Um backup manual pode ser iniciado em **Configurações > Criar Backup**. Ao fechar, o
 sistema solicita um backup manual se não houver data registrada ou se ela tiver pelo menos
 um dia; o backup automático não substitui essa exigência. O diálogo usa a última pasta
