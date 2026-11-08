@@ -1,6 +1,7 @@
 import sqlite3
 import zipfile
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
 from PyQt6.QtGui import QCloseEvent
@@ -100,7 +101,10 @@ def test_aceita_banco_criado_pelo_sistema_e_rejeita_corrompido(tmp_path):
 def test_nao_interrompe_thread_ao_fechar(atividade, monkeypatch):
     avisos = []
     monkeypatch.setattr(QMessageBox, "warning", lambda *args: avisos.append(args))
-    dialogo = SimpleNamespace(verify_thread=None, restore_thread=None)
+    dialogo = cast(
+        RestoreBackupDialog,
+        SimpleNamespace(verify_thread=None, restore_thread=None),
+    )
     dialogo._pode_fechar = lambda: RestoreBackupDialog._pode_fechar(dialogo)
     setattr(dialogo, atividade, SimpleNamespace(isRunning=lambda: True))
     evento = QCloseEvent()
@@ -114,7 +118,9 @@ def test_nao_interrompe_thread_ao_cancelar(atividade, monkeypatch):
     app = QApplication.instance() or QApplication([])
     avisos = []
     monkeypatch.setattr(QMessageBox, "warning", lambda *args: avisos.append(args))
-    monkeypatch.setattr(RestoreBackupDialog, "_carregar_backups_locais", lambda self: None)
+    monkeypatch.setattr(
+        RestoreBackupDialog, "_carregar_backups_locais", lambda self: None
+    )
     dialogo = RestoreBackupDialog()
     setattr(dialogo, atividade, SimpleNamespace(isRunning=lambda: True))
     dialogo.show()
@@ -133,7 +139,11 @@ def test_launcher_antigo_nao_prepara_restauracao(monkeypatch):
     monkeypatch.setenv("MAINERP_LAUNCHER", "1")
     monkeypatch.delenv("MAINERP_RESTORE_PROTOCOL", raising=False)
     monkeypatch.setattr(QMessageBox, "critical", lambda *args: avisos.append(args))
-    dialogo = SimpleNamespace(backup_info={"is_valid": True})
+    monkeypatch.setattr(
+        RestoreBackupDialog, "_carregar_backups_locais", lambda self: None
+    )
+    dialogo = RestoreBackupDialog()
+    dialogo.backup_info = {"is_valid": True}
 
     RestoreBackupDialog._iniciar_restauracao(dialogo)
 

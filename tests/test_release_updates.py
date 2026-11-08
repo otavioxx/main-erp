@@ -21,12 +21,11 @@ UPDATE_MANIFEST_URL = (
 
 
 def _carregar_modulo(caminho: Path, nome: str):
-    loader = importlib.machinery.SourceFileLoader(nome, str(caminho))
-    spec = importlib.util.spec_from_loader(nome, loader)
-    if spec is None:
+    spec = importlib.util.spec_from_file_location(nome, caminho)
+    if spec is None or spec.loader is None:
         raise ImportError(f"Não foi possível carregar {caminho}")
     modulo = importlib.util.module_from_spec(spec)
-    loader.exec_module(modulo)
+    spec.loader.exec_module(modulo)
     return modulo
 
 
@@ -59,7 +58,8 @@ def test_installer_uses_same_windows_identity_as_application(instalador, monkeyp
     with monkeypatch.context() as contexto:
         contexto.setattr(instalador.os, "name", "nt")
         contexto.setattr(
-            instalador.subprocess, "run",
+            instalador.subprocess,
+            "run",
             lambda args, **kwargs: chamadas.append((args, kwargs)),
         )
         instalador.criar_atalhos(sistema, launcher, icone)
@@ -68,7 +68,8 @@ def test_installer_uses_same_windows_identity_as_application(instalador, monkeyp
     app_id = comando[comando.index("-AppId") + 1]
     tree = ast.parse((PROJECT_ROOT / "mainerp" / "app.py").read_text(encoding="utf-8"))
     chamadas_appid = [
-        node for node in ast.walk(tree)
+        node
+        for node in ast.walk(tree)
         if isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
         and node.func.attr == "SetCurrentProcessExplicitAppUserModelID"
@@ -92,9 +93,24 @@ def test_windows_shortcut_has_identity_icon_and_launcher(tmp_path):
         arquivo.touch()
     script = PROJECT_ROOT / "distribuicao" / "criar_atalhos.ps1"
     args = [
-        "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
-        "-Alvo", str(alvo), "-Launcher", str(launcher), "-Sistema", str(sistema),
-        "-Icone", str(icone), "-AppId", "DigitalSolutions.MainERP", "-Destinos", str(pasta),
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        str(script),
+        "-Alvo",
+        str(alvo),
+        "-Launcher",
+        str(launcher),
+        "-Sistema",
+        str(sistema),
+        "-Icone",
+        str(icone),
+        "-AppId",
+        "DigitalSolutions.MainERP",
+        "-Destinos",
+        str(pasta),
     ]
     for _ in range(2):
         subprocess.run(args, check=True, capture_output=True, text=True)
@@ -111,7 +127,9 @@ def test_windows_shortcut_has_identity_icon_and_launcher(tmp_path):
     for diretorio in (pasta, sistema):
         resultado = subprocess.run(
             ["powershell", "-NoProfile", "-Command", verificar],
-            check=True, capture_output=True, encoding="utf-8",
+            check=True,
+            capture_output=True,
+            encoding="utf-8",
             env={**os.environ, "MAINERP_TEST_SHORTCUT": str(diretorio / "MainERP.lnk")},
         )
         propriedades = json.loads(resultado.stdout)
@@ -126,17 +144,37 @@ def test_windows_shortcut_has_identity_icon_and_launcher(tmp_path):
 def test_windows_shortcut_failure_is_reported(tmp_path):
     script = PROJECT_ROOT / "distribuicao" / "criar_atalhos.ps1"
     result = subprocess.run(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script),
-         "-Alvo", str(tmp_path / "pythonw.exe"), "-Launcher", str(tmp_path / "launcher.pyw"),
-         "-Sistema", str(tmp_path), "-Icone", str(tmp_path / "icon.ico"),
-         "-AppId", "DigitalSolutions.MainERP", "-Destinos", str(tmp_path / "inexistente")],
-        check=False, capture_output=True, text=True,
+        [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(script),
+            "-Alvo",
+            str(tmp_path / "pythonw.exe"),
+            "-Launcher",
+            str(tmp_path / "launcher.pyw"),
+            "-Sistema",
+            str(tmp_path),
+            "-Icone",
+            str(tmp_path / "icon.ico"),
+            "-AppId",
+            "DigitalSolutions.MainERP",
+            "-Destinos",
+            str(tmp_path / "inexistente"),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
     )
     assert result.returncode != 0
 
 
 @pytest.mark.parametrize("atual", ["0.10.0", "0.10.1", "0.11.0", "1.0.0"])
-def test_installer_accepts_active_expected_or_newer_release(instalador, tmp_path, atual):
+def test_installer_accepts_active_expected_or_newer_release(
+    instalador, tmp_path, atual
+):
     (tmp_path / "current.txt").write_text(atual, encoding="utf-8")
     release = tmp_path / "releases" / atual
     release.mkdir(parents=True)
@@ -176,8 +214,12 @@ def test_installer_rejects_missing_or_bad_active_release(instalador, tmp_path):
 
 @pytest.mark.parametrize(
     ("atual", "returncode", "sucesso"),
-    [("0.10", 0, False), ("0.10.0", 1, False), ("0.10.0", 0, True),
-     ("0.11.0", 0, True)],
+    [
+        ("0.10", 0, False),
+        ("0.10.0", 1, False),
+        ("0.10.0", 0, True),
+        ("0.11.0", 0, True),
+    ],
 )
 def test_installer_main_checks_launcher_result_and_active_release(
     instalador, tmp_path, monkeypatch, atual, returncode, sucesso
@@ -194,7 +236,8 @@ def test_installer_main_checks_launcher_result_and_active_release(
     monkeypatch.setattr(instalador.criar_release, "construir_zip", lambda _: None)
     monkeypatch.setattr(instalador.criar_release, "ler_versao", lambda: "0.10.0")
     monkeypatch.setattr(
-        instalador.subprocess, "run",
+        instalador.subprocess,
+        "run",
         lambda *args, **kwargs: subprocess.CompletedProcess(args, returncode),
     )
     atalhos = []
@@ -209,7 +252,9 @@ def test_installer_main_checks_launcher_result_and_active_release(
         assert not atalhos
 
 
-def test_installer_can_skip_shortcuts_for_isolated_install(instalador, tmp_path, monkeypatch):
+def test_installer_can_skip_shortcuts_for_isolated_install(
+    instalador, tmp_path, monkeypatch
+):
     sistema = tmp_path / "sistema"
     python = instalador.python_do_runtime(sistema / "runtime")
     python.parent.mkdir(parents=True)
@@ -224,7 +269,8 @@ def test_installer_can_skip_shortcuts_for_isolated_install(instalador, tmp_path,
     monkeypatch.setattr(instalador.criar_release, "construir_zip", lambda _: None)
     monkeypatch.setattr(instalador.criar_release, "ler_versao", lambda: "0.10.0")
     monkeypatch.setattr(
-        instalador.subprocess, "run",
+        instalador.subprocess,
+        "run",
         lambda *args, **kwargs: subprocess.CompletedProcess(args, 0),
     )
     atalhos = []
@@ -267,8 +313,11 @@ def test_installer_cleans_source_only_after_success(
     monkeypatch.setattr(instalador.criar_release, "construir_zip", lambda _: None)
     monkeypatch.setattr(instalador.criar_release, "ler_versao", lambda: "0.10.0")
     monkeypatch.setattr(
-        instalador.subprocess, "run",
-        lambda *args, **kwargs: subprocess.CompletedProcess(args, int(falha == "launcher")),
+        instalador.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args, int(falha == "launcher")
+        ),
     )
 
     def atalhos(*args):
@@ -291,8 +340,12 @@ def test_installer_cleans_source_only_after_success(
     assert (dados / "erp.db").read_text(encoding="utf-8") == "dados"
 
 
-@pytest.mark.parametrize("protecao", ["git", "git-pai", "destino-interno", "origem-interna"])
-def test_source_cleanup_refuses_git_or_overlapping_paths(instalador, tmp_path, protecao):
+@pytest.mark.parametrize(
+    "protecao", ["git", "git-pai", "destino-interno", "origem-interna"]
+)
+def test_source_cleanup_refuses_git_or_overlapping_paths(
+    instalador, tmp_path, protecao
+):
     origem = tmp_path / "origem"
     origem.mkdir()
     arquivo = origem / "ROADMAP.md"
@@ -325,7 +378,9 @@ def test_source_cleanup_does_not_follow_symlink(instalador, tmp_path):
 
 
 @pytest.mark.parametrize("versao", ["0.0.0", "0.10.0", "1.20.300"])
-def test_release_accepts_canonical_stable_versions(criador, tmp_path, monkeypatch, versao):
+def test_release_accepts_canonical_stable_versions(
+    criador, tmp_path, monkeypatch, versao
+):
     config = tmp_path / "mainerp" / "core" / "config.py"
     config.parent.mkdir(parents=True)
     config.write_text(f'APP_VERSION = "{versao}"\n', encoding="utf-8")
@@ -337,8 +392,18 @@ def test_release_accepts_canonical_stable_versions(criador, tmp_path, monkeypatc
 
 @pytest.mark.parametrize(
     "versao",
-    ["0.10", "0.01.0", "01.0.0", "1.0.00", "1.0.0-rc.1", "1.0.0+build",
-     "1.0.0.1", "-1.0.0", "١.0.0", "1.0.0/extra"],
+    [
+        "0.10",
+        "0.01.0",
+        "01.0.0",
+        "1.0.00",
+        "1.0.0-rc.1",
+        "1.0.0+build",
+        "1.0.0.1",
+        "-1.0.0",
+        "١.0.0",
+        "1.0.0/extra",
+    ],
 )
 def test_release_rejects_noncanonical_versions(criador, tmp_path, monkeypatch, versao):
     config = tmp_path / "mainerp" / "core" / "config.py"
@@ -413,7 +478,9 @@ def test_release_exclui_arquivos_locais_e_caches(criador, tmp_path, monkeypatch)
 
     with zipfile.ZipFile(package) as archive:
         assert set(archive.namelist()) == {
-            "release.json", "main.py", "mainerp/core/config.py"
+            "release.json",
+            "main.py",
+            "mainerp/core/config.py",
         }
 
 
@@ -427,9 +494,7 @@ def test_signed_semver_update_from_legacy_release(
     (projeto / "main.py").write_text("print('MainERP')\n", encoding="utf-8")
     output = tmp_path / "publicado"
     monkeypatch.setattr(criador, "PROJETO", projeto)
-    monkeypatch.setattr(
-        "sys.argv", ["criar_release.py", "--saida", str(output)]
-    )
+    monkeypatch.setattr("sys.argv", ["criar_release.py", "--saida", str(output)])
     criador.main()
 
     package = output / "MainERP-0.10.0.zip"
@@ -468,7 +533,9 @@ def test_signed_semver_update_from_legacy_release(
     monkeypatch.setattr(launcher, "ATUALIZACOES", sistema / "atualizacoes")
     monkeypatch.setattr(launcher, "LOGS", sistema / "logs")
     monkeypatch.setattr(
-        launcher, "CHAVE_PUBLICA_ED25519_B64", base64.b64encode(public_key).decode("ascii")
+        launcher,
+        "CHAVE_PUBLICA_ED25519_B64",
+        base64.b64encode(public_key).decode("ascii"),
     )
     monkeypatch.setattr(launcher, "garantir_dependencias", lambda pasta, versao: None)
 
@@ -501,7 +568,8 @@ def test_launcher_nao_faz_rollback_quando_restauracao_falha(launcher, monkeypatc
     monkeypatch.setattr(launcher, "escolher_versao", lambda: "0.10.0")
     monkeypatch.setattr(launcher, "executar", lambda versao: (4, 0))
     monkeypatch.setattr(
-        launcher, "marcar_ruim_e_voltar",
+        launcher,
+        "marcar_ruim_e_voltar",
         lambda versao: pytest.fail("Não deve abrir uma versão antiga"),
     )
     monkeypatch.setattr(launcher, "log", lambda mensagem: None)
@@ -545,11 +613,14 @@ def test_falha_dependencias_nao_altera_runtime_anterior(
     monkeypatch.setattr(launcher, "RELEASES", releases)
     monkeypatch.setattr(launcher, "CURRENT", current)
     monkeypatch.setattr(launcher, "ROOT", tmp_path)
+
     def falhar(*args, **kwargs):
         raise OSError("pip falhou")
 
     monkeypatch.setattr(
-        launcher.subprocess, "run", falhar,
+        launcher.subprocess,
+        "run",
+        falhar,
     )
 
     with pytest.raises(OSError, match="pip falhou"):
@@ -655,9 +726,7 @@ def test_runtime_inexistente_causa_rollback(launcher, tmp_path, monkeypatch):
     assert current.read_text(encoding="utf-8") == "1.0.0"
 
 
-def test_atualizacao_usa_runtime_isolado(
-    launcher, tmp_path, monkeypatch
-):
+def test_atualizacao_usa_runtime_isolado(launcher, tmp_path, monkeypatch):
     releases = tmp_path / "releases"
     anterior = releases / "0.10.0"
     anterior.mkdir(parents=True)
@@ -674,14 +743,18 @@ def test_atualizacao_usa_runtime_isolado(
     monkeypatch.setattr(launcher, "RELEASES", releases)
     monkeypatch.setattr(launcher, "CURRENT", current)
     monkeypatch.setattr(launcher, "LOGS", tmp_path / "logs")
+
     def criar_runtime(args, **kwargs):
         Path(args[-1]).mkdir(parents=True)
 
     instalacoes = []
     monkeypatch.setattr(launcher.subprocess, "run", criar_runtime)
     monkeypatch.setattr(
-        launcher, "instalar_dependencias",
-        lambda python, req: instalacoes.append((python, req.read_text(encoding="utf-8"))),
+        launcher,
+        "instalar_dependencias",
+        lambda python, req: instalacoes.append(
+            (python, req.read_text(encoding="utf-8"))
+        ),
     )
 
     assert launcher.instalar_zip(pacote) == "0.10.1"
@@ -718,11 +791,16 @@ def test_atualizacao_online_mantem_versao_anterior_em_falha_de_dependencias(
         encoding="ascii",
     )
     manifesto = publicado / "version.json"
-    manifesto.write_text(json.dumps({
-        "version": "0.10.1",
-        "url": pacote.name,
-        "sha256": hashlib.sha256(pacote.read_bytes()).hexdigest(),
-    }), encoding="utf-8")
+    manifesto.write_text(
+        json.dumps(
+            {
+                "version": "0.10.1",
+                "url": pacote.name,
+                "sha256": hashlib.sha256(pacote.read_bytes()).hexdigest(),
+            }
+        ),
+        encoding="utf-8",
+    )
     config = tmp_path / "launcher.json"
     config.write_text(json.dumps({"update_url": str(manifesto)}), encoding="utf-8")
     avisos = []
@@ -735,7 +813,10 @@ def test_atualizacao_online_mantem_versao_anterior_em_falha_de_dependencias(
     monkeypatch.setattr(
         launcher, "CHAVE_PUBLICA_ED25519_B64", base64.b64encode(publica).decode()
     )
-    monkeypatch.setattr(launcher, "mensagem", lambda titulo, texto: avisos.append(texto))
+    monkeypatch.setattr(
+        launcher, "mensagem", lambda titulo, texto: avisos.append(texto)
+    )
+
     def falhar(*args, **kwargs):
         raise OSError("falha simulada")
 
@@ -778,8 +859,8 @@ def test_runtime_por_release_com_dependencias_reais_e_rollback(
                 f"Metadata-Version: 2.1\nName: mainerp-teste\nVersion: {version}\n",
             )
             archive.writestr(
-                f"{dist}/WHEEL", "Wheel-Version: 1.0\nRoot-Is-Purelib: true\n"
-                "Tag: py3-none-any\n",
+                f"{dist}/WHEEL",
+                "Wheel-Version: 1.0\nRoot-Is-Purelib: true\nTag: py3-none-any\n",
             )
             archive.writestr(
                 f"{dist}/RECORD",
@@ -799,7 +880,10 @@ def test_runtime_por_release_com_dependencias_reais_e_rollback(
             python = python.with_name("python.exe")
         resultado = subprocess.run(
             [str(python), "-c", "import mainerp_teste; print(mainerp_teste.VERSION)"],
-            capture_output=True, text=True, timeout=30, check=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True,
         )
         return resultado.stdout.strip()
 
@@ -822,19 +906,30 @@ module.ROOT = pathlib.Path(sys.argv[2])
 with module.trava_atualizacao() as ok:
     print('obtida' if ok else 'ocupada')
 """
-    cmd = [sys.executable, "-c", script, str(PROJECT_ROOT / "distribuicao" / "launcher.pyw"),
-           str(tmp_path)]
+    cmd = [
+        sys.executable,
+        "-c",
+        script,
+        str(PROJECT_ROOT / "distribuicao" / "launcher.pyw"),
+        str(tmp_path),
+    ]
     with launcher.trava_atualizacao() as obtida:
         assert obtida
         antigo = (tmp_path / ".update.lockfile").stat().st_mtime - 7200
         os.utime(tmp_path / ".update.lockfile", (antigo, antigo))
-        resultado = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=20)
+        resultado = subprocess.run(
+            cmd, capture_output=True, text=True, check=True, timeout=20
+        )
         assert resultado.stdout.strip() == "ocupada"
-    resultado = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=20)
+    resultado = subprocess.run(
+        cmd, capture_output=True, text=True, check=True, timeout=20
+    )
     assert resultado.stdout.strip() == "obtida"
 
 
-def test_trava_liberada_pelo_sistema_apos_saida_abrupta(launcher, tmp_path, monkeypatch):
+def test_trava_liberada_pelo_sistema_apos_saida_abrupta(
+    launcher, tmp_path, monkeypatch
+):
     monkeypatch.setattr(launcher, "ROOT", tmp_path)
     script = """
 import importlib.machinery, importlib.util, os, pathlib, sys
@@ -847,9 +942,17 @@ with module.trava_atualizacao() as ok:
     os._exit(73 if ok else 1)
 """
     resultado = subprocess.run(
-        [sys.executable, "-c", script,
-         str(PROJECT_ROOT / "distribuicao" / "launcher.pyw"), str(tmp_path)],
-        capture_output=True, text=True, check=False, timeout=20,
+        [
+            sys.executable,
+            "-c",
+            script,
+            str(PROJECT_ROOT / "distribuicao" / "launcher.pyw"),
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=20,
     )
     assert resultado.returncode == 73
     with launcher.trava_atualizacao() as obtida:
@@ -994,9 +1097,7 @@ def test_signature_verification_rejects_modified_package(launcher, tmp_path):
     package_sha256 = hashlib.sha256(package.read_bytes()).hexdigest()
 
     with pytest.raises(ValueError, match="assinatura Ed25519 inválida"):
-        launcher.verificar_pacote_assinado(
-            package, signature, package_sha256, "0.09"
-        )
+        launcher.verificar_pacote_assinado(package, signature, package_sha256, "0.09")
 
 
 def test_signature_verification_accepts_valid_release(launcher, tmp_path):
@@ -1021,9 +1122,7 @@ def test_signature_verification_accepts_valid_release(launcher, tmp_path):
     )
 
 
-def test_signature_verification_rejects_mismatched_package_version(
-    launcher, tmp_path
-):
+def test_signature_verification_rejects_mismatched_package_version(launcher, tmp_path):
     private_key = Ed25519PrivateKey.generate()
     public_key = private_key.public_key().public_bytes(
         encoding=serialization.Encoding.Raw,

@@ -7,6 +7,7 @@ import threading
 import zipfile
 from datetime import datetime
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
 
@@ -79,7 +80,9 @@ def test_falha_ao_criar_snapshot_nao_publica_backup(tmp_path, monkeypatch):
     def falhar(*args):
         raise OSError("disco indisponível")
 
-    monkeypatch.setattr("mainerp.ui.dialogs.backup_dialog.criar_snapshot_sqlite", falhar)
+    monkeypatch.setattr(
+        "mainerp.ui.dialogs.backup_dialog.criar_snapshot_sqlite", falhar
+    )
     worker.run()
 
     assert not concluidos
@@ -117,7 +120,9 @@ def test_backups_mesmo_segundo_nao_sobrescrevem_anterior(tmp_path, monkeypatch):
                 zf.extract("erp.db", pasta)
             copia = sqlite3.connect(pasta / "erp.db")
             try:
-                assert copia.execute("SELECT valor FROM dados").fetchone() == (esperado,)
+                assert copia.execute("SELECT valor FROM dados").fetchone() == (
+                    esperado,
+                )
             finally:
                 copia.close()
     finally:
@@ -151,13 +156,19 @@ def test_snapshot_com_transacao_concorrente_em_wal(tmp_path, monkeypatch):
     try:
         worker.run()
         assert not erros
-        assert conn.execute("SELECT valor FROM dados ORDER BY id").fetchall() == [(1,), (1,)]
+        assert conn.execute("SELECT valor FROM dados ORDER BY id").fetchall() == [
+            (1,),
+            (1,),
+        ]
         with zipfile.ZipFile(concluidos[0]) as zf:
             zf.extract("erp.db", tmp_path / "copia")
         copia = sqlite3.connect(tmp_path / "copia" / "erp.db")
         try:
             assert copia.execute("PRAGMA integrity_check").fetchone() == ("ok",)
-            assert copia.execute("SELECT valor FROM dados ORDER BY id").fetchall() == [(0,), (0,)]
+            assert copia.execute("SELECT valor FROM dados ORDER BY id").fetchall() == [
+                (0,),
+                (0,),
+            ]
         finally:
             copia.close()
     finally:
@@ -206,7 +217,9 @@ def test_backups_simultaneos_usam_arquivos_independentes(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("etapa", ["compactacao", "publicacao"])
-def test_falha_disco_na_publicacao_preserva_backup_anterior(tmp_path, monkeypatch, etapa):
+def test_falha_disco_na_publicacao_preserva_backup_anterior(
+    tmp_path, monkeypatch, etapa
+):
     banco = tmp_path / "erp.db"
     conn = sqlite3.connect(banco)
     conn.execute("CREATE TABLE dados (valor INTEGER)")
@@ -264,8 +277,12 @@ def test_backup_manual_restaurado_na_inicializacao_da_aplicacao(tmp_path):
     assert restaurados and not falhas
     assert caminho_restauracao_pendente(banco).exists()
     sinal = tmp_path / "aberto"
-    env = dict(os.environ, MAINERP_DATA=str(dados), MAINERP_OK_FILE=str(sinal),
-               QT_QPA_PLATFORM="offscreen")
+    env = dict(
+        os.environ,
+        MAINERP_DATA=str(dados),
+        MAINERP_OK_FILE=str(sinal),
+        QT_QPA_PLATFORM="offscreen",
+    )
     env.pop("MAINERP_LAUNCHER", None)
     codigo = """
 from PyQt6.QtCore import QTimer
@@ -281,20 +298,25 @@ QApplication.exec = staticmethod(executar)
 app.main()
 """
     resultado = subprocess.run(
-        [sys.executable, "-c", codigo], env=env, capture_output=True,
-        text=True, errors="replace", timeout=45, check=False,
+        [sys.executable, "-c", codigo],
+        env=env,
+        capture_output=True,
+        text=True,
+        errors="replace",
+        timeout=45,
+        check=False,
     )
     assert resultado.returncode == 0, resultado.stdout + resultado.stderr
     assert sinal.is_file(), resultado.stdout + resultado.stderr
     assert not caminho_restauracao_pendente(banco).exists()
-    anterior, = (dados / "backups").glob("pre_restore_*.db")
+    (anterior,) = (dados / "backups").glob("pre_restore_*.db")
     for arquivo, esperado in ((banco, "um"), (anterior, "alterado")):
         conn = sqlite3.connect(arquivo)
         try:
             assert conn.execute("PRAGMA integrity_check").fetchone() == ("ok",)
-            assert conn.execute("SELECT valor FROM teste_ciclo ORDER BY id").fetchall() == [
-                (esperado,), ("dois",)
-            ]
+            assert conn.execute(
+                "SELECT valor FROM teste_ciclo ORDER BY id"
+            ).fetchall() == [(esperado,), ("dois",)]
         finally:
             conn.close()
 
@@ -358,14 +380,16 @@ def test_backup_informa_falha_ao_salvar_metadados(tmp_path, monkeypatch):
 
     monkeypatch.setattr("mainerp.ui.dialogs.backup_dialog.QMessageBox", Caixa)
     monkeypatch.setattr(BackupConfig, "save_last_backup_date", lambda **kwargs: False)
-    status = SimpleNamespace(setText=lambda value: None, setStyleSheet=lambda value: None)
+    status = SimpleNamespace(
+        setText=lambda value: None, setStyleSheet=lambda value: None
+    )
     dialogo = SimpleNamespace(
         status_label=status,
         backup_realizado=SimpleNamespace(emit=emitidos.append),
         accept=lambda: aceitos.append(True),
     )
 
-    BackupDialog._backup_concluido(dialogo, str(arquivo))
+    BackupDialog._backup_concluido(cast(BackupDialog, dialogo), str(arquivo))
 
     assert len(avisos) == 1
     assert emitidos == [str(arquivo)]

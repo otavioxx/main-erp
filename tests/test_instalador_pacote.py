@@ -11,17 +11,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_pacote_instalador_contem_codigo_e_componentes(tmp_path, monkeypatch):
     monkeypatch.syspath_prepend(str(ROOT / "distribuicao"))
-    import criar_instalador
-    import criar_release
+    from distribuicao import criar_instalador, criar_release
 
     pacote = criar_instalador.construir_instalador(tmp_path)
     with zipfile.ZipFile(pacote) as arquivo:
         nomes = set(arquivo.namelist())
         assert arquivo.testzip() is None
         assert {
-            "__main__.py", "main.py", "icon.ico", "requirements.txt",
-            "distribuicao/instalar.py", "distribuicao/launcher.pyw",
-            "distribuicao/criar_release.py", "distribuicao/criar_atalhos.ps1",
+            "__main__.py",
+            "main.py",
+            "icon.ico",
+            "requirements.txt",
+            "distribuicao/instalar.py",
+            "distribuicao/launcher.pyw",
+            "distribuicao/criar_release.py",
+            "distribuicao/criar_atalhos.ps1",
         } <= nomes
         assert {
             caminho.relative_to(ROOT).as_posix()
@@ -46,11 +50,18 @@ def test_bootstrap_remove_somente_seus_temporarios(tmp_path, codigo):
             "pathlib.Path(sys.argv[1]).write_text(__file__, encoding='utf-8')\n"
             f"sys.exit({codigo})\n",
         )
-    env = {**os.environ, "TEMP": str(temporarios), "TMP": str(temporarios),
-           "TMPDIR": str(temporarios)}
+    env = {
+        **os.environ,
+        "TEMP": str(temporarios),
+        "TMP": str(temporarios),
+        "TMPDIR": str(temporarios),
+    }
     resultado = subprocess.run(
-        [sys.executable, str(pacote), str(marcador)], env=env, check=False,
-        capture_output=True, text=True,
+        [sys.executable, str(pacote), str(marcador)],
+        env=env,
+        check=False,
+        capture_output=True,
+        text=True,
     )
     assert resultado.returncode == codigo, resultado.stderr
     assert not Path(marcador.read_text(encoding="utf-8")).exists()
@@ -65,7 +76,10 @@ def test_bootstrap_recusa_caminhos_externos(tmp_path):
         arquivo.write(ROOT / "distribuicao" / "instalador_bootstrap.py", "__main__.py")
         arquivo.writestr("../fora.txt", "não deve ser criado")
     resultado = subprocess.run(
-        [sys.executable, str(pacote)], check=False, capture_output=True, text=True,
+        [sys.executable, str(pacote)],
+        check=False,
+        capture_output=True,
+        text=True,
     )
     assert resultado.returncode != 0
     assert "Caminho inválido" in resultado.stderr

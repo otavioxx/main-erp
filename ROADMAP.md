@@ -224,6 +224,104 @@ devem usar apenas bancos e instalações temporários, nunca dados de produção
       priorizando backup, restauração e atualização; manter exceções amplas apenas em
       limites de recuperação justificados, com registro e sinalização ao usuário.
 
+## Fase 4.2 — Relatórios e visualizador embutido
+
+Prioridade atual do projeto, junto com a Fase 4.3. Os itens abaixo são propostas, não
+alterações já aplicadas. Os itens de proteção de dados da Fase 4.1 continuam tendo
+precedência sobre melhorias estruturais: decidir se esta fase começa depois deles ou em
+paralelo. Os nove módulos de `mainerp/reports/` (≈ 4,9 mil linhas, ReportLab/Platypus)
+repetem estilos, cabeçalho da empresa e tabelas, e o PDF pronto é aberto fora do sistema.
+O frontend permanece em PyQt6/Qt Widgets (Fase 4.3): o `QPdfView` é o visualizador
+escolhido e ser independente de Qt deixa de ser critério para o motor de geração; o peso
+da instalação continua sendo.
+
+- [ ] Prototipar o relatório de vendas (`mainerp/reports/print_relat_venda.py`) em
+      HTML/CSS + Jinja2 e comparar o PDF com o atual: fidelidade visual, cabeçalho/rodapé
+      e numeração de páginas, tabelas longas com quebra de página e instalação limpa no
+      Windows sem dependências de sistema. Motores candidatos: QtWebEngine (`printToPdf`,
+      assíncrono) e WeasyPrint (exige Pango/GTK no Windows). Manter o ReportLab refatorado
+      como alternativa de menor risco. Registrar a escolha neste roadmap.
+- [ ] Criar `mainerp/reports/engine.py` com `render_pdf(template, contexto) -> Path` e
+      `mainerp/reports/templates/` com um `base.html` compartilhado (cabeçalho da empresa,
+      estilos, tabela zebrada, rodapé), eliminando a repetição entre os módulos.
+      As cores e a identidade visual seguem os tokens da Fase 4.3.
+- [ ] Migrar um relatório por vez, cada módulo reduzido a consulta + contexto (centavos
+      convertidos apenas na formatação): vendas, pedidos, condicionais, recebimentos,
+      produtos, comprovante de recebimento e documentos individuais (venda, condicional,
+      pedido). Cada migração com teste de geração (arquivo criado e não vazio, número de
+      páginas, totais formatados) e comparação visual com o PDF anterior.
+- [ ] Criar `mainerp/ui/dialogs/pdf_viewer_dialog.py` com `QPdfView`
+      (`PyQt6.QtPdfWidgets`): zoom, ajustar à largura, navegação por página, busca,
+      salvar como, abrir no programa externo e imprimir (renderizando as páginas do
+      `QPdfDocument` em um `QPrinter`).
+- [ ] Trocar a abertura externa pelo visualizador embutido. Os pontos de entrada são
+      `ExportUtils.abrir_arquivo` (pedidos, condicionais e recebimentos) e
+      `ProdutoView._abrir_arquivo`; manter "abrir externo" como botão e como alternativa
+      se o visualizador falhar.
+- [ ] Validar a impressão a partir do visualizador em impressoras reais e em tamanhos de
+      página personalizados (etiquetas), no ambiente do cliente. Testes automatizados não
+      cobrem drivers de impressora.
+- [ ] Declarar as novas dependências em `requirements.txt` com limites de versão (Jinja2 e
+      o motor escolhido, como `PyQt6-WebEngine` ou WeasyPrint) e validar instalação limpa e
+      o runtime por release do launcher. Verificar se `distribuicao/criar_release.py`, que
+      restringe os arquivos incluídos, empacota `mainerp/reports/templates/` (HTML/CSS) e
+      testar o ZIP gerado.
+- [ ] Remover o ReportLab de `requirements.txt` ao concluir a migração de todos os
+      relatórios, revendo junto o item sobre Pillow na seção de qualidade.
+- [ ] Avaliar a licença antes de distribuir o ERP a terceiros: o PyQt6 é GPL e o PySide6
+      (LGPL) é a alternativa. Sem impacto para uso pessoal em um único PC.
+
+Os relatórios gerenciais da Fase 5 devem reutilizar o `engine.py` e o `base.html`.
+
+## Fase 4.3 — Identidade visual e padrão de ERP
+
+Decisão: manter o frontend em PyQt6/Qt Widgets, sem migrar para web ou QML, e investir em
+estilo e melhoria geral de usabilidade. A referência é o padrão visual de ERPs corporativos
+consolidados (como o TOTVS): aparência plana, sóbria e densa, bordas retas e hierarquia por
+contraste. É inspiração de padrão de uso; não copiar logotipos, ícones, textos ou outros
+ativos de terceiros. Os itens abaixo são propostas, não alterações já aplicadas. Hoje o
+tema é único e escuro (`mainerp/ui/styles.py`, fundo `#1a1a1a`), há 32 chamadas de
+`setStyleSheet` em 12 arquivos, ≈ 77 cores hexadecimais fixas em `mainerp/ui/`,
+`border-radius` em 23 pontos de `styles.py` e nos diálogos de backup e restauração, e
+emojis como ícones (barra lateral em `main_window.py`, botões em `config_view.py`).
+
+- [ ] Registrar os princípios de design em `docs/`: raio de borda zero, bordas de 1 px,
+      sem sombras nem gradientes, controles e linhas compactos, cor usada para significado
+      (acento, estado, alerta) e não para decoração, ícones monocromáticos e texto sóbrio.
+- [ ] Definir a paleta de ERP conforme em docs/identidade_visual.md.
+- [ ] Reestruturar `CoresPaleta` e `ConstrutorEstilos` para tokens (superfície, texto,
+      borda, acento, estados, semânticas, altura de controle, espaçamento, raio igual a
+      zero e fonte) com tema claro como padrão e o escuro como opção, e persistir a
+      escolha nas configurações. Testes Qt aplicam cada tema e instanciam cada tela e
+      diálogo sem erro.
+- [ ] Mover os `setStyleSheet` soltos e as cores fixas de `mainerp/ui/` para o tema
+      central, incluindo `backup_dialog.py` e `restore_backup_dialog.py`. Adicionar um
+      teste que falhe se aparecer `border-radius` diferente de zero ou cor hexadecimal
+      fora de `styles.py`, para o padrão não se perder nas próximas telas.
+- [ ] Zerar os arredondamentos em botões, campos, listas suspensas, abas, tabelas, barras
+      de rolagem, menus e diálogos. Avaliar `app.setStyle("Fusion")` como base, para o QSS
+      renderizar igual entre versões do Windows.
+- [ ] Substituir os emojis por ícones SVG monocromáticos de um conjunto livre (conferir a
+      licença; Lucide, Phosphor e Material Symbols são opções), em `mainerp/ui/icons/`,
+      coloridos pelo tema. Conferir se o gerador de release empacota esses arquivos.
+- [ ] Definir a tela-modelo de ERP e aplicá-la às listagens: cabeçalho da tela, barra de
+      ações com ícone e texto (Incluir, Alterar, Excluir, Pesquisar, Imprimir) e atalhos
+      de teclado, filtros em painel, grade com cabeçalho destacado e linhas zebradas,
+      totais no rodapé e barra de status com empresa e versão. Formulários com grupos de
+      título reto e botões primário, secundário e de perigo consistentes.
+- [ ] Revisar a navegação lateral (botões grandes com emoji) para um menu compacto de
+      ERP, com item ativo marcado por faixa reta, e rever o tamanho base da fonte (hoje
+      12 pt, Segoe UI) e a altura de linhas e controles para maior densidade, mantendo a
+      legibilidade em 125% e 150%. Fazer junto com a confirmação das alturas das
+      listagens, já prevista em "Qualidade e manutenção".
+- [ ] Prototipar antes de estender: aplicar o tema novo a Clientes e ao diálogo de cliente,
+      capturar imagens em 100%, 125% e 150% e só então seguir. Ordem sugerida: janela
+      principal e navegação, listagens, diálogos de entrada, diálogos de relatório e, por
+      fim, configurações e backup.
+- [ ] Alinhar os relatórios em PDF à mesma identidade (cabeçalho, cores, tabela), usando os
+      mesmos tokens no `base.html` da Fase 4.2. Definir a paleta antes de migrar os
+      templates.
+
 ## Fase 5 — Produto (conforme a necessidade)
 
 - [ ] Auditoria: registrar quem alterou o quê (vendas, preços, estoque).
