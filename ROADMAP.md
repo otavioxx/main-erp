@@ -104,24 +104,16 @@ Decisão registrada: **manter ReportLab**. HTML/CSS com Jinja2, QtWebEngine e We
 
 ## Ordem sugerida
 
-**A → B → C1 → C2 → C3 → D → C4 → E → F/G.**
+**A → B → C1 → C2 → C3 → D → C4 → E → F → prioridades da Fase 5 → demais itens futuros.**
 
-A Fase A vem primeiro por ser pequena e proteger tudo o que vem depois. A C1 entrega o primeiro ganho visível, e a C2/C3 resolvem a aparência sem trocar de motor.
-efinir a paleta antes
-      de migrar os relatórios.
+A Fase A vem primeiro por ser pequena e proteger tudo o que vem depois. A C1 entrega o primeiro ganho visível, e a C2/C3 resolvem a aparência sem trocar de motor. Definir a paleta antes de migrar os relatórios.
 
 ## Fase 5 — Produto (conforme a necessidade)
 
+- [ ] **Prioridade alta:** configurar estoque mínimo por produto e listar itens para reposição, considerando pedidos pendentes e fornecedor; criação do pedido continua manual.
+- [ ] **Prioridade alta:** destacar parcelas vencidas com dias de atraso e saldo em aberto por cliente.
+- [ ] **Prioridade média:** painel enxuto com vendas por período e produtos mais vendidos, estoque baixo e recebíveis vencidos.
+- [ ] **Prioridade posterior:** avaliar contas a pagar e despesas, com visão simples de compromissos e fluxo de caixa.
 - [ ] Auditoria: registrar quem alterou o quê (vendas, preços, estoque).
-- [ ] Relatórios gerenciais e painel inicial (vendas, estoque baixo, contas a receber).
-- [ ] Se mais de um PC precisar usar o mesmo banco: migrar de SQLite para um servidor
-      (PostgreSQL), o que a Fase 2 deixa muito mais simples.
-efinir a paleta antes
-      de migrar os relatórios.
-
-## Fase 5 — Produto (conforme a necessidade)
-
-- [ ] Auditoria: registrar quem alterou o quê (vendas, preços, estoque).
-- [ ] Relatórios gerenciais e painel inicial (vendas, estoque baixo, contas a receber).
 - [ ] Se mais de um PC precisar usar o mesmo banco: migrar de SQLite para um servidor
       (PostgreSQL), o que a Fase 2 deixa muito mais simples.
