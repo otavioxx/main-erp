@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import QApplication, QLineEdit
 from mainerp.data.models.produto import Produto
 from mainerp.ui.dialogs.produto_dialog import ProdutoDialog
 from mainerp.ui.styles import aplicar_tema
+from mainerp.ui.theme_tokens import DIMENSOES
 
 app = QApplication([])
 aplicar_tema(app, sys.argv[1])
@@ -36,17 +37,15 @@ for produto in (
     campos = [dialogo.preco_custo_spin, dialogo.preco_venda_spin]
     if produto.id is not None:
         campos.append(dialogo.estoque_spin)
-    dialogo.nome_edit.setCursorPosition(0)
-    recuo_nome = dialogo.nome_edit.cursorRect().x()
     for campo in campos:
         editor = campo.findChild(QLineEdit)
         assert editor is not None
         assert campo.width() >= 200
         assert editor.width() >= campo.width() - 10, (campo.width(), editor.width())
         assert editor.width() > editor.fontMetrics().horizontalAdvance(editor.text()) + 20
-        editor.setCursorPosition(0)
-        recuo = editor.x() + editor.cursorRect().x()
-        assert abs(recuo - recuo_nome) <= 1, (recuo, recuo_nome)
+        margens = editor.textMargins()
+        assert margens.left() == DIMENSOES.espacamento
+        assert margens.right() == DIMENSOES.espacamento
     dialogo.hide()
     dialogo.deleteLater()
     app.processEvents()

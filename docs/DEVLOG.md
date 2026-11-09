@@ -12,9 +12,11 @@
 - **Teste Windows:** a asserção de largura da coluna Nome agora verifica a regra de dimensionamento responsivo, em vez de exigir largura fixa.
 - **ROADMAP:** Fase D ajustada com validação de estados visíveis de contraste e conferência de navegação por teclado.
 
-### Release 0.10.6
+### Release 0.10.7
 
 - Inclui as melhorias de interface, os ajustes em diálogos, a inclusão de recursos visuais no pacote e a validação isolada dos instaladores e do launcher registrados abaixo.
+- A tag `v0.10.6` não publicou a release porque dois testes de diálogo falharam no runner Linux ao acessar `QLineEdit.cursorRect()`. O teste agora verifica as margens públicas do editor; a tag não foi reutilizada.
+- Validação local em Windows: Ruff passou; pytest aprovou 353 testes (1 ignorado).
 
 ## 2026-11-08
 
@@ -24,4 +26,4 @@
 - **Empacotamento:** o gerador de releases passou a incluir os novos ícones e arquivos de licença; Pillow foi declarado nas dependências.
 - **Testes e validação:** ajustes em testes de backup e atualização; validação em diretórios isolados no Windows dos instaladores 0.10.4/0.10.5 e do launcher, cobrindo atualização assinada, abertura da versão nova, preservação de banco fictício, rollback após falha, reparo de `cryptography` e preservação do launcher quando a instalação de dependências falha.
 
-As alterações foram incluídas na release 0.10.6. Os itens ainda pendentes permanecem no `ROADMAP.md`.
+As alterações foram consolidadas na release 0.10.7. Os itens ainda pendentes permanecem no `ROADMAP.md`.
