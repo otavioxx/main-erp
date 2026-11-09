@@ -18,14 +18,14 @@ from PyQt6.QtWidgets import (
 from mainerp.data.models.cliente import Cliente
 from mainerp.domain.utils.helpers import aplicar_maiuscula_formulario
 
-# ✅ IMPORTAR O MIXIN DE DIMENSIONAMENTO
+# IMPORTAR O MIXIN DE DIMENSIONAMENTO
 from mainerp.ui.mixins.dialog_size_mixin import DialogSizeMixin
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
 from mainerp.ui.tabela import fixar_altura_linhas
 from mainerp.ui.views.cliente_view import ClienteDialog
 
 
-# ✅ ADICIONAR MIXIN COMO PRIMEIRA CLASSE BASE
+# ADICIONAR MIXIN COMO PRIMEIRA CLASSE BASE
 class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -34,9 +34,8 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
         aplicar_maiuscula_formulario(self)
         self.carregar_clientes()
 
-        # ✅ CONFIGURAR TAMANHO INTELIGENTE
-        # Para diálogos com tabela, use "large"
-        self.setup_dialog_size_large()  # type: ignore[reportAttributeAccessIssue]
+        # CONFIGURAR TAMANHO INTELIGENTE
+        self.setup_dialog_size_medium()  # type: ignore[reportAttributeAccessIssue]
 
     def init_ui(self):
         self.setWindowTitle("Selecionar Cliente")
@@ -107,7 +106,7 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
 
         layout.addWidget(self.tabela)
 
-        # ✅ ATIVAR O SCROLL NAVIGATION MIXIN
+        # ATIVAR O SCROLL NAVIGATION MIXIN
         self.setup_scroll_navigation(
             tabela=self.tabela, scroll_sensibilidade=1, auto_select_first=True
         )

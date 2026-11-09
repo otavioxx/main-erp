@@ -21,10 +21,13 @@ from PyQt6.QtWidgets import (
 from mainerp.data.models.fornecedor import Fornecedor
 from mainerp.domain.utils.helpers import aplicar_maiuscula_formulario
 from mainerp.ui.dialogs.fornecedor_dialog import FornecedorDialog
+from mainerp.ui.mixins.dialog_size_mixin import DialogSizeMixin
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
 
 
-class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
+class FornecedorSelectionDialog(
+    DialogSizeMixin, TableScrollNavigationMixin, QDialog
+):
     """Dialog para seleção de fornecedores com F1 para novo cadastro"""
 
     def __init__(self, parent=None):
@@ -33,11 +36,11 @@ class FornecedorSelectionDialog(TableScrollNavigationMixin, QDialog):
         self._init_ui()
         aplicar_maiuscula_formulario(self)
         self._carregar_fornecedores()
+        self.setup_dialog_size_medium()  # type: ignore[reportAttributeAccessIssue]
 
     def _init_ui(self):
         """Inicializa interface otimizada"""
         self.setWindowTitle("Selecionar Fornecedor")
-        self.setMinimumSize(750, 500)
 
         layout = QVBoxLayout()
         layout.setSpacing(12)
