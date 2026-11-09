@@ -35,6 +35,8 @@ Objetivo: a perda do disco do PC não pode significar perda do sistema.
 - [ ] Definir procedimento seguro para a trava legada `.update.lock`, sem apagar trava em uso.
 - [ ] Decidir sobre as colunas `REAL` antigas, que hoje são preenchidas junto com `*_centavos`. Opção: migração 4 que remove as colunas antigas depois de confirmar que nenhuma leitura depende delas. Testar em cópia do banco.
 - [ ] SQLite: o adaptador de datas padrão está obsoleto desde o Python 3.12. Hoje funciona, mas pode ser removido numa versão futura. Vale registrar adaptadores de data explicitamente.
+- [ ] Unificar o cálculo do total do pedido (subtotal - desconto + frete) entre modelo, utilitários e tela.
+- [ ] Definir uma regra única para preço de venda zero, alinhando cadastro de produtos e validação da venda.
 - [ ] Tornar atômicas as operações compostas de venda/estoque e recebimento de pedidos; qualquer falha deve reverter todas as etapas.
 - [ ] Validar identificadores dinâmicos (tabelas, campos e ordenação) nos utilitários SQL; valores já devem continuar parametrizados.
 - [ ] Substituir ou remover o helper legado de backup que copia o arquivo SQLite diretamente, sem snapshot consistente.
