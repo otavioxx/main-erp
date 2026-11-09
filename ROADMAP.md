@@ -20,17 +20,24 @@ Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém só o qu
 Objetivo: a perda do disco do PC não pode significar perda do sistema.
 
 - [ ] Verificar a cópia depois de gravar (tamanho e hash) e avisar na interface se falhar.
+- [ ] Validar backups automáticos recentes também quanto a esquema e consistência dos dados, não só integridade SQLite.
 - [ ] Tratar destino ausente (pendrive desconectado, pasta indisponível): avisar sem travar o sistema e tentar de novo na próxima oportunidade.
 - [ ] Validar uma restauração a partir da cópia externa em instalação isolada, conferindo registros e totais.
 - [ ] Atualizar `docs/backup_recuperacao.md` com a rotina e um lembrete periódico de teste de restauração.
 
 ## Fase B: Base técnica (itens rápidos)
 
+- [ ] Corrigir e incluir no CI o teste de interface Windows que falha nas escalas 1.25 e 1.5.
+- [ ] Executar Ruff e pytest em pull requests e exigir esses checks para integrar à `main`.
 - [x] Declarar Pillow em `requirements.txt` e validar instalação limpa.
+- [ ] Recusar publicação de versão igual ou inferior à última release antes de marcar como `latest`.
 - [ ] `--destino` do instalador: corrigir (definir `MAINERP_DATA`) ou restringir explicitamente. Até lá, usar o destino padrão.
 - [ ] Definir procedimento seguro para a trava legada `.update.lock`, sem apagar trava em uso.
 - [ ] Decidir sobre as colunas `REAL` antigas, que hoje são preenchidas junto com `*_centavos`. Opção: migração 4 que remove as colunas antigas depois de confirmar que nenhuma leitura depende delas. Testar em cópia do banco.
 - [ ] SQLite: o adaptador de datas padrão está obsoleto desde o Python 3.12. Hoje funciona, mas pode ser removido numa versão futura. Vale registrar adaptadores de data explicitamente.
+- [ ] Tornar atômicas as operações compostas de venda/estoque e recebimento de pedidos; qualquer falha deve reverter todas as etapas.
+- [ ] Validar identificadores dinâmicos (tabelas, campos e ordenação) nos utilitários SQL; valores já devem continuar parametrizados.
+- [ ] Substituir ou remover o helper legado de backup que copia o arquivo SQLite diretamente, sem snapshot consistente.
 - [ ] Erro após a falha: o RuntimeError em listagem_modelo.py (linha 41) indica que o texto “Registros exibidos” tenta ler uma tabela já destruída. É provável que só apareça no encerramento depois da falha, mas vale proteger essa chamada quando mexer nessa tela.
 - [ ] Aviso em test_release_updates: o teste lê a saída de um subprocesso como UTF-8, e o Windows devolve outra codificação (o byte 0x87 é o “ç”). É só um aviso, mas dá para corrigir informando o encoding.
 
@@ -64,20 +71,25 @@ Decisão registrada: **manter ReportLab**. HTML/CSS com Jinja2, QtWebEngine e We
 ## Fase D: Identidade visual (4.3 restante)
 
 - [ ] Validação visual das telas nos dois temas, somente em 100% no Windows.
-- [ ] Revisar contraste da paleta.
+- [ ] Validar contraste dos estados visíveis (foco, seleção, desativado e hover) nos dois temas.
+- [ ] Conferir navegação por teclado e atalhos nas listagens e diálogos principais.
 - [ ] Usar o mesmo conjunto de tokens nos relatórios (ligação com a C2).
 
 ## Fase E: Operação e launcher (adiar até A, B e C estarem concluídas)
 
 - [ ] Validar em Windows limpo ou VM: destino padrão, atalhos e avisos.
+- [ ] Permitir releases somente de tags sobre commits de `main` e revisar a proteção da branch e o escopo do secret de assinatura.
+- [ ] Fixar as GitHub Actions em SHAs imutáveis.
 - [ ] Redesenhar a janela de espera do launcher (hoje em Tkinter), com testes antes de mexer.
 - [ ] Planejar a atualização do launcher fixo e a rotação da chave de assinatura.
+- [ ] Verificar a assinatura Ed25519 do instalador `.pyz` antes de executar o bootstrap inicial.
 - [ ] Conferência automática do conteúdo do ZIP e do instalador antes de publicar.
 - [ ] Ampliar a validação de tipos e regras de negócio na restauração, com bancos legados.
 
 ## Fase F: Qualidade contínua (aos poucos, junto com outras fases)
 
 - [ ] Revisar os 160 `except Exception` ao tocar em cada módulo, restringindo ou registrando.
+- [ ] Evitar que falhas em consultas de persistência sejam retornadas como listas vazias ou ausência de registro.
 - [ ] Dividir arquivos grandes quando forem alterados (`produto_view`, `print_venda`, `styles`, `backup_dialog`, `duplicata`).
 - [ ] Revisar a licença do PyQt6 se o sistema um dia for distribuído a terceiros.
 
