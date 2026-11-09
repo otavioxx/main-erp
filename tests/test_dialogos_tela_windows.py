@@ -35,11 +35,17 @@ view = ClienteView()
 view.resize(1000, 600)
 view.show()
 app.processEvents()
-assert view.tabela_clientes.columnWidth(1) == 200
+largura_fixa = sum(view.tabela_clientes.columnWidth(i) for i in (0, 2, 3, 4, 5, 6))
+assert view.tabela_clientes.columnWidth(1) == max(
+    200, view.tabela_clientes.viewport().width() - largura_fixa
+)
 assert view.tabela_clientes.horizontalScrollBar().maximum() > 0
 view.resize(1200, 600)
 app.processEvents()
-assert view.tabela_clientes.columnWidth(1) == 200
+largura_fixa = sum(view.tabela_clientes.columnWidth(i) for i in (0, 2, 3, 4, 5, 6))
+assert view.tabela_clientes.columnWidth(1) == max(
+    200, view.tabela_clientes.viewport().width() - largura_fixa
+)
 view.close()
 view.deleteLater()
 app.processEvents()

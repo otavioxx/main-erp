@@ -1,5 +1,20 @@
 # Histórico de versões
 
+## 0.10.6 - 2026-11-09
+
+### Added
+
+- Adicionadas opções de tema claro e escuro e ícones SVG monocromáticos.
+
+### Changed
+
+- Padronizados estilos, formulários, listagens e dimensões dos diálogos.
+- Ajustadas a navegação e as margens dos campos numéricos.
+
+### Fixed
+
+- Corrigidos detalhes de apresentação e dimensionamento em diálogos de seleção e pedido.
+
 
 ## 0.10.5 - 2026-11-08
 
