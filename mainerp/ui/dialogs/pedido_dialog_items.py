@@ -3,12 +3,12 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFocusEvent
 from PyQt6.QtWidgets import (
+    QAbstractSpinBox,
     QDialog,
-    QHBoxLayout,
     QInputDialog,
     QLabel,
+    QLineEdit,
     QMessageBox,
-    QPushButton,
     QTableWidgetItem,
     QVBoxLayout,
 )
@@ -20,8 +20,17 @@ from mainerp.domain.utils.helpers import (
 )
 from mainerp.ui.dialogs.observacao_dialog import ObservacaoDialog
 from mainerp.ui.mixins.component_mixin import ComponentMixin
+from mainerp.ui.theme_tokens import DIMENSOES
 
 __all__ = ["_PedidoDialogItems"]
+
+
+def _ajustar_recuo_dialogo(dialogo: QInputDialog) -> None:
+    campo = dialogo.findChild(QAbstractSpinBox)
+    editor = campo.findChild(QLineEdit) if campo is not None else None
+    if editor is None:
+        raise RuntimeError("Campo numérico sem editor de texto.")
+    editor.setTextMargins(DIMENSOES.espacamento, 0, DIMENSOES.espacamento, 0)
 
 
 class _PedidoDialogItems(ComponentMixin):
@@ -84,6 +93,7 @@ class _PedidoDialogItems(ComponentMixin):
         quantidade_dialog.setIntMinimum(1)
         quantidade_dialog.setIntMaximum(10000)  # Limite razoável para pedidos
         quantidade_dialog.setIntStep(1)
+        _ajustar_recuo_dialogo(quantidade_dialog)
 
         # Configurar flags da janela (idêntico ao módulo vendas)
         quantidade_dialog.setWindowFlags(
@@ -126,6 +136,7 @@ class _PedidoDialogItems(ComponentMixin):
             preco_custo_dialog.setDoubleMinimum(0.01)
             preco_custo_dialog.setDoubleMaximum(VALOR_MAXIMO)  # <-- CORREÇÃO PRINCIPAL
             preco_custo_dialog.setDoubleDecimals(2)
+            _ajustar_recuo_dialogo(preco_custo_dialog)
 
             # Configurar flags da janela (igual ao módulo vendas)
             preco_custo_dialog.setWindowFlags(
@@ -204,6 +215,7 @@ class _PedidoDialogItems(ComponentMixin):
                     VALOR_MAXIMO
                 )  # <-- CORREÇÃO PRINCIPAL
                 preco_venda_dialog.setDoubleDecimals(2)
+                _ajustar_recuo_dialogo(preco_venda_dialog)
 
                 # Configurar flags da janela (igual ao módulo vendas)
                 preco_venda_dialog.setWindowFlags(
@@ -336,6 +348,7 @@ class _PedidoDialogItems(ComponentMixin):
         # Criar um diálogo personalizado mais consistente
         from PyQt6.QtWidgets import (
             QDialog,
+            QDialogButtonBox,
             QFormLayout,
             QLineEdit,
         )
@@ -373,19 +386,12 @@ class _PedidoDialogItems(ComponentMixin):
         layout.addLayout(form_layout)
 
         # Botões
-        button_layout = QHBoxLayout()
-
-        btn_ok = QPushButton("OK")
-        btn_ok.clicked.connect(dialog.accept)
-        btn_ok.setProperty("class", "success")
-
-        btn_cancel = QPushButton("Cancelar")
-        btn_cancel.clicked.connect(dialog.reject)
-        btn_cancel.setProperty("class", "danger")
-
-        button_layout.addWidget(btn_ok)
-        button_layout.addWidget(btn_cancel)
-        layout.addLayout(button_layout)
+        botoes = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        botoes.accepted.connect(dialog.accept)
+        botoes.rejected.connect(dialog.reject)
+        layout.addWidget(botoes)
 
         # Configurar como diálogo modal
         dialog.setWindowFlags(

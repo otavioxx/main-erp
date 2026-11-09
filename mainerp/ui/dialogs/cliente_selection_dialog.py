@@ -1,6 +1,6 @@
 # dialogs/cliente_selection_dialog.py - VERSÃO MELHORADA COM DIMENSIONAMENTO INTELIGENTE
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIcon, QKeyEvent
+from PyQt6.QtGui import QKeyEvent
 from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -39,7 +39,6 @@ class ClienteSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
 
     def init_ui(self):
         self.setWindowTitle("Selecionar Cliente")
-        self.setWindowIcon(QIcon("icon.ico"))
 
         layout = QVBoxLayout()
         layout.setSpacing(12)

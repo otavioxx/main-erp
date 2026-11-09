@@ -44,9 +44,7 @@ def solicitar_preco_venda(
         editor = spinbox.findChild(QLineEdit)
         if editor is None:
             raise RuntimeError("Campo numérico de preço sem editor de texto.")
-        editor.setTextMargins(
-            DIMENSOES.espacamento, 0, DIMENSOES.espacamento, 0
-        )
+        editor.setTextMargins(DIMENSOES.espacamento, 0, DIMENSOES.espacamento, 0)
 
     # Selecionar automaticamente todo o valor ao abrir
     if spinbox is not None:

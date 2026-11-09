@@ -1,9 +1,6 @@
-"""
-Dialog de Pagamento - Versão Simplificada com Entrada
-"""
+"""Diálogo para seleção da forma de pagamento."""
 
 from datetime import datetime, timedelta
-from decimal import Decimal
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QGuiApplication
@@ -16,18 +13,18 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QMessageBox,
-    QPushButton,
     QRadioButton,
     QSpinBox,
     QVBoxLayout,
 )
 
 from mainerp.data.money import de_centavos, para_centavos
-from mainerp.domain.utils.helpers import SelectAllDoubleSpinBox, formatar_moeda
+from mainerp.domain.utils.helpers import formatar_moeda
+from mainerp.ui.theme_tokens import DIMENSOES
 
 
 class PagamentoDialog(QDialog):
-    """Dialog para seleção de forma de pagamento com suporte a entrada"""
+    """Dialog para seleção de forma de pagamento."""
 
     def __init__(self, valor_total, cliente_id, parent=None):
         super().__init__(parent)
@@ -69,35 +66,6 @@ class PagamentoDialog(QDialog):
         pagamento_group.setLayout(pagamento_layout)
         layout.addWidget(pagamento_group)
 
-        # Valor de entrada (só aparece no crediário)
-        self.entrada_group = QGroupBox("Valor de Entrada")
-        entrada_layout = QVBoxLayout()
-
-        entrada_layout.addWidget(QLabel("Valor de entrada (opcional):"))
-
-        entrada_h_layout = QHBoxLayout()
-        self.entrada_input = SelectAllDoubleSpinBox()
-        self.entrada_input.setMaximum(self.valor_total)
-        self.entrada_input.setMinimum(0.0)
-        self.entrada_input.setValue(0.0)
-        self.entrada_input.setDecimals(2)
-        entrada_h_layout.addWidget(self.entrada_input)
-
-        # Botões rápidos
-        for perc in [20, 30, 50]:
-            btn = QPushButton(f"{perc}%")
-            btn.clicked.connect(lambda checked, p=perc: self._aplicar_percentual(p))
-            entrada_h_layout.addWidget(btn)
-
-        entrada_layout.addLayout(entrada_h_layout)
-
-        self.label_financiado = QLabel("Valor a financiar: R$ 0,00")
-        self.label_financiado.setProperty("estadoVisual", "sucesso")
-        entrada_layout.addWidget(self.label_financiado)
-
-        self.entrada_group.setLayout(entrada_layout)
-        layout.addWidget(self.entrada_group)
-
         # Parcelas (só aparece no crediário)
         self.parcelas_group = QGroupBox("Parcelamento")
         parcelas_layout = QVBoxLayout()
@@ -110,6 +78,10 @@ class PagamentoDialog(QDialog):
         self.parcelas_spinner.setMaximum(24)
         self.parcelas_spinner.setValue(1)
         self.parcelas_spinner.setMaximumWidth(80)  # Metade do tamanho
+        editor = self.parcelas_spinner.findChild(QLineEdit)
+        if editor is None:
+            raise RuntimeError("Campo numérico de parcelas sem editor de texto.")
+        editor.setTextMargins(DIMENSOES.espacamento, 0, DIMENSOES.espacamento, 0)
         parcelas_h_layout.addWidget(self.parcelas_spinner)
         parcelas_h_layout.addStretch()
 
@@ -159,7 +131,6 @@ class PagamentoDialog(QDialog):
         for rb in [self.rb_dinheiro, self.rb_pix, self.rb_cartao, self.rb_crediario]:
             rb.toggled.connect(self._atualizar_campos)
 
-        self.entrada_input.valueChanged.connect(self._calcular_financiado)
         self.parcelas_spinner.valueChanged.connect(self._calcular_parcela)
 
         # AGORA SIM PODE CHAMAR O MÉTODO
@@ -192,54 +163,16 @@ class PagamentoDialog(QDialog):
         is_crediario = self.rb_crediario.isChecked()
 
         # Verificar se os grupos existem antes de tentar modificá-los
-        if hasattr(self, "entrada_group"):
-            self.entrada_group.setVisible(is_crediario)
         if hasattr(self, "parcelas_group"):
             self.parcelas_group.setVisible(is_crediario)
         if hasattr(self, "vencimento_group"):
             self.vencimento_group.setVisible(is_crediario)
 
-        if not is_crediario:
-            self.valor_entrada = 0.0
-
         # Redimensionar a janela automaticamente após mostrar/ocultar campos
         self.adjustSize()
 
-        # Definir tamanho mínimo baseado no modo
-        if is_crediario:
-            self.setMinimumSize(400, 500)  # Maior para acomodar todos os campos
-        else:
-            self.setMinimumSize(400, 200)  # Menor para apenas os campos básicos
-
         # Recentralizar a janela após redimensionar
         self._centralizar_janela()
-
-        self._calcular_financiado()
-
-    def _aplicar_percentual(self, percentual):
-        """Aplica percentual do valor total como entrada"""
-        entrada_centavos = para_centavos(
-            de_centavos(para_centavos(self.valor_total))
-            * Decimal(str(percentual))
-            / Decimal(100)
-        )
-        valor = float(de_centavos(entrada_centavos))
-        self.entrada_input.setValue(valor)
-
-    def _calcular_financiado(self):
-        """Calcula valor financiado"""
-        if hasattr(self, "entrada_input"):
-            self.valor_entrada = self.entrada_input.value()
-
-        valor_financiado_centavos = para_centavos(self.valor_total) - para_centavos(
-            self.valor_entrada
-        )
-        valor_financiado = float(de_centavos(valor_financiado_centavos))
-
-        if hasattr(self, "label_financiado"):
-            self.label_financiado.setText(
-                f"Valor a financiar: {formatar_moeda(valor_financiado)}"
-            )
 
         self._calcular_parcela()
 
@@ -251,9 +184,7 @@ class PagamentoDialog(QDialog):
             return
 
         if self.rb_crediario.isChecked():
-            valor_financiado_centavos = para_centavos(self.valor_total) - para_centavos(
-                self.valor_entrada
-            )
+            valor_financiado_centavos = para_centavos(self.valor_total)
             if (
                 valor_financiado_centavos > 0
                 and hasattr(self, "parcelas_spinner")
@@ -283,21 +214,6 @@ class PagamentoDialog(QDialog):
     def _validar_e_aceitar(self):
         """Valida dados antes de aceitar"""
         if self.rb_crediario.isChecked():
-            entrada_centavos = para_centavos(self.valor_entrada)
-            total_centavos = para_centavos(self.valor_total)
-            if entrada_centavos >= total_centavos:
-                QMessageBox.warning(
-                    self, "Erro", "Valor de entrada deve ser menor que o total."
-                )
-                return
-
-            valor_financiado_centavos = total_centavos - entrada_centavos
-            if valor_financiado_centavos <= 0:
-                QMessageBox.warning(
-                    self, "Erro", "Valor financiado deve ser maior que zero."
-                )
-                return
-
             # Validar formato da data
             data_texto = self.data_vencimento.text().strip()
             if not self._validar_data(data_texto):
@@ -331,11 +247,7 @@ class PagamentoDialog(QDialog):
                 # Se houver erro na conversão, usar data padrão
                 data_vencimento = (datetime.now() + timedelta(days=30)).date()
 
-        valor_financiado = float(
-            de_centavos(
-                para_centavos(self.valor_total) - para_centavos(self.valor_entrada)
-            )
-        )
+        valor_financiado = self.valor_total
 
         # Retorna no formato esperado pelo código original
         return {

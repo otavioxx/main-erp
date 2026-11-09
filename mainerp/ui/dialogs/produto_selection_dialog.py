@@ -22,12 +22,13 @@ from mainerp.data.models.produto import Produto
 from mainerp.domain.utils.helpers import aplicar_maiuscula_formulario
 from mainerp.domain.utils.produto_utils import ProdutoUtils
 from mainerp.ui.dialogs.produto_dialog import ProdutoDialog
+from mainerp.ui.mixins.dialog_size_mixin import DialogSizeMixin
 from mainerp.ui.mixins.table_scroll_mixin import TableScrollNavigationMixin
 from mainerp.ui.tabela import fixar_altura_linhas
 from mainerp.ui.table_items import NumericTableWidgetItem
 
 
-class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
+class ProdutoSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialog):
     """Dialog para seleção de produtos com F1 para novo cadastro"""
 
     def __init__(self, parent=None):
@@ -38,11 +39,11 @@ class ProdutoSelectionDialog(TableScrollNavigationMixin, QDialog):
 
         aplicar_maiuscula_formulario(self)
         self._carregar_produtos()
+        self.setup_dialog_size_medium()  # type: ignore[reportAttributeAccessIssue]
 
     def _init_ui(self):
         """Inicializa interface otimizada"""
         self.setWindowTitle("Selecionar Produto")
-        self.setMinimumSize(1000, 750)
 
         layout = QVBoxLayout()
         layout.setSpacing(12)
