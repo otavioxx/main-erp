@@ -5,8 +5,11 @@ from datetime import datetime, timedelta
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog,
+    QDoubleSpinBox,
     QInputDialog,
+    QLineEdit,
     QMessageBox,
+    QSpinBox,
     QTableWidgetItem,
 )
 
@@ -24,6 +27,7 @@ from mainerp.ui.dialogs.observacao_dialog import ObservacaoDialog
 from mainerp.ui.dialogs.preco_venda_dialog import solicitar_preco_venda
 from mainerp.ui.dialogs.produto_selection_dialog import ProdutoSelectionDialog
 from mainerp.ui.mixins.component_mixin import ComponentMixin
+from mainerp.ui.theme_tokens import DIMENSOES
 
 __all__ = ["_CondicionalDialogOperations"]
 
@@ -124,6 +128,15 @@ class _CondicionalDialogOperations(ComponentMixin):
         quantidade_dialog.setIntMinimum(1)
         quantidade_dialog.setIntMaximum(produto.estoque)
         quantidade_dialog.setIntStep(1)
+        spinbox_quantidade = quantidade_dialog.findChild(QSpinBox)
+        if spinbox_quantidade is None:
+            raise RuntimeError("Diálogo de quantidade sem campo numérico.")
+        editor_quantidade = spinbox_quantidade.findChild(QLineEdit)
+        if editor_quantidade is None:
+            raise RuntimeError("Campo numérico de quantidade sem editor de texto.")
+        editor_quantidade.setTextMargins(
+            DIMENSOES.espacamento, 0, DIMENSOES.espacamento, 0
+        )
 
         quantidade_dialog.setWindowFlags(
             Qt.WindowType.Dialog
@@ -146,7 +159,9 @@ class _CondicionalDialogOperations(ComponentMixin):
                 )
                 return
 
-            preco_venda = solicitar_preco_venda(produto.preco_venda, self)
+            preco_venda = solicitar_preco_venda(
+                produto.preco_venda, self, ajustar_recuo_campo=True
+            )
             if preco_venda is not None:
                 from mainerp.data.models.produto import Produto
 
@@ -254,6 +269,15 @@ class _CondicionalDialogOperations(ComponentMixin):
         desconto_dialog.setDoubleMinimum(0.0)
         desconto_dialog.setDoubleMaximum(total_sem_desconto)
         desconto_dialog.setDoubleDecimals(2)
+        spinbox_desconto = desconto_dialog.findChild(QDoubleSpinBox)
+        if spinbox_desconto is None:
+            raise RuntimeError("Diálogo de desconto sem campo numérico.")
+        editor_desconto = spinbox_desconto.findChild(QLineEdit)
+        if editor_desconto is None:
+            raise RuntimeError("Campo numérico de desconto sem editor de texto.")
+        editor_desconto.setTextMargins(
+            DIMENSOES.espacamento, 0, DIMENSOES.espacamento, 0
+        )
 
         desconto_dialog.setWindowFlags(
             Qt.WindowType.Dialog

@@ -3,6 +3,7 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialog,
+    QDoubleSpinBox,
     QInputDialog,
     QLineEdit,
     QMessageBox,
@@ -262,18 +263,30 @@ class _VendaDialogOperations(ComponentMixin):
         )
         total_sem_desconto = float(de_centavos(total_sem_desconto_centavos))
 
-        desconto, ok = QInputDialog.getDouble(
-            self,
-            "Desconto na Nota",
-            f"Valor total: R$ {total_sem_desconto:.2f}\n\nDigite o valor do desconto:",
-            value=self.desconto_total,
-            min=0.0,
-            max=total_sem_desconto,
-            decimals=2,
+        desconto_dialog = QInputDialog(self)
+        desconto_dialog.setWindowTitle("Desconto na Nota")
+        desconto_dialog.setLabelText(
+            f"Valor total: R$ {total_sem_desconto:.2f}\n\nDigite o valor do desconto:"
+        )
+        desconto_dialog.setInputMode(QInputDialog.InputMode.DoubleInput)
+        desconto_dialog.setDoubleValue(self.desconto_total)
+        desconto_dialog.setDoubleMinimum(0.0)
+        desconto_dialog.setDoubleMaximum(total_sem_desconto)
+        desconto_dialog.setDoubleDecimals(2)
+        desconto_dialog.setDoubleStep(1.0)
+
+        spinbox_desconto = desconto_dialog.findChild(QDoubleSpinBox)
+        if spinbox_desconto is None:
+            raise RuntimeError("Diálogo de desconto sem campo numérico.")
+        editor_desconto = spinbox_desconto.findChild(QLineEdit)
+        if editor_desconto is None:
+            raise RuntimeError("Campo numérico de desconto sem editor de texto.")
+        editor_desconto.setTextMargins(
+            DIMENSOES.espacamento, 0, DIMENSOES.espacamento, 0
         )
 
-        if ok:
-            self.desconto_total = desconto
+        if desconto_dialog.exec() == QDialog.DialogCode.Accepted:
+            self.desconto_total = desconto_dialog.doubleValue()
             self._calcular_total()
             self._marcar_como_modificado()
 

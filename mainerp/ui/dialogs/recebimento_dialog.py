@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QRadioButton,
     QVBoxLayout,
@@ -30,6 +31,7 @@ from mainerp.domain.utils.helpers import (
 )
 from mainerp.ui.formulario import configurar_botoes_formulario
 from mainerp.ui.styles import definir_estado_visual
+from mainerp.ui.theme_tokens import DIMENSOES
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +105,12 @@ class RecebimentoDialog(QDialog):
         self.valor_recebido_input.setMaximum(999999.99)
         self.valor_recebido_input.setValue(self.valor_original)
         self.valor_recebido_input.setDecimals(2)
+        editor_valor = self.valor_recebido_input.findChild(QLineEdit)
+        if editor_valor is None:
+            raise RuntimeError("Campo numérico de recebimento sem editor de texto.")
+        editor_valor.setTextMargins(
+            DIMENSOES.espacamento, 0, DIMENSOES.espacamento, 0
+        )
         self.valor_recebido_input.valueChanged.connect(self._verificar_diferenca_valor)
         valor_layout.addWidget(self.valor_recebido_input)
 
