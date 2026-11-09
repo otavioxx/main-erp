@@ -1,5 +1,6 @@
 # Histórico de versões
 
+
 ## 0.10.5 - 2026-11-08
 
 - O instalador prepara a dependência de assinatura no runtime principal do launcher,

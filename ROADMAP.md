@@ -19,20 +19,14 @@ Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém só o qu
 
 Objetivo: a perda do disco do PC não pode significar perda do sistema.
 
-- [ ] Destino da cópia: pasta sincronizada de nuvem (OneDrive, Google Drive etc.), pendrive/HD externo, ou os dois. A pasta sincronizada é o caminho mais simples, porque não exige API.
-- [ ] Copiar automaticamente cada backup diário para o destino externo, com retenção própria.
 - [ ] Verificar a cópia depois de gravar (tamanho e hash) e avisar na interface se falhar.
 - [ ] Tratar destino ausente (pendrive desconectado, pasta indisponível): avisar sem travar o sistema e tentar de novo na próxima oportunidade.
-- [ ] Mostrar na barra de status a idade da última cópia externa, junto com a do backup automático.
-- [ ] Validar uma restauração a partir da cópia externa em instalação isolada, conferindo registros e totais (antigo item 2 da rota pendente).
+- [ ] Validar uma restauração a partir da cópia externa em instalação isolada, conferindo registros e totais.
 - [ ] Atualizar `docs/backup_recuperacao.md` com a rotina e um lembrete periódico de teste de restauração.
-
-*Pronto quando:* um backup novo aparece no destino externo sozinho, e uma restauração a partir dele já foi testada.
 
 ## Fase B: Base técnica (itens rápidos)
 
-- [ ] Confirmar a versão do Python usada no desenvolvimento e nos releases. Os `__pycache__` indicam 3.15, ainda pré-lançamento. Fixar uma versão estável (3.12 ou 3.13) e validar PyQt6, pywin32, cryptography e ReportLab nela.
-- [ ] Declarar Pillow em `requirements.txt` e validar instalação limpa.
+- [x] Declarar Pillow em `requirements.txt` e validar instalação limpa.
 - [ ] `--destino` do instalador: corrigir (definir `MAINERP_DATA`) ou restringir explicitamente. Até lá, usar o destino padrão.
 - [ ] Definir procedimento seguro para a trava legada `.update.lock`, sem apagar trava em uso.
 - [ ] Decidir sobre as colunas `REAL` antigas, que hoje são preenchidas junto com `*_centavos`. Opção: migração 4 que remove as colunas antigas depois de confirmar que nenhuma leitura depende delas. Testar em cópia do banco.

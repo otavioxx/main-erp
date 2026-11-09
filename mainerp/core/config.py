@@ -123,7 +123,9 @@ class Config:
         if tema is None:
             return "dark" if self.config_preexistente else "light"
         if tema not in ("light", "dark"):
-            logger.warning("Tema inválido %r; usando escuro sem alterar configuração.", tema)
+            logger.warning(
+                "Tema inválido %r; usando escuro sem alterar configuração.", tema
+            )
             return "dark"
         return tema
 
@@ -157,7 +159,9 @@ class Config:
                 try:
                     os.unlink(temporario)
                 except OSError:
-                    logger.exception("Não foi possível remover arquivo temporário %s", temporario)
+                    logger.exception(
+                        "Não foi possível remover arquivo temporário %s", temporario
+                    )
         self.config = nova
         self.config_preexistente = True
         return True
