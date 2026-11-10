@@ -1,5 +1,11 @@
 # Histórico de versões
 
+## 0.10.8 - 2026-11-09
+
+### Removed
+
+- Removida a prévia HTML de paleta do arquivo de código-fonte, após alerta do Microsoft Defender.
+
 ## 0.10.7 - 2026-11-09
 
 ### Added

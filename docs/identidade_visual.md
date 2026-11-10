@@ -140,9 +140,8 @@ Essas cores são específicas para botões sólidos e não substituem os tokens 
 
 ### Referências
 
-As imagens e a prévia são referências visuais, não capturas da aplicação implementada:
-[tema claro](tema-claro.png), [tema escuro](tema-escuro.png) e
-[prévia HTML](previa_paleta_erp_claro_escuro.html).
+As imagens são referências visuais, não capturas da aplicação implementada:
+[tema claro](tema-claro.png) e [tema escuro](tema-escuro.png).
 Para capturas do tema anterior e medições da proposta original, consulte a
 [linha de base de Clientes e contraste](base_clientes_contraste.md).
 

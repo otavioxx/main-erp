@@ -2,6 +2,10 @@
 
 ## 2026-11-09
 
+### Release 0.10.8
+
+- Removida a prévia HTML de paleta apontada pelo Microsoft Defender no ZIP do código-fonte e ajustada a referência na documentação. A causa da detecção não foi confirmada.
+
 ### Interface — ajustes em diálogos
 
 - **Recuo de campos numéricos:** aplicado `setTextMargins` (`DIMENSOES.espacamento`) no editor interno dos spinboxes em venda, condicional (desconto, quantidade e preço), recebimento, parcelas do pagamento e diálogos de quantidade/preço de custo/preço de venda do pedido; `solicitar_preco_venda` ganhou o parâmetro `ajustar_recuo_campo`.
