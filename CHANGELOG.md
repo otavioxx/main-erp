@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## 0.10.9 - 2026-11-09
+
+### Fixed
+
+- Corrigida falha na restauração quando há disputa momentânea pela trava do banco.
+
 ### Removed
 
 - Removida a prévia HTML de paleta do arquivo de código-fonte, após alerta do Microsoft Defender.

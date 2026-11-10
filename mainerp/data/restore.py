@@ -1,15 +1,19 @@
 """Preparação e aplicação de restaurações antes de abrir o banco na interface."""
 
+import logging
 import os
 import shutil
 import sqlite3
 import tempfile
+import time
 import zipfile
 from datetime import datetime
 from pathlib import Path
 
 from mainerp.data.automatic_backup import criar_snapshot_conexao, criar_snapshot_sqlite
 from mainerp.data.db_utils import DatabaseManager
+
+logger = logging.getLogger(__name__)
 
 
 def _copiar_banco(origem: sqlite3.Connection, destino: sqlite3.Connection, progress=None):
@@ -57,6 +61,41 @@ def preparar_restauracao(backup_file: str | Path, target_db: str | Path) -> Path
     return destino
 
 
+def _conectar_com_trava_exclusiva(target: Path) -> sqlite3.Connection:
+    limite = time.monotonic() + 30
+    while True:
+        destino = sqlite3.connect(target, timeout=max(0, limite - time.monotonic()))
+        obtida = False
+        try:
+            destino.execute("BEGIN IMMEDIATE")
+            modo = destino.execute("PRAGMA locking_mode=EXCLUSIVE").fetchone()
+            if not modo or modo[0].lower() != "exclusive":
+                raise RuntimeError("Não foi possível obter bloqueio exclusivo do banco")
+            destino.commit()
+            restante_ms = max(0, int((limite - time.monotonic()) * 1000))
+            destino.execute(f"PRAGMA busy_timeout={restante_ms}")
+            try:
+                destino.execute("BEGIN EXCLUSIVE")
+            except sqlite3.OperationalError as erro:
+                codigo = getattr(erro, "sqlite_errorcode", None)
+                ocupado = (
+                    (codigo & 0xFF) == getattr(sqlite3, "SQLITE_BUSY", 5)
+                    if codigo is not None
+                    else str(erro) == "database is locked"
+                )
+                if not ocupado or time.monotonic() >= limite:
+                    raise
+                logger.warning("Disputa pela trava exclusiva de restauração; tentando novamente.")
+            else:
+                destino.commit()
+                obtida = True
+                return destino
+        finally:
+            if not obtida:
+                destino.close()
+        time.sleep(min(0.05, max(0, limite - time.monotonic())))
+
+
 def aplicar_restauracao_pendente(target_db: str | Path) -> Path | None:
     """Aplica restauração antes das conexões da aplicação e mantém snapshot anterior."""
     target = Path(target_db).resolve()
@@ -72,16 +111,8 @@ def aplicar_restauracao_pendente(target_db: str | Path) -> Path | None:
     pasta.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
     anterior = pasta / f"pre_restore_{timestamp}.db"
-    destino = sqlite3.connect(target, timeout=30)
+    destino = _conectar_com_trava_exclusiva(target)
     try:
-        # Serializa escritores antes da tentativa de adquirir o bloqueio exclusivo.
-        destino.execute("BEGIN IMMEDIATE")
-        modo = destino.execute("PRAGMA locking_mode=EXCLUSIVE").fetchone()
-        if not modo or modo[0].lower() != "exclusive":
-            raise RuntimeError("Não foi possível obter bloqueio exclusivo do banco")
-        destino.commit()
-        destino.execute("BEGIN EXCLUSIVE")
-        destino.commit()
         if not pendente.exists():
             return None
 

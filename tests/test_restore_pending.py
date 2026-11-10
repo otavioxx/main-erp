@@ -2,6 +2,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+import threading
 import time
 import zipfile
 
@@ -388,12 +389,159 @@ def test_restauracao_reserva_escrita_antes_do_modo_exclusivo(
     monkeypatch.setattr(sqlite3, "connect", conectar_observando)
     anterior = aplicar_restauracao_pendente(atual)
 
-    assert comandos[:4] == [
-        "BEGIN IMMEDIATE", "PRAGMA locking_mode=EXCLUSIVE", "COMMIT", "BEGIN EXCLUSIVE"
-    ]
+    assert comandos[:3] == ["BEGIN IMMEDIATE", "PRAGMA locking_mode=EXCLUSIVE", "COMMIT"]
+    assert comandos[3].startswith("PRAGMA busy_timeout=")
+    assert comandos[4] == "BEGIN EXCLUSIVE"
     assert anterior is not None
     assert ler_valor(anterior) == "atual"
     assert ler_valor(atual) == "anterior"
+
+
+def test_restauracao_repete_trava_exclusiva_apos_disputa(
+    tmp_path, monkeypatch
+):
+    atual = tmp_path / "atual.db"
+    origem = tmp_path / "origem.db"
+    criar_banco(atual, "atual")
+    criar_banco(origem, "anterior")
+    conn = sqlite3.connect(atual)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.close()
+    pendente = preparar_restauracao(origem, atual)
+    conectar = sqlite3.connect
+    reservado = threading.Event()
+    liberar = threading.Event()
+    encerrado = threading.Event()
+    falhas = []
+
+    def concorrer():
+        try:
+            concorrente = conectar(atual, timeout=5)
+            try:
+                concorrente.execute("BEGIN IMMEDIATE")
+                reservado.set()
+                if not liberar.wait(10):
+                    raise TimeoutError("A restauração não tentou obter a trava")
+                concorrente.commit()
+            finally:
+                concorrente.close()
+        except Exception as erro:
+            falhas.append(erro)
+        finally:
+            encerrado.set()
+
+    class ConexaoObservada(sqlite3.Connection):
+        def commit(self):
+            super().commit()
+            if trabalhador.ident is None:
+                trabalhador.start()
+                if not reservado.wait(10):
+                    raise TimeoutError("O escritor concorrente não reservou a escrita")
+
+        def execute(self, sql, *args, **kwargs):
+            if sql == "BEGIN EXCLUSIVE" and trabalhador.is_alive():
+                super().execute("PRAGMA busy_timeout=0")
+                try:
+                    return super().execute(sql, *args, **kwargs)
+                finally:
+                    super().execute("PRAGMA busy_timeout=30000")
+                    liberar.set()
+                    if not encerrado.wait(10):
+                        raise TimeoutError("O escritor concorrente não encerrou")
+            return super().execute(sql, *args, **kwargs)
+
+    trabalhador = threading.Thread(target=concorrer)
+
+    def conectar_observando(caminho, *args, **kwargs):
+        if caminho == atual.resolve():
+            kwargs["factory"] = ConexaoObservada
+        return conectar(caminho, *args, **kwargs)
+
+    monkeypatch.setattr(sqlite3, "connect", conectar_observando)
+    try:
+        anterior = aplicar_restauracao_pendente(atual)
+    finally:
+        liberar.set()
+        if trabalhador.ident is not None:
+            trabalhador.join(timeout=10)
+    assert not trabalhador.is_alive()
+    assert not falhas
+    assert anterior is not None
+    assert ler_valor(anterior) == "atual"
+    assert ler_valor(atual) == "anterior"
+    assert not pendente.exists()
+
+
+@pytest.mark.parametrize(
+    ("mensagem", "codigo", "tempo"),
+    [
+        ("database is locked", 5, 31),
+        ("database is locked", None, 31),
+        ("database is locked", 6, 0),
+        ("disk I/O error", 10, 0),
+    ],
+)
+def test_falha_na_trava_exclusiva_nao_reinicia_indefinidamente(
+    tmp_path, monkeypatch, mensagem, codigo, tempo
+):
+    import mainerp.data.restore as restore
+
+    atual = tmp_path / "atual.db"
+    criar_banco(atual, "atual")
+    conectar = sqlite3.connect
+    fechadas = []
+    chamadas = []
+
+    class ConexaoComFalha(sqlite3.Connection):
+        def execute(self, sql, *args, **kwargs):
+            if sql == "BEGIN EXCLUSIVE":
+                chamadas.append(sql)
+                erro = sqlite3.OperationalError(mensagem)
+                if codigo is not None:
+                    erro.sqlite_errorcode = codigo
+                raise erro
+            return super().execute(sql, *args, **kwargs)
+
+        def close(self):
+            fechadas.append(True)
+            super().close()
+
+    def conectar_com_falha(caminho, *args, **kwargs):
+        kwargs["factory"] = ConexaoComFalha
+        return conectar(caminho, *args, **kwargs)
+
+    instantes = iter((0, 0, 0, tempo))
+    monkeypatch.setattr(restore.sqlite3, "connect", conectar_com_falha)
+    monkeypatch.setattr(restore.time, "monotonic", lambda: next(instantes))
+    with pytest.raises(sqlite3.OperationalError, match=mensagem):
+        restore._conectar_com_trava_exclusiva(atual)
+    assert len(chamadas) == 1
+    assert fechadas == [True]
+
+
+def test_trava_exclusiva_usa_apenas_tempo_restante(tmp_path, monkeypatch):
+    import mainerp.data.restore as restore
+
+    atual = tmp_path / "atual.db"
+    criar_banco(atual, "atual")
+    conectar = sqlite3.connect
+    comandos = []
+
+    class ConexaoObservada(sqlite3.Connection):
+        def execute(self, sql, *args, **kwargs):
+            comandos.append(sql)
+            return super().execute(sql, *args, **kwargs)
+
+    def conectar_observando(caminho, *args, **kwargs):
+        kwargs["factory"] = ConexaoObservada
+        return conectar(caminho, *args, **kwargs)
+
+    instantes = iter((0, 0, 20))
+    monkeypatch.setattr(restore.sqlite3, "connect", conectar_observando)
+    monkeypatch.setattr(restore.time, "monotonic", lambda: next(instantes))
+    conn = restore._conectar_com_trava_exclusiva(atual)
+    conn.close()
+    assert "PRAGMA busy_timeout=10000" in comandos
 
 
 @pytest.mark.parametrize("journal_mode", ["DELETE", "WAL"])

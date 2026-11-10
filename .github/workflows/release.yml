@@ -60,6 +60,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
+          awk -v version="${RELEASE_TAG#v}" '
+            index($0, "## " version " - ") == 1 { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.txt
+          grep -q '^[-*] ' release-notes.txt || {
+            echo "Seção da versão ausente ou sem alterações em CHANGELOG.md" >&2
+            exit 1
+          }
           gh release create "$RELEASE_TAG" \
             "dist/MainERP-${RELEASE_TAG#v}.zip" \
             "dist/MainERP-${RELEASE_TAG#v}.zip.sig" \
@@ -69,5 +78,5 @@ jobs:
             dist/version.json \
             --verify-tag \
             --title "MainERP ${RELEASE_TAG#v}" \
-            --generate-notes \
+            --notes-file release-notes.txt \
             --latest

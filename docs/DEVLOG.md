@@ -2,6 +2,17 @@
 
 ## 2026-11-09
 
+### Preparação da release 0.10.9
+
+- Preparada a versão 0.10.9 com as alterações posteriores à 0.10.7; a tag 0.10.8 não será reutilizada.
+- O pipeline usa a seção da versão no CHANGELOG para as notas da release e interrompe a publicação se ela não tiver itens.
+
+### Restauração — concorrência em WAL
+
+- A disputa entre o fim da reserva de escrita e a obtenção da trava exclusiva podia gerar `SQLITE_BUSY`. A aquisição é repetida dentro do prazo de 30 segundos, fechando a conexão anterior; erros diferentes e o esgotamento do prazo continuam sendo informados.
+- Adicionado teste que força a disputa e verifica snapshot, banco restaurado e remoção da pendência, além de testes para prazo e outros erros.
+- Validação no Windows: Ruff aprovado e 359 testes aprovados, com 1 ignorado. No WSL, 10 disputas WAL forçadas passaram na aquisição da trava; a suíte completa do CI Linux não foi executada.
+
 ### Tentativa de release 0.10.8
 
 - Removida a prévia HTML de paleta apontada pelo Microsoft Defender no ZIP do código-fonte e ajustada a referência na documentação. A causa da detecção não foi confirmada.

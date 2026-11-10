@@ -170,8 +170,8 @@ restrições ou regras de negócio, nem detecta relacionamentos não declarados 
    `git tag -a v0.10.1 -m "MainERP 0.10.1"` e `git push origin v0.10.1`.
 6. O GitHub Actions valida a tag, executa Ruff e pytest, gera o ZIP de atualização, o
    instalador `.pyz` e o manifesto, assina ambos os pacotes com Ed25519 e publica esses
-   arquivos, as assinaturas, `instalador.sha256` e `version.json` como latest. Não recicle
-   tags já publicadas.
+   arquivos, as assinaturas, `instalador.sha256` e `version.json` como latest. As notas
+   públicas vêm da seção correspondente no `CHANGELOG.md`. Não recicle tags já publicadas.
 7. Ao abrir pelo atalho, o launcher configurado consulta o manifesto e tenta instalar
    versões superiores após validar assinatura, SHA256 e versão. Sem rede, com atualização
    desativada ou se ela falhar, o sistema permanece na versão instalada; consulte
