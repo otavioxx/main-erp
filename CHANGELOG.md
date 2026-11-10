@@ -1,6 +1,6 @@
 # Histórico de versões
 
-## 0.10.8 - 2026-11-09
+## [Unreleased]
 
 ### Removed
 

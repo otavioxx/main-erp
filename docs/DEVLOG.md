@@ -2,9 +2,10 @@
 
 ## 2026-11-09
 
-### Release 0.10.8
+### Tentativa de release 0.10.8
 
 - Removida a prévia HTML de paleta apontada pelo Microsoft Defender no ZIP do código-fonte e ajustada a referência na documentação. A causa da detecção não foi confirmada.
+- A publicação foi interrompida: no GitHub Actions, o teste de restauração concorrente em WAL falhou com `database is locked`. A tag `v0.10.8` permanece, mas a release não foi publicada.
 
 ### Interface — ajustes em diálogos
 
