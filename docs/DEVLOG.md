@@ -6,6 +6,7 @@
 
 - Preparada a versão 0.10.9 com as alterações posteriores à 0.10.7; a tag 0.10.8 não será reutilizada.
 - O pipeline usa a seção da versão no CHANGELOG para as notas da release e interrompe a publicação se ela não tiver itens.
+- Publicação concluída: Ruff e testes passaram no GitHub Actions em Linux. Downloads públicos, assinaturas e hashes dos pacotes foram verificados; o ZIP de código-fonte não contém a prévia HTML.
 
 ### Restauração — concorrência em WAL
 
