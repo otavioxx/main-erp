@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       QT_QPA_PLATFORM: offscreen
+
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -61,14 +62,20 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
           awk -v version="${RELEASE_TAG#v}" '
-            index($0, "## " version " - ") == 1 { found = 1; next }
+            index($0, "## [" version "] - ") == 1 ||
+            index($0, "## " version " - ") == 1 {
+              found = 1
+              next
+            }
             found && /^## / { exit }
             found { print }
           ' CHANGELOG.md > release-notes.txt
-          grep -q '^[-*] ' release-notes.txt || {
+
+          grep -Eq '^[-*] ' release-notes.txt || {
             echo "Seção da versão ausente ou sem alterações em CHANGELOG.md" >&2
             exit 1
           }
+
           gh release create "$RELEASE_TAG" \
             "dist/MainERP-${RELEASE_TAG#v}.zip" \
             "dist/MainERP-${RELEASE_TAG#v}.zip.sig" \
