@@ -5,6 +5,7 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QDialogButtonBox,
     QLabel,
@@ -179,6 +180,8 @@ def registrar_novidades_lidas(marcador: Path) -> None:
 
 
 class NovidadesDialog(DialogBase):
+    """Exibe as alterações incluídas em uma atualização."""
+
     def __init__(
         self,
         versao: str,
@@ -188,7 +191,7 @@ class NovidadesDialog(DialogBase):
         super().__init__(parent)
 
         self.setWindowTitle("Novidades da atualização")
-        self.resize(650, 500)
+        self.setFixedSize(650, 500)
 
         layout = QVBoxLayout(self)
 
@@ -218,6 +221,7 @@ def mostrar_novidades_apos_atualizacao(
     parent,
     versao: str,
 ) -> None:
+    """Apresenta as novidades quando uma nova versão é confirmada pelo launcher."""
     try:
         novidades = preparar_novidades(
             versao,
@@ -231,7 +235,7 @@ def mostrar_novidades_apos_atualizacao(
             parent,
             "Novidades da atualização",
             "Não foi possível carregar as novidades. Consulte Sobre "
-            "para ver o histórico de versões.\n\n"
+            "para ver as informações do sistema.\n\n"
             f"Detalhes: {erro}",
         )
         return
@@ -256,56 +260,117 @@ def mostrar_novidades_apos_atualizacao(
 
 
 class SobreAtualizacoesDialog(DialogBase):
+    """Apresenta informações institucionais do MainERP."""
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
         self.setWindowTitle("Sobre - MainERP")
-        self.resize(720, 600)
+        self.setFixedSize(640, 550)
 
         layout = QVBoxLayout(self)
-        versao = obter_config().APP_VERSION
 
-        layout.addWidget(QLabel(f"<h2>MainERP v{versao}</h2>"))
+        config = obter_config()
+        versao = config.APP_VERSION
 
+        # Identificação do sistema.
+        titulo = QLabel("<h1>MainERP</h1>")
+        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(titulo)
+
+        subtitulo = QLabel("Gestão empresarial simples e acessível")
+        subtitulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(subtitulo)
+
+        layout.addSpacing(16)
+
+        # Consulta a data de lançamento no CHANGELOG.
         changelog_path = Path(CODE_DIR) / "CHANGELOG.md"
+        data_versao = "Não informada"
 
         try:
             changelog = changelog_path.read_text(encoding="utf-8")
-        except (OSError, UnicodeError) as error:
+            releases = parse_changelog(changelog)
+
+            release_atual = next(
+                (release for release in releases if release[0] == versao),
+                None,
+            )
+
+            if release_atual is not None:
+                data_versao = format_release_date(release_atual[1])
+
+        except (OSError, UnicodeError):
             logger.exception(
-                "Não foi possível ler o histórico %s",
+                "Não foi possível consultar a data da versão em %s",
                 changelog_path,
             )
-            releases = []
-            historico = f"Não foi possível carregar o histórico de versões.\n{error}"
-        else:
-            releases = parse_changelog(changelog)
-            historico = "Não há informações disponíveis para esta versão."
 
-        release_atual = next(
-            (release for release in releases if release[0] == versao),
-            None,
+        versao_label = QLabel(f"<b>Versão:</b> {versao}")
+        versao_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(versao_label)
+
+        data_label = QLabel(f"<b>Data de lançamento:</b> {data_versao}")
+        data_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(data_label)
+
+        layout.addSpacing(20)
+
+        # Apresentação do produto.
+        layout.addWidget(QLabel("<h3>Sobre o MainERP</h3>"))
+
+        descricao = QLabel(
+            "O MainERP é um sistema de gestão empresarial desenvolvido "
+            "para pequenos comércios e lojas físicas. Seu objetivo é "
+            "simplificar a rotina dos negócios, reunindo em um só lugar "
+            "ferramentas para vendas, compras, estoque e controle operacional."
+            "<br><br>"
+            "Uma solução prática e acessível para ajudar pequenos "
+            "empreendedores a organizar e administrar melhor suas empresas."
         )
+        descricao.setWordWrap(True)
+        layout.addWidget(descricao)
 
-        data = format_release_date(release_atual[1] if release_atual else None)
-        layout.addWidget(QLabel(f"Data da versão: {data}"))
+        layout.addSpacing(12)
 
-        texto_atualizacoes = QLabel(
-            "As atualizações são verificadas pelo launcher ao abrir "
-            "o sistema pelo atalho."
+        # Identificação do desenvolvedor.
+        layout.addWidget(QLabel("<h3>Desenvolvimento</h3>"))
+
+        desenvolvedor = QLabel(
+            "Desenvolvido independentemente por <b>Otávio Oliveira</b>."
         )
-        texto_atualizacoes.setWordWrap(True)
-        layout.addWidget(texto_atualizacoes)
+        desenvolvedor.setWordWrap(True)
+        layout.addWidget(desenvolvedor)
 
-        layout.addWidget(QLabel("<h3>Novidades desta versão</h3>"))
+        layout.addSpacing(12)
 
-        if release_atual is not None and release_atual[2]:
-            historico = release_atual[2]
+        # Contato de suporte.
+        layout.addWidget(QLabel("<h3>Suporte e atendimento</h3>"))
 
-        self.historico = QTextBrowser()
-        self.historico.setOpenExternalLinks(False)
-        self.historico.setMarkdown(historico)
-        layout.addWidget(self.historico, 1)
+        suporte = QLabel("Precisa de ajuda ou tem alguma sugestão? Entre em contato:")
+        suporte.setWordWrap(True)
+        layout.addWidget(suporte)
+
+        email = QLabel('<a href="mailto:otaviox@proton.me">otaviox@proton.me</a>')
+        email.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        email.setOpenExternalLinks(True)
+        layout.addWidget(email)
+
+        descricao_suporte = QLabel(
+            "Atendimento para dúvidas, suporte técnico, problemas "
+            "e sugestões de melhorias."
+        )
+        descricao_suporte.setWordWrap(True)
+        layout.addWidget(descricao_suporte)
+
+        layout.addStretch(1)
+
+        # Rodapé.
+        copyright_label = QLabel(
+            f"MainERP © {date.today().year} | Desenvolvido por Otávio Oliveira"
+        )
+        copyright_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(copyright_label)
 
         botoes = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         botoes.rejected.connect(self.reject)
