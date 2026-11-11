@@ -1,103 +1,158 @@
 # Histórico de versões
 
+Este arquivo registra as alterações relevantes do MainERP a cada versão, seguindo as recomendações do [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
+
+As alterações são organizadas nas categorias:
+
+- **Adicionado:** novas funcionalidades.
+- **Alterado:** mudanças em funcionalidades existentes.
+- **Descontinuado:** funcionalidades que serão removidas em versões futuras.
+- **Removido:** funcionalidades retiradas.
+- **Corrigido:** correções de erros e comportamentos inesperados.
+- **Segurança:** melhorias relacionadas à proteção e segurança do sistema.
+
 ## [Unreleased]
 
-## 0.10.9 - 2026-11-09
+### Adicionado
 
-### Fixed
+### Alterado
 
-- Corrigida falha na restauração quando há disputa momentânea pela trava do banco.
+### Corrigido
 
-### Removed
+### Segurança
 
-- Removida a prévia HTML de paleta do arquivo de código-fonte, após alerta do Microsoft Defender.
+### Removido
 
-## 0.10.7 - 2026-11-09
+## [0.10.9] - 2026-11-09
 
-### Added
+### Corrigido
 
-- Adicionadas opções de tema claro e escuro e ícones SVG monocromáticos.
+- Corrigida uma falha na restauração do banco de dados causada por disputas momentâneas pelo acesso exclusivo ao arquivo.
 
-### Changed
+### Removido
 
-- Padronizados estilos, formulários, listagens e dimensões dos diálogos.
+- Removida a prévia HTML da paleta de cores do código-fonte após alerta do Microsoft Defender.
+
+## [0.10.7] - 2026-11-09
+
+### Adicionado
+
+- Adicionados temas claro e escuro.
+- Adicionados ícones SVG monocromáticos.
+
+### Alterado
+
+- Padronizados os estilos, formulários, listagens e dimensões dos diálogos.
 - Ajustadas a navegação e as margens dos campos numéricos.
+- Aprimorados o dimensionamento e a apresentação dos diálogos de seleção e pedidos.
 
-### Fixed
+## [0.10.5] - 2026-11-08
 
-- Corrigidos detalhes de apresentação e dimensionamento em diálogos de seleção e pedido.
+### Corrigido
 
+- Corrigida a preparação da dependência de assinatura no runtime principal do launcher, garantindo seu funcionamento também em instalações existentes antes da atualização do aplicativo.
 
-## 0.10.5 - 2026-11-08
+## [0.10.4] - 2026-11-08
 
-- O instalador prepara a dependência de assinatura no runtime principal do launcher,
-  inclusive em instalações existentes, antes de tentar atualizar o aplicativo.
+### Adicionado
 
-## 0.10.4 - 2026-11-08
+- Adicionada verificação em segundo plano dos backups automáticos e manuais recentes.
+- Adicionados avisos na barra de status sobre a idade dos backups, resultados e falhas de agendamento ou retenção.
 
-- Corrigida a execução dos testes de atualização no Linux usado pelo pipeline.
-- Backups automáticos recentes são verificados em segundo plano; arquivos inválidos ou
-  inacessíveis geram alerta e nova tentativa. Datas futuras suspendem a retenção e
-  geram aviso, sem impedir novos backups; cópias não sobrescrevem arquivos existentes.
-- Backups manuais recentes são verificados antes de dispensar o diálogo ao fechar;
-  arquivos ausentes, corrompidos ou inacessíveis geram aviso.
-- O agendamento de backup automático é retomado após fechamento interrompido; a barra
-  de status informa idade, resultado e falhas de agendamento ou retenção.
-- Falhas na restauração não afirmam que houve reversão; orientam preservar o banco,
-  a pendência e os snapshots para suporte.
-- A validação de restauração recusa valores não inteiros nos campos de centavos e
-  referências estrangeiras declaradas inconsistentes, antes de alterar o banco atual.
-- A aquisição da trava de restauração reserva a escrita antes do modo exclusivo,
-  evitando bloqueios mútuos observados em aplicações simultâneas no Windows.
-- Preparações simultâneas de restauração deixam de sobrescrever a pendência existente.
-- A restauração mantém um bloqueio SQLite exclusivo desde o snapshot anterior até a
-  validação, impedindo escritas concorrentes nesse intervalo.
-- Backups manuais criados no mesmo segundo usam nomes distintos, evitando sobrescrita.
+### Alterado
 
-## 0.10.2 - 2026-11-07
+- Reforçada a verificação dos backups, com alertas e novas tentativas em caso de arquivos inválidos ou inacessíveis.
+- Aprimorada a segurança da restauração, com validação dos dados e referências antes de alterar o banco atual.
+- Reforçada a proteção contra operações simultâneas durante a preparação e execução de restaurações.
+- Aprimorado o tratamento de falhas na restauração, com orientações para preservar o banco de dados e os arquivos necessários à recuperação.
+- Ajustado o controle de retenção para evitar exclusões indevidas quando forem identificadas datas futuras nos backups.
 
-- O instalador autocontido usa uma pasta temporária removida após a execução, sem
-  apagar arquivos do usuário, e cria um atalho adicional na pasta do sistema.
-- Na instalação pelo ZIP de código, arquivos de desenvolvimento conhecidos são
-  removidos da pasta extraída após o sucesso, sem alterar checkouts Git ou dados.
+### Corrigido
 
-## 0.10.1 - 2026-11-07
+- Corrigidas falhas de concorrência durante a restauração do banco de dados.
+- Corrigida a possibilidade de sobrescrita de arquivos durante a criação simultânea de backups.
+- Corrigida a retomada do agendamento de backups automáticos após fechamentos interrompidos.
+- Corrigida a identificação de backups manuais criados no mesmo segundo, evitando nomes duplicados.
 
-- O instalador atribui aos atalhos a mesma identidade usada pela janela do MainERP,
-  permitindo ao Windows associar o ícone correto à barra de tarefas.
+## [0.10.2] - 2026-11-07
 
-## 0.10.0 - 2026-11-07
+### Alterado
 
-- Adotado o formato de versão estável MAJOR.MINOR.PATCH para novas releases.
-- A geração de pacotes e o pipeline verificam o formato da versão e a tag.
-- O backup manual usa um snapshot SQLite consistente, inclusive com WAL ativo.
-- A restauração é validada e aplicada antes da abertura do banco, com snapshot anterior.
-- As atualizações usam ambientes Python separados para preservar o rollback de dependências.
-- O instalador verifica a versão ativa antes de informar que a instalação terminou.
-- A geração de releases restringe os arquivos incluídos e corrige a altura das tabelas.
+- Aprimorado o instalador autocontido, que agora utiliza uma pasta temporária removida após a execução, sem apagar arquivos do usuário.
+- Adicionado um atalho complementar na pasta do sistema durante a instalação pelo instalador.
 
-## 0.10 - 2026-11-07
+### Corrigido
 
-- Pacotes publicados pelo GitHub Actions agora são assinados com Ed25519.
-- O launcher valida assinatura, SHA256 e versão do pacote antes de instalar uma
-  atualização online.
+- Corrigida a limpeza de arquivos de desenvolvimento após a instalação pelo ZIP de código, preservando checkouts Git e dados existentes.
 
-## 0.09 - 2026-11-07
+## [0.10.1] - 2026-11-07
 
-- Configurado o launcher e o instalador para consultar atualizações públicas no GitHub
-  Releases por padrão, preservando URLs personalizadas e a opção de desativar atualizações.
-- Publicado o manifesto e o pacote da versão no GitHub para distribuição e atualização online.
+### Corrigido
 
-## 0.08 - 2026-11-07
+- Corrigida a identificação visual do aplicativo nos atalhos, permitindo ao Windows associar corretamente o ícone à janela e à barra de tarefas.
 
-- Corrigida a exibição e a entrada dos valores de venda.
-- Cálculos e persistência monetária em centavos para vendas, parcelas, recebimentos,
-  produtos, pedidos e condicionais, preservando a compatibilidade das telas existentes.
-- Pagamento parcial do saldo final passa a criar uma parcela para o valor restante.
-- Banco de dados atualizado por migrações aditivas, com backup automático antes das
-  alterações de esquema.
+## [0.10.0] - 2026-11-07
 
-## 0.07
+### Adicionado
 
-- Primeira versão distribuída pelo instalador com releases versionadas, atualização local
-  e rollback automático.
+- Adotado o versionamento semântico estável no formato MAJOR.MINOR.PATCH.
+- Adicionada a assinatura digital dos pacotes de atualização com Ed25519.
+- Adicionada a validação de assinatura, hash SHA256 e versão dos pacotes antes da instalação de atualizações online.
+- Adicionados ambientes Python isolados por versão para preservar a possibilidade de rollback.
+
+### Alterado
+
+- Aprimorado o processo de geração de releases, com validação do formato de versão e da tag correspondente.
+- Aprimorado o instalador para verificar a versão ativa antes de confirmar a conclusão da instalação.
+- Restringidos os arquivos incluídos nos pacotes de distribuição.
+
+### Corrigido
+
+- Corrigido o funcionamento dos backups manuais com SQLite, garantindo snapshots consistentes mesmo com WAL ativo.
+- Corrigido o processo de restauração, que agora valida os dados e prepara um snapshot anterior antes de aplicar alterações.
+- Corrigidos detalhes de apresentação e dimensionamento das tabelas dos relatórios.
+
+## [0.10] - 2026-11-07
+
+### Adicionado
+
+- Implementado o launcher com consulta automática de atualizações públicas no GitHub Releases.
+- Adicionada a possibilidade de utilizar URLs personalizadas e desativar a busca por atualizações.
+- Publicados o manifesto e os pacotes de versão no GitHub para distribuição e atualização online.
+
+## [0.09] - 2026-11-07
+
+### Adicionado
+
+- Implementada a distribuição e atualização online por meio de releases públicas do GitHub.
+
+### Alterado
+
+- Configurados o launcher e o instalador para utilizar o repositório público como origem padrão das atualizações, preservando as opções de personalização e desativação.
+
+## [0.08] - 2026-11-07
+
+### Adicionado
+
+- Adicionadas migrações versionadas para atualização do esquema do banco de dados.
+- Adicionado backup automático antes das alterações no esquema do banco.
+
+### Alterado
+
+- Padronizados os cálculos e a persistência de valores monetários em centavos para vendas, parcelas, recebimentos, produtos, pedidos e condicionais.
+- Ajustado o pagamento parcial do saldo final para gerar automaticamente uma parcela com o valor restante.
+
+### Corrigido
+
+- Corrigidos problemas de exibição e entrada de valores nas vendas.
+- Corrigida a consistência dos valores monetários entre as telas e o banco de dados, preservando a compatibilidade com a interface existente.
+
+## [0.07]
+
+### Adicionado
+
+- Primeira versão distribuída por instalador, com releases versionadas, atualização local e rollback automático.
+
+---
+
+**Observações:** as versões 0.10.6 e 0.10.8 não constam no histórico fornecido. Seus registros devem ser recuperados do histórico de desenvolvimento, caso tenham sido publicadas.

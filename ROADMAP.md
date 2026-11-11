@@ -1,23 +1,25 @@
-# Roadmap do MainERP (revisado)
+# Roadmap do MainERP
 
-Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém só o que está pendente ou decidido; o histórico concluído fica resumido, porque o detalhe já está no CHANGELOG.
+Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém tarefas pendentes e decisões registradas. O histórico concluído fica resumido, pois os detalhes estão no CHANGELOG.
 
 ## Regras de trabalho
 
-- Uma fase por vez. Cada fase deixa o sistema funcionando e termina com `verificar.bat` verde.
+- Uma fase por vez. Cada fase deve deixar o sistema funcionando e terminar com `verificar.bat` verde.
 - Testes sempre com dados e instalações isolados, nunca com dados de produção.
-- Cada item pendente tem um critério de pronto de uma linha. Notas longas vão para o CHANGELOG ou para `docs/`.
+- Cada item pendente deve ter um critério de pronto de uma linha. Notas longas ficam no CHANGELOG ou em `docs/`.
 
 ## Concluído (resumo)
 
-- **Fases 0 a 3:** higiene do código, logging central, testes, banco em camada própria, centavos inteiros, pacote `mainerp/`, listagens com configuração comum.
-- **Fase 4:** versionamento semântico, releases assinadas (Ed25519, SHA256), atualização online, GitHub Actions, tela Sobre, runtimes isolados por release.
+- **Fases 0 a 3:** higiene do código, logging central, testes, banco em camada própria, centavos inteiros, pacote `mainerp/` e listagens com configuração comum.
+- **Fase 4:** versionamento semântico, releases assinadas (Ed25519, SHA256), atualização online, GitHub Actions, tela Sobre e runtimes isolados por release.
 - **Fase 4.1:** backup automático e manual verificados, restauração redesenhada e testada, travas do sistema operacional.
-- **Fase 4.3:** tokens de tema claro e escuro, raio zero, estilos locais consolidados no tema central.
+- **Fase 4.3:** tokens de tema claro e escuro, raio zero e estilos locais consolidados no tema central.
+
+---
 
 ## Fase A: Proteção dos dados (prioridade máxima)
 
-Objetivo: a perda do disco do PC não pode significar perda do sistema.
+**Objetivo:** a perda do disco do PC não pode significar perda do sistema.
 
 - [ ] Verificar a cópia depois de gravar (tamanho e hash) e avisar na interface se falhar.
 - [ ] Validar backups automáticos recentes também quanto a esquema e consistência dos dados, não só integridade SQLite.
@@ -25,7 +27,11 @@ Objetivo: a perda do disco do PC não pode significar perda do sistema.
 - [ ] Validar uma restauração a partir da cópia externa em instalação isolada, conferindo registros e totais.
 - [ ] Atualizar `docs/backup_recuperacao.md` com a rotina e um lembrete periódico de teste de restauração.
 
-## Fase B: Base técnica (itens rápidos)
+**Pronto quando:** cópias externas forem verificadas e uma restauração completa puder ser realizada em instalação isolada.
+
+## Fase B: Base técnica e estabilidade
+
+**Objetivo:** corrigir pendências técnicas que podem comprometer a manutenção, a integridade e a evolução do sistema.
 
 - [ ] Corrigir e incluir no CI o teste de interface Windows que falha nas escalas 1.25 e 1.5.
 - [ ] Executar Ruff e pytest em pull requests e exigir esses checks para integrar à `main`.
@@ -43,11 +49,30 @@ Objetivo: a perda do disco do PC não pode significar perda do sistema.
 - [ ] Erro após a falha: o RuntimeError em listagem_modelo.py (linha 41) indica que o texto “Registros exibidos” tenta ler uma tabela já destruída. É provável que só apareça no encerramento depois da falha, mas vale proteger essa chamada quando mexer nessa tela.
 - [ ] Aviso em test_release_updates: o teste lê a saída de um subprocesso como UTF-8, e o Windows devolve outra codificação (o byte 0x87 é o “ç”). É só um aviso, mas dá para corrigir informando o encoding.
 
+**Pronto quando:** as verificações automatizadas estiverem funcionando no CI e as pendências técnicas prioritárias estiverem corrigidas, sem regressões.
+
+## Fase I: Licenciamento e ativação offline
+
+**Objetivo:** controlar a validade e o uso do MainERP por máquina, sem exigir conexão com a internet ou serviços pagos.
+
+- [ ] Criar sistema de geração de licenças assinadas com Ed25519, usando chave exclusiva para licenciamento.
+- [ ] Criar identificador de máquina para vincular cada licença a um único computador.
+- [ ] Desenvolver License Manager local para cadastrar empresas, definir validade e emitir licenças.
+- [ ] Implementar validação da licença na inicialização do MainERP.
+- [ ] Criar tela de ativação para importar o arquivo de licença.
+- [ ] Implementar avisos de vencimento e regras de bloqueio após a expiração.
+- [ ] Armazenar a licença em `dados/`, preservando-a durante atualizações.
+- [ ] Implementar proteção básica contra retrocesso do relógio do Windows.
+- [ ] Documentar o processo de emissão, ativação, renovação e transferência de licença.
+- [ ] Testar ativação, validade, expiração, troca de máquina e funcionamento offline em instalações isoladas.
+
+**Pronto quando:** o MainERP exigir uma licença válida vinculada à máquina, funcionar offline e preservar a licença durante atualizações.
+
 ## Fase C: Relatórios e visualizador embutido
 
-Decisão registrada: **manter ReportLab**. HTML/CSS com Jinja2, QtWebEngine e WeasyPrint foram descartados por peso e complexidade de instalação. As prioridades são aparência e visualização dentro do sistema.
+**Decisão registrada:** manter ReportLab. HTML/CSS com Jinja2, QtWebEngine e WeasyPrint foram descartados por peso e complexidade de instalação. As prioridades são aparência e visualização dentro do sistema.
 
-### C1. Visualizador (ganho mais visível, risco baixo)
+### C1. Visualizador
 
 - [ ] Inventariar os 9 relatórios: onde são abertos, tamanho de página, logos, totais e impressão.
 - [ ] Prototipar `QPdfView` em diálogo independente: navegação, zoom, ajuste de largura, busca, salvar como, abrir externamente e imprimir. Confirmar que `QtPdf` e `QtPdfWidgets` vêm na instalação limpa do Windows.
@@ -68,16 +93,22 @@ Decisão registrada: **manter ReportLab**. HTML/CSS com Jinja2, QtWebEngine e We
 
 - [ ] Validar em impressoras reais e tamanhos personalizados, incluindo etiquetas. Registrar os limites que os testes automatizados não cobrem.
 
-*Pronto quando:* todos os relatórios abrem no visualizador do sistema, com o mesmo padrão visual, e a abertura externa continua disponível.
+**Pronto quando:** todos os relatórios abrem no visualizador do sistema, com o mesmo padrão visual, e a abertura externa continua disponível.
 
-## Fase D: Identidade visual (4.3 restante)
+## Fase D: Identidade visual
+
+**Objetivo:** concluir a validação visual e de usabilidade dos componentes do sistema.
 
 - [ ] Validação visual das telas nos dois temas, somente em 100% no Windows.
 - [ ] Validar contraste dos estados visíveis (foco, seleção, desativado e hover) nos dois temas.
 - [ ] Conferir navegação por teclado e atalhos nas listagens e diálogos principais.
 - [ ] Usar o mesmo conjunto de tokens nos relatórios (ligação com a C2).
 
-## Fase E: Operação e launcher (adiar até A, B e C estarem concluídas)
+**Pronto quando:** telas e relatórios estiverem consistentes nos dois temas e a navegação principal estiver validada.
+
+## Fase E: Operação, distribuição e launcher
+
+**Objetivo:** consolidar a distribuição e a atualização do sistema depois da estabilização técnica, dos relatórios e do licenciamento.
 
 - [ ] Validar em Windows limpo ou VM: destino padrão, atalhos e avisos.
 - [ ] Permitir releases somente de tags sobre commits de `main` e revisar a proteção da branch e o escopo do secret de assinatura.
@@ -88,32 +119,55 @@ Decisão registrada: **manter ReportLab**. HTML/CSS com Jinja2, QtWebEngine e We
 - [ ] Conferência automática do conteúdo do ZIP e do instalador antes de publicar.
 - [ ] Ampliar a validação de tipos e regras de negócio na restauração, com bancos legados.
 
-## Fase F: Qualidade contínua (aos poucos, junto com outras fases)
+**Pronto quando:** instalação, atualização, recuperação e inicialização estiverem validadas em ambiente Windows limpo, sem comprometer os dados ou a licença.
+
+## Fase F: Qualidade contínua
+
+**Objetivo:** reduzir gradualmente a dívida técnica sem criar uma fase de refatoração extensa que atrase as entregas.
+
+Estas tarefas devem ser executadas aos poucos, junto com as demais fases.
 
 - [ ] Revisar os 160 `except Exception` ao tocar em cada módulo, restringindo ou registrando.
 - [ ] Evitar que falhas em consultas de persistência sejam retornadas como listas vazias ou ausência de registro.
 - [ ] Dividir arquivos grandes quando forem alterados (`produto_view`, `print_venda`, `styles`, `backup_dialog`, `duplicata`).
-- [ ] Revisar a licença do PyQt6 se o sistema um dia for distribuído a terceiros.
 
-## Fase G: Futuro
+## Fase H: Evolução do produto
 
-- [ ] **Auditoria**: registro de quem alterou o quê e quando nas tabelas principais.
-- [ ] **Painel** com indicadores, reaproveitando os componentes dos relatórios.
-- [ ] Frontend mais moderno: reavaliar só depois das fases anteriores. A decisão atual é seguir em Qt Widgets.
-- ~~PostgreSQL~~: retirado do planejamento, porque o banco é usado em um único PC e o SQLite em WAL atende. Reavaliar apenas se surgir uso em múltiplos PCs.
-
-## Ordem sugerida
-
-**A → B → C1 → C2 → C3 → D → C4 → E → F → prioridades da Fase 5 → demais itens futuros.**
-
-A Fase A vem primeiro por ser pequena e proteger tudo o que vem depois. A C1 entrega o primeiro ganho visível, e a C2/C3 resolvem a aparência sem trocar de motor. Definir a paleta antes de migrar os relatórios.
-
-## Fase 5 — Produto (conforme a necessidade)
+**Objetivo:** priorizar recursos que melhorem a operação diária das pequenas empresas.
 
 - [ ] **Prioridade alta:** configurar estoque mínimo por produto e listar itens para reposição, considerando pedidos pendentes e fornecedor; criação do pedido continua manual.
 - [ ] **Prioridade alta:** destacar parcelas vencidas com dias de atraso e saldo em aberto por cliente.
 - [ ] **Prioridade média:** painel enxuto com vendas por período e produtos mais vendidos, estoque baixo e recebíveis vencidos.
 - [ ] **Prioridade posterior:** avaliar contas a pagar e despesas, com visão simples de compromissos e fluxo de caixa.
 - [ ] Auditoria: registrar quem alterou o quê (vendas, preços, estoque).
-- [ ] Se mais de um PC precisar usar o mesmo banco: migrar de SQLite para um servidor
-      (PostgreSQL), o que a Fase 2 deixa muito mais simples.
+- [ ] Se mais de um PC precisar usar o mesmo banco: migrar de SQLite para um servidor (PostgreSQL), o que a Fase 2 deixa muito mais simples.
+
+**Pronto quando:** os recursos forem implementados conforme a prioridade e validados nos fluxos reais de operação.
+
+## Fase G: Futuro
+
+**Objetivo:** manter ideias de evolução que não são necessárias para a operação atual.
+
+- [ ] **Auditoria:** registro de quem alterou o quê e quando nas tabelas principais.
+- [ ] **Painel:** indicadores, reaproveitando os componentes dos relatórios.
+- [ ] Frontend mais moderno: reavaliar só depois das fases anteriores. A decisão atual é seguir em Qt Widgets.
+- [ ] ~~PostgreSQL~~: retirado do planejamento, porque o banco é usado em um único PC e o SQLite em WAL atende. Reavaliar apenas se surgir uso em múltiplos PCs.
+
+**Pronto quando:** cada item for reavaliado conforme a necessidade real do produto, antes de entrar em desenvolvimento.
+
+---
+
+## Ordem sugerida
+
+**A → B → I → C1 → C2 → C3 → D → C4 → E → H → G**
+
+A Fase A protege os dados antes de qualquer evolução. A Fase B estabiliza a base técnica. A Fase I estabelece o licenciamento antes da consolidação da distribuição. A Fase C entrega melhorias nos relatórios em sequência, e a D finaliza a identidade visual. A Fase E consolida a operação e a distribuição já considerando o licenciamento. A Fase H prioriza recursos concretos do produto, enquanto a G permanece como planejamento futuro.
+
+A Fase F é transversal e deve avançar continuamente, sem alterar a ordem principal.
+
+## Observações de planejamento
+
+- A Fase I deve usar uma chave Ed25519 exclusiva para licenciamento, independente da chave de assinatura das atualizações.
+- A licença deve ficar na pasta `dados/`, fora das releases, para sobreviver às atualizações.
+- O licenciamento será offline; a assinatura protege a autenticidade da licença, mas não torna impossível a alteração deliberada do código por alguém com acesso a ele.
+- A decisão atual é manter o sistema desktop em Qt Widgets, com SQLite e ReportLab.

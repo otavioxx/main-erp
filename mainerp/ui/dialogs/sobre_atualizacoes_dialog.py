@@ -19,35 +19,50 @@ from mainerp.ui.dialog_base import DialogBase
 
 logger = logging.getLogger(__name__)
 
+# Aceita o padrão Keep a Changelog e o formato antigo:
+# ## [0.10.9] - 2026-11-09
+# ## 0.10.9 - 2026-11-09
+# ## [Unreleased]
 _RELEASE_HEADER = re.compile(
-    r"^##\s+(\S+?)(?:\s+-\s+(\d{4}-\d{2}-\d{2}))?\s*$", re.MULTILINE
+    r"^##\s+(?:\[([^\]]+)\]|(\S+?))"
+    r"(?:\s+-\s+(\d{4}-\d{2}-\d{2}))?\s*$",
+    re.MULTILINE,
 )
 
 
 def parse_changelog(text: str) -> list[tuple[str, str | None, str]]:
-    releases = []
+    """Separa o CHANGELOG em versões, datas e respectivos conteúdos."""
+    releases: list[tuple[str, str | None, str]] = []
     current: tuple[str, str | None] | None = None
-    body = []
+    body: list[str] = []
 
     for line in text.splitlines():
         match = _RELEASE_HEADER.match(line)
+
         if match:
             if current is not None:
-                releases.append((*current, "\n".join(body).strip()))
-            current = (match.group(1), match.group(2))
+                releases.append((current[0], current[1], "\n".join(body).strip()))
+
+            nome = match.group(1) or match.group(2)
+            if nome is None:
+                continue
+
+            current = (nome, match.group(3))
             body = []
         elif current is not None:
             body.append(line)
 
     if current is not None:
-        releases.append((*current, "\n".join(body).strip()))
+        releases.append((current[0], current[1], "\n".join(body).strip()))
 
     return releases
 
 
 def format_release_date(value: str | None) -> str:
+    """Converte uma data ISO para o formato brasileiro."""
     if value is None:
         return "Não informada"
+
     try:
         return date.fromisoformat(value).strftime("%d/%m/%Y")
     except ValueError:
@@ -56,31 +71,57 @@ def format_release_date(value: str | None) -> str:
 
 
 def _chave_versao(versao: str) -> tuple[int, int, int] | None:
-    if not re.fullmatch(r"\d+\.\d+(?:\.\d+)?", versao):
+    """Converte uma versão numérica em uma chave comparável."""
+    if not re.fullmatch(r"\d+(?:\.\d+){0,2}", versao):
         return None
+
     partes = [int(parte) for parte in versao.split(".")]
-    return partes[0], partes[1], partes[2] if len(partes) == 3 else 0
+    partes.extend([0] * (3 - len(partes)))
+
+    return partes[0], partes[1], partes[2]
+
+
+def _formatar_cabecalho_release(
+    nome: str,
+    data: str | None,
+) -> str:
+    """Formata o título de uma versão para exibição."""
+    cabecalho = f"## [{nome}]"
+
+    if data:
+        cabecalho += f" - {format_release_date(data)}"
+
+    return cabecalho
 
 
 def preparar_novidades(
-    versao: str, codigo: Path, dados: Path, arquivo_ok: str | None
+    versao: str,
+    codigo: Path,
+    dados: Path,
+    arquivo_ok: str | None,
 ) -> tuple[Path, str] | None:
     """Localiza notas de uma atualização ainda não apresentada pelo launcher."""
     atual = _chave_versao(versao)
+
     if atual is None:
         raise ValueError(f"Versão inválida: {versao!r}")
+
     if not arquivo_ok or Path(arquivo_ok).resolve() != (codigo / ".ok").resolve():
         return None
 
     marcador = dados / "novidades" / f"{versao}.lido"
+
     if marcador.exists():
         return None
 
-    anteriores = []
+    anteriores: list[tuple[int, int, int]] = []
+
     for pasta in codigo.parent.iterdir():
         chave = _chave_versao(pasta.name)
+
         if chave is not None and chave > atual and (pasta / "main.py").is_file():
             return None
+
         if (
             chave is not None
             and chave < atual
@@ -89,37 +130,48 @@ def preparar_novidades(
             and not (pasta / ".ruim").exists()
         ):
             anteriores.append(chave)
+
     if not anteriores:
         return None
 
     anterior = max(anteriores)
     texto = (codigo / "CHANGELOG.md").read_text(encoding="utf-8")
     releases = parse_changelog(texto)
-    notas = []
+
+    notas: list[str] = []
     encontrou_atual = False
+
     for nome, data, corpo in releases:
         chave = _chave_versao(nome)
-        if chave is not None and anterior < chave <= atual and corpo:
-            encontrou_atual |= chave == atual
-            cabecalho = f"## {nome}"
-            if data:
-                cabecalho += f" - {format_release_date(data)}"
-            notas.append(f"{cabecalho}\n\n{corpo}")
+
+        if chave is None or not (anterior < chave <= atual) or not corpo:
+            continue
+
+        encontrou_atual = encontrou_atual or chave == atual
+        cabecalho = _formatar_cabecalho_release(nome, data)
+        notas.append(f"{cabecalho}\n\n{corpo}")
+
     if not encontrou_atual:
         raise ValueError(f"Não há novidades para a versão {versao} no histórico.")
+
     return marcador, "\n\n".join(notas)
 
 
 def registrar_novidades_lidas(marcador: Path) -> None:
     """Registra a leitura após fechar o diálogo, sem gravar arquivos incompletos."""
     marcador.parent.mkdir(parents=True, exist_ok=True)
-    temporario = None
+    temporario: Path | None = None
+
     try:
         with tempfile.NamedTemporaryFile(
-            mode="w", encoding="utf-8", dir=marcador.parent, delete=False
+            mode="w",
+            encoding="utf-8",
+            dir=marcador.parent,
+            delete=False,
         ) as arquivo:
             temporario = Path(arquivo.name)
             arquivo.write("lido\n")
+
         os.replace(temporario, marcador)
     finally:
         if temporario is not None and temporario.exists():
@@ -127,91 +179,129 @@ def registrar_novidades_lidas(marcador: Path) -> None:
 
 
 class NovidadesDialog(DialogBase):
-    def __init__(self, versao: str, notas: str, parent=None):
+    def __init__(
+        self,
+        versao: str,
+        notas: str,
+        parent=None,
+    ) -> None:
         super().__init__(parent)
+
         self.setWindowTitle("Novidades da atualização")
         self.resize(650, 500)
+
         layout = QVBoxLayout(self)
+
         layout.addWidget(QLabel(f"<h2>MainERP atualizado para a versão {versao}</h2>"))
+
         descricao = QLabel("Confira as novidades incluídas nesta atualização.")
         descricao.setWordWrap(True)
         layout.addWidget(descricao)
+
         self.novidades = QTextBrowser()
         self.novidades.setOpenExternalLinks(False)
         self.novidades.setMarkdown(notas)
         layout.addWidget(self.novidades, 1)
+
         botoes = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+
         botao_fechar = botoes.button(QDialogButtonBox.StandardButton.Close)
         if botao_fechar is not None:
             botao_fechar.setText("Fechar")
+
         botoes.rejected.connect(self.reject)
         botoes.accepted.connect(self.accept)
         layout.addWidget(botoes)
 
 
-def mostrar_novidades_apos_atualizacao(parent, versao: str) -> None:
+def mostrar_novidades_apos_atualizacao(
+    parent,
+    versao: str,
+) -> None:
     try:
         novidades = preparar_novidades(
-            versao, Path(CODE_DIR), Path(DATA_DIR), os.environ.get("MAINERP_OK_FILE")
+            versao,
+            Path(CODE_DIR),
+            Path(DATA_DIR),
+            os.environ.get("MAINERP_OK_FILE"),
         )
     except (OSError, UnicodeError, ValueError) as erro:
         logger.exception("Não foi possível carregar as novidades da atualização")
         QMessageBox.warning(
-            parent, "Novidades da atualização",
-            f"Não foi possível carregar as novidades. Consulte Sobre para ver "
-            f"o histórico de versões.\n\nDetalhes: {erro}",
+            parent,
+            "Novidades da atualização",
+            "Não foi possível carregar as novidades. Consulte Sobre "
+            "para ver o histórico de versões.\n\n"
+            f"Detalhes: {erro}",
         )
         return
+
     if novidades is None:
         return
+
     marcador, notas = novidades
     NovidadesDialog(versao, notas, parent).exec()
+
     try:
         registrar_novidades_lidas(marcador)
     except OSError as erro:
         logger.exception("Não foi possível registrar a leitura das novidades")
         QMessageBox.warning(
-            parent, "Novidades da atualização",
+            parent,
+            "Novidades da atualização",
             "Não foi possível registrar que as novidades foram lidas. "
-            f"Elas poderão aparecer novamente na próxima abertura.\n\nDetalhes: {erro}",
+            "Elas poderão aparecer novamente na próxima abertura.\n\n"
+            f"Detalhes: {erro}",
         )
 
 
 class SobreAtualizacoesDialog(DialogBase):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
+
         self.setWindowTitle("Sobre - MainERP")
         self.resize(720, 600)
 
         layout = QVBoxLayout(self)
         versao = obter_config().APP_VERSION
+
         layout.addWidget(QLabel(f"<h2>MainERP v{versao}</h2>"))
 
         changelog_path = Path(CODE_DIR) / "CHANGELOG.md"
+
         try:
             changelog = changelog_path.read_text(encoding="utf-8")
-        except OSError as error:
-            logger.exception("Não foi possível ler o histórico %s", changelog_path)
+        except (OSError, UnicodeError) as error:
+            logger.exception(
+                "Não foi possível ler o histórico %s",
+                changelog_path,
+            )
             releases = []
             historico = f"Não foi possível carregar o histórico de versões.\n{error}"
         else:
             releases = parse_changelog(changelog)
-            historico = changelog or "O histórico de versões está vazio."
+            historico = "Não há informações disponíveis para esta versão."
 
         release_atual = next(
-            (release for release in releases if release[0] == versao), None
+            (release for release in releases if release[0] == versao),
+            None,
         )
+
         data = format_release_date(release_atual[1] if release_atual else None)
         layout.addWidget(QLabel(f"Data da versão: {data}"))
 
         texto_atualizacoes = QLabel(
-            "As atualizações são verificadas pelo launcher ao abrir o sistema "
-            "pelo atalho."
+            "As atualizações são verificadas pelo launcher ao abrir "
+            "o sistema pelo atalho."
         )
         texto_atualizacoes.setWordWrap(True)
         layout.addWidget(texto_atualizacoes)
 
-        layout.addWidget(QLabel("<h3>Histórico de versões</h3>"))
+        layout.addWidget(QLabel("<h3>Novidades desta versão</h3>"))
+
+        if release_atual is not None and release_atual[2]:
+            historico = release_atual[2]
+
         self.historico = QTextBrowser()
         self.historico.setOpenExternalLinks(False)
         self.historico.setMarkdown(historico)
