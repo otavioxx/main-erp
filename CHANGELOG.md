@@ -26,11 +26,11 @@ As alterações são organizadas nas categorias:
 ## [0.10.10] - 2026-11-10
 
 ### Alterado
-- Reformulada a janela Sobre, com informações institucionais, identificação do desenvolvedor e canal de suporte.
-- Incluída a exibição automática da versão instalada e da data de lançamento.
+- Reformulada a janela Sobre, com informações institucionais e canal de suporte.
 
 ### Adicionado
 - Link clicável para contato com o suporte por e-mail.
+- Exibição automática da versão instalada e da data de lançamento.
 
 ## [0.10.9] - 2026-11-09
 
