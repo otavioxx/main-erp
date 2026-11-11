@@ -23,6 +23,15 @@ As alterações são organizadas nas categorias:
 
 ### Removido
 
+## [0.10.10] - 2026-11-10
+
+### Alterado
+- Reformulada a janela Sobre, com informações institucionais, identificação do desenvolvedor e canal de suporte.
+- Incluída a exibição automática da versão instalada e da data de lançamento.
+
+### Adicionado
+- Link clicável para contato com o suporte por e-mail.
+
 ## [0.10.9] - 2026-11-09
 
 ### Corrigido
