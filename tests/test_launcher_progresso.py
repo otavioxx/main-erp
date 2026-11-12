@@ -13,10 +13,11 @@ CAMINHO_LAUNCHER = Path(__file__).resolve().parents[1] / "distribuicao" / "launc
 
 @pytest.fixture
 def launcher(tmp_path, monkeypatch):
-    loader = importlib.machinery.SourceFileLoader("launcher_pyw", str(CAMINHO_LAUNCHER))
-    spec = importlib.util.spec_from_loader("launcher_pyw", loader)
+    spec = importlib.util.spec_from_file_location("launcher_pyw",CAMINHO_LAUNCHER,)
+    assert spec is not None
+    assert spec.loader is not None
     modulo = importlib.util.module_from_spec(spec)
-    loader.exec_module(modulo)
+    spec.loader.exec_module(modulo)
     monkeypatch.setattr(modulo, "LOGS", tmp_path / "logs")
     return modulo
 
