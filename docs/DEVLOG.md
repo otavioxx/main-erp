@@ -1,5 +1,17 @@
 # Histórico de Desenvolvimento
 
+## 2026-11-11
+
+### Splash — identidade Pluma e progresso real
+
+- Nova splash em `mainerp/ui/splash_pluma.py` (`PlumaSplash`), no lugar do desenho que ficava em `show_splash` (`mainerp/app.py`): símbolo e marca Pluma, lema, barra de progresso reta, mensagem da etapa, percentual e rodapé com `© Digital Solutions - <APP_NAME> v<APP_VERSION>`.
+- Segue `docs/identidade_visual.md`: cores apenas por tokens de `CoresTema` do tema ativo (sem hexadecimais no componente), superfícies planas, bordas retas e sem gradientes decorativos. A barra usa `border` no trilho e `accent_text` no preenchimento, que mantém contraste nos dois temas. O símbolo é o `pluma-simbolo.svg` da identidade, embutido no módulo e desenhado com `QSvgRenderer`; por isso a release não depende de arquivos de assets, já que o gerador inclui apenas os arquivos Python dos pacotes.
+- Progresso sem simulação: `PlumaSplash.atualizar(mensagem, percentual=None)` só move a barra quando o percentual é informado e nunca a faz retroceder. Em `app.py`, as etapas iniciais informam valores fixos (0, 5, 10, 15 e 20%) e as 8 telas da `MainWindow` dividem a faixa de 20% a 100%: `percentual_carregamento_telas` converte a mensagem `Carregando tela i/n: ...` na fração de telas já concluídas. Mensagens sem posição não alteram a barra. A `MainWindow` não foi alterada. Os pesos das etapas são uma escolha de projeto, não uma medição de tempo.
+- O tamanho lógico (450 × 300) e o desenho na escala da tela principal foram preservados. `show_splash` não recebe mais parâmetros.
+- `tests/test_splash.py` reescrito para a nova splash (tema, escalas 100%, 125% e 150%, barra, percentual que não retrocede e conversão das mensagens de tela).
+- Verificação: Ruff (check e format) e os 7 testes de `tests/test_splash.py` foram executados em um ambiente isolado com módulos do projeto substituídos por stubs, não no repositório. Pendente no projeto: `verificar.bat` e conferência visual em 100%, 125% e 150% no Windows.
+- O rodapé com o copyright, que a splash anterior exibia, foi mantido.
+
 ## 2026-11-09
 
 ### Preparação da release 0.10.9

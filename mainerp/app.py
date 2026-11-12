@@ -2,14 +2,15 @@
 import atexit
 import logging
 import os
+import re
 import sqlite3
 import sys
 from datetime import datetime
 
 import pytz
-from PyQt6.QtCore import QLibraryInfo, QRect, Qt, QTimer, QTranslator
-from PyQt6.QtGui import QColor, QFont, QIcon, QPainter, QPixmap
-from PyQt6.QtWidgets import QApplication, QMessageBox, QSplashScreen
+from PyQt6.QtCore import QLibraryInfo, QTimer, QTranslator
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QApplication, QMessageBox
 
 from mainerp.core import paths
 from mainerp.core.app_logging import configurar_logging, registrar_excecao
@@ -21,8 +22,8 @@ from mainerp.data.restore import aplicar_restauracao_pendente
 from mainerp.ui.dialogs.sobre_atualizacoes_dialog import (
     mostrar_novidades_apos_atualizacao,
 )
+from mainerp.ui.splash_pluma import PlumaSplash
 from mainerp.ui.styles import aplicar_tema, cores_ativas
-from mainerp.ui.theme_tokens import DIMENSOES
 from mainerp.ui.views.main_window import MainWindow
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,32 @@ logger = logging.getLogger(__name__)
 EXIT_REINICIAR = 100  # o sistema pediu reinício (ex.: após restaurar backup)
 EXIT_JA_EM_EXECUCAO = 3  # outra instância já está aberta (não é uma falha)
 EXIT_RESTAURACAO_FALHOU = 4  # não iniciar versão antiga com restauração pendente
+
+# Progresso da splash: percentual de etapas já concluídas quando cada etapa começa.
+# As telas da janela principal dividem a faixa de PROGRESSO_INTERFACE a 100.
+PROGRESSO_DIRETORIOS = 5
+PROGRESSO_BANCO = 10
+PROGRESSO_LIMPEZA = 15
+PROGRESSO_INTERFACE = 20
+PROGRESSO_CONCLUIDO = 100
+
+_PADRAO_TELA = re.compile(r"(\d+)/(\d+)")
+
+
+def percentual_carregamento_telas(mensagem: str) -> float | None:
+    """Converte 'Carregando tela 3/8: ...' no percentual de telas já concluídas.
+
+    Retorna None se a mensagem não informar a posição da tela; nesse caso a
+    splash mantém o percentual atual, sem estimar avanço.
+    """
+    encontrado = _PADRAO_TELA.search(mensagem)
+    if encontrado is None:
+        return None
+    atual, total = int(encontrado.group(1)), int(encontrado.group(2))
+    if total <= 0 or not 1 <= atual <= total:
+        return None
+    faixa = PROGRESSO_CONCLUIDO - PROGRESSO_INTERFACE
+    return PROGRESSO_INTERFACE + faixa * (atual - 1) / total
 
 
 def obter_caminho_base():
@@ -117,80 +144,13 @@ def carregar_icone_aplicacao() -> QIcon:
     return QIcon()
 
 
-def show_splash(
-    app_name="ERP System",
-    footer_text="© Digital Solutions - Todos os direitos reservados",
-):
-    """Mostra o progresso real da inicialização com as cores do tema ativo."""
-    width, height = 450, 300
-    cores = cores_ativas()
-    screen = QApplication.primaryScreen()
-    escala = screen.devicePixelRatio() if screen is not None else 1.0
-
-    def create_splash_pixmap(progress_message=""):
-        splash_pixmap = QPixmap(round(width * escala), round(height * escala))
-        splash_pixmap.setDevicePixelRatio(escala)
-        splash_pixmap.fill(QColor(cores.surface))
-        painter = QPainter(splash_pixmap)
-        painter.fillRect(QRect(0, 0, width, 86), QColor(cores.nav_bg))
-        painter.setPen(QColor(cores.nav_text))
-        painter.setFont(QFont(DIMENSOES.fonte_familia, 24, QFont.Weight.DemiBold))
-        painter.drawText(
-            QRect(28, 12, width - 56, 62),
-            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-            app_name,
-        )
-
-        painter.setFont(QFont(DIMENSOES.fonte_familia, 12, QFont.Weight.DemiBold))
-        painter.setPen(QColor(cores.text_primary))
-        painter.drawText(
-            QRect(28, 108, width - 56, 30),
-            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-            "Sistema de Gestão Empresarial",
-        )
-        painter.setFont(QFont(DIMENSOES.fonte_familia, 10))
-        painter.setPen(QColor(cores.text_secondary))
-        painter.drawText(
-            QRect(28, 148, width - 56, 24),
-            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-            "Inicializando o sistema",
-        )
-
-        if progress_message:
-            painter.fillRect(QRect(28, 185, 3, 42), QColor(cores.accent))
-            painter.setPen(QColor(cores.text_primary))
-            painter.drawText(
-                QRect(40, 185, width - 68, 42),
-                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-                | Qt.TextFlag.TextWordWrap,
-                progress_message,
-            )
-
-        painter.setPen(QColor(cores.border))
-        painter.drawLine(28, 252, width - 29, 252)
-        painter.setFont(QFont(DIMENSOES.fonte_familia, 8))
-        painter.setPen(QColor(cores.text_secondary))
-        painter.drawText(
-            QRect(28, 260, width - 56, 26),
-            Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
-            footer_text,
-        )
-        painter.setPen(QColor(cores.border))
-        painter.drawRect(0, 0, width - 1, height - 1)
-        painter.end()
-        return splash_pixmap
-
-    class SplashScreenComMensagem(QSplashScreen):
-        def __init__(self, pixmap):
-            super().__init__(pixmap)
-
-        def update_message(self, message):
-            new_pixmap = create_splash_pixmap(message)
-            self.setPixmap(new_pixmap)
-
-    # Cria splash inicial sem mensagem
-    initial_pixmap = create_splash_pixmap()
-    splash = SplashScreenComMensagem(initial_pixmap)
+def show_splash():
+    """Mostra a splash Pluma com barra de progresso, com as cores do tema ativo."""
+    config = obter_config()
+    splash = PlumaSplash(
+        cores=cores_ativas(),
+        rodape=f"© OTC Tecnology - {config.APP_NAME} v{config.APP_VERSION}",
+    )
 
     # Aplica ícone no splash se disponível
     icon = carregar_icone_aplicacao()
@@ -367,15 +327,19 @@ def main():
     aplicar_tema(app, config.obter_tema())
 
     # Mostrar splash enquanto as tarefas reais de inicialização são executadas.
-    splash = show_splash(config.APP_NAME)
+    splash = show_splash()
     app.processEvents()
 
-    def update_splash_message(message):
-        splash.update_message(message)
+    def update_splash_message(message, percentual=None):
+        # A MainWindow informa só a mensagem "Carregando tela i/n"; dela sai o
+        # percentual. Sem percentual conhecido, a barra permanece onde está.
+        if percentual is None:
+            percentual = percentual_carregamento_telas(message)
+        splash.atualizar(message, percentual)
         app.processEvents()
 
     try:
-        update_splash_message("Verificando restauração pendente...")
+        update_splash_message("Verificando restauração pendente...", 0)
         anterior = aplicar_restauracao_pendente(config.obter_caminho_banco())
         if anterior:
             logger.info("Restauração aplicada; backup anterior: %s", anterior)
@@ -394,16 +358,20 @@ def main():
         sys.exit(EXIT_RESTAURACAO_FALHOU)
 
     try:
-        update_splash_message("Preparando diretórios do sistema...")
+        update_splash_message(
+            "Preparando diretórios do sistema...", PROGRESSO_DIRETORIOS
+        )
         config.criar_pastas_necessarias()
 
-        update_splash_message("Verificando banco de dados e migrações...")
+        update_splash_message(
+            "Verificando banco de dados e migrações...", PROGRESSO_BANCO
+        )
         verificar_banco_dados()
 
-        update_splash_message("Limpando arquivos temporários...")
+        update_splash_message("Limpando arquivos temporários...", PROGRESSO_LIMPEZA)
         limpar_pasta_relatorios()
 
-        update_splash_message("Preparando interface...")
+        update_splash_message("Preparando interface...", PROGRESSO_INTERFACE)
         window = MainWindow(progress_callback=update_splash_message)
 
     except Exception as e:
@@ -416,6 +384,7 @@ def main():
         )
         sys.exit(1)
 
+    update_splash_message("Concluindo...", PROGRESSO_CONCLUIDO)
     splash.finish(window)
     window.show()
     confirmar_abertura()

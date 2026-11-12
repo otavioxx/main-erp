@@ -60,7 +60,7 @@ class StatusBarWidget(QWidget):
 
         # Versão da aplicação
         self.label_version = QLabel(
-            f"© Digital Solutions - MainERP v{obter_config().APP_VERSION}"
+            f"© OTC Tecnology - MainERP v{obter_config().APP_VERSION}"
         )
         self.label_version.setProperty("class", "version-label")
         layout.addWidget(self.label_version)
@@ -193,7 +193,11 @@ class MainWindow(QMainWindow):
         for nome_icone, text in nav_items:
             btn = QPushButton(text)
             btn.setIcon(icone(nome_icone, cores.nav_text, cores.button_semantic_text))
-            btn.setIconSize(QSize(DIMENSOES.tamanho_icone_navegacao, DIMENSOES.tamanho_icone_navegacao))
+            btn.setIconSize(
+                QSize(
+                    DIMENSOES.tamanho_icone_navegacao, DIMENSOES.tamanho_icone_navegacao
+                )
+            )
             btn.setProperty("class", "nav-button")
             btn.setCheckable(True)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -345,7 +349,9 @@ class MainWindow(QMainWindow):
         if ultimo is None:
             idade = "nenhum arquivo encontrado"
         else:
-            minutos = max(0, int((datetime.now().timestamp() - ultimo.timestamp()) // 60))
+            minutos = max(
+                0, int((datetime.now().timestamp() - ultimo.timestamp()) // 60)
+            )
             dias, minutos = divmod(minutos, 1440)
             horas, minutos = divmod(minutos, 60)
             idade = f"{dias}d {horas}h {minutos}min"

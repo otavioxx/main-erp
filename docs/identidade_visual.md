@@ -182,9 +182,13 @@ alguns ícones derivam do Feather, sob licença MIT. Os textos integrais das lic
 acompanham os SVGs em `mainerp/ui/icons/` e são incluídos nas releases e no instalador.
 Mensagens de estado usam texto explícito e os avisos nativos, sem depender de emoji.
 
-O splash de inicialização usa as cores do tema ativo, superfícies planas e bordas
-retas. Ele mantém as mensagens das etapas reais, sem apresentar progresso simulado.
-Seu tamanho lógico é preservado e a imagem é desenhada na escala da tela principal.
+A splash de inicialização (`mainerp/ui/splash_pluma.py`) usa o símbolo e a marca
+Pluma, as cores do tema ativo por tokens, superfícies planas, bordas retas e uma barra
+de progresso reta de cor sólida. O símbolo é o SVG da identidade Pluma, embutido no
+módulo. A barra mostra somente progresso real: o percentual corresponde às etapas de
+inicialização já concluídas, sem avanço simulado, e a mensagem é a da etapa em
+execução. Seu tamanho lógico é preservado e a imagem é desenhada na escala da tela
+principal.
 
 Em **Configurações > Aparência**, selecione Claro ou Escuro e clique em **Salvar tema**;
 a escolha entra em vigor na próxima abertura. Sem arquivo de configuração, o padrão é
