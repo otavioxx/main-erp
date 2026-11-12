@@ -18,6 +18,7 @@ As alterações são organizadas nas categorias:
 ### Alterado
 
 - Redesenhada a tela de abertura do sistema com a identidade visual Pluma, barra de progresso e indicação da etapa de carregamento.
+- Redesenhada a janela exibida durante as atualizações, com a identidade visual Pluma e barra de progresso do download e da instalação.
 
 ### Corrigido
 

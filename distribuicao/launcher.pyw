@@ -13,16 +13,22 @@
 # %LOCALAPPDATA%\MainERP\dados e nenhuma atualização mexe neles.
 #
 # Parâmetro opcional: --somente-atualizar (aplica atualizações e não abre o sistema).
+#
+# Durante atualizações, uma janela mínima (símbolo Pluma, barra de progresso e a
+# palavra "Atualizando") mostra o andamento real: bytes baixados, arquivos extraídos
+# e pacotes processados pelo pip. Ela usa só tkinter e nunca bloqueia a atualização.
 
 import base64
 import contextlib
 import hashlib
 import json
 import os
+import queue
 import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -47,6 +53,73 @@ EXIT_REINICIAR = 100  # o sistema pediu reinício
 CODIGOS_NORMAIS = {0, 3, 4}  # 4 = restauração falhou; não abrir versão anterior
 MANTER_RELEASES = 3
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+TEMPO_MAXIMO_PIP = 1800  # segundos
+
+# Janela de atualização. O launcher usa só a biblioteca padrão e não importa o
+# aplicativo, então as cores do tema claro (padrão de instalações novas) ficam aqui,
+# copiadas de CLARO em mainerp/ui/theme_tokens.py: surface, border, accent_text e
+# text_secondary. Se esses tokens mudarem, atualize estas constantes.
+JANELA_LARGURA = 320
+JANELA_ALTURA = 180
+COR_SUPERFICIE = "#FFFFFF"
+COR_BORDA = "#C3CCD7"
+COR_PREENCHIMENTO = "#1565A8"
+COR_TEXTO = "#4B5A6A"
+BARRA_LARGURA = 200
+BARRA_ALTURA = 4
+
+# Progresso (0 a 100) por etapa concluída da atualização. Download, extração e a
+# coleta de pacotes do pip avançam conforme o trabalho realmente feito; os valores
+# são as faixas de cada etapa, não uma estimativa de tempo.
+PROGRESSO_DOWNLOAD_FIM = 30
+PROGRESSO_VERIFICADO = 32
+PROGRESSO_EXTRACAO_FIM = 42
+PROGRESSO_AMBIENTE_FIM = 48
+PROGRESSO_COLETA_FIM = 78
+PROGRESSO_DEPENDENCIAS_FIM = 96
+PROGRESSO_CONCLUIDO = 100
+
+MENSAGEM_FALHA_DEPENDENCIAS = (
+    "Não foi possível instalar as dependências da nova versão "
+    "(verifique a conexão com a internet). Detalhes em logs\\launcher.log."
+)
+
+# Símbolo da Pluma (PNG com transparência, 47 x 49 px) para a janela de atualização.
+SIMBOLO_PNG_B64 = (
+    "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"
+)
 
 
 # ----------------------------------------------------------------------
@@ -83,32 +156,94 @@ def mensagem(titulo, texto, erro=True):
 
 
 class Aviso:
-    """Janelinha 'aguarde' mostrada só quando há algo demorado a fazer."""
+    """Janela de atualização: símbolo, barra de progresso reta e "Atualizando".
+
+    Só aparece quando há algo demorado a fazer. Qualquer falha ao desenhá-la
+    desativa a janela, sem interromper a atualização.
+    """
 
     def __init__(self):
         self.root = None
-        self.label = None
+        self.canvas = None
         self.falhou = False
+        self.percentual = 0.0
+        self._preenchimento = None
+        self._simbolo = None
+
+    def _criar(self):
+        import tkinter as tk
+
+        root = tk.Tk()
+        root.title("MainERP")
+        root.overrideredirect(True)  # sem barra de título; borda fina própria
+        root.attributes("-topmost", True)
+        root.configure(bg=COR_BORDA)
+        x = (root.winfo_screenwidth() - JANELA_LARGURA) // 2
+        y = (root.winfo_screenheight() - JANELA_ALTURA) // 2
+        root.geometry(f"{JANELA_LARGURA}x{JANELA_ALTURA}+{x}+{y}")
+
+        interno = tk.Frame(root, bg=COR_SUPERFICIE)
+        interno.place(x=1, y=1, width=JANELA_LARGURA - 2, height=JANELA_ALTURA - 2)
+
+        self._simbolo = tk.PhotoImage(data=SIMBOLO_PNG_B64)
+        tk.Label(interno, image=self._simbolo, bg=COR_SUPERFICIE, bd=0).place(
+            relx=0.5, y=34, anchor="n"
+        )
+        self.canvas = tk.Canvas(
+            interno, width=BARRA_LARGURA, height=BARRA_ALTURA,
+            bg=COR_BORDA, highlightthickness=0, bd=0,
+        )
+        self.canvas.place(relx=0.5, y=110, anchor="n")
+        self._preenchimento = self.canvas.create_rectangle(
+            0, 0, 0, BARRA_ALTURA, fill=COR_PREENCHIMENTO, outline=""
+        )
+        tk.Label(
+            interno, text="Atualizando", font=("Segoe UI", 10),
+            fg=COR_TEXTO, bg=COR_SUPERFICIE, bd=0,
+        ).place(relx=0.5, y=124, anchor="n")
+        self.root = root
+
+    def _desativar(self):
+        self.falhou = True
+        self.fechar()
 
     def mostrar(self, texto):
+        """Exibe a janela. O texto detalhado vai só para o log; a janela é mínima."""
+        log(f"[atualização] {' '.join(str(texto).split())}")
         if self.falhou:
             return
         try:
             if self.root is None:
-                import tkinter as tk
-
-                self.root = tk.Tk()
-                self.root.title("MainERP")
-                self.root.resizable(False, False)
-                self.root.attributes("-topmost", True)
-                self.label = tk.Label(self.root, padx=40, pady=30, font=("Segoe UI", 11))
-                self.label.pack()
-                self.root.eval("tk::PlaceWindow . center")
-            self.label.config(text=texto)
+                self._criar()
             self.root.update()
         except Exception:
-            self.falhou = True
-            self.root = None
+            self._desativar()
+
+    def progresso(self, percentual):
+        """Atualiza a barra (0 a 100). Ela nunca retrocede dentro de uma instalação."""
+        if self.root is None or self.falhou:
+            return
+        try:
+            self.percentual = max(self.percentual, min(100.0, float(percentual)))
+            largura = round(BARRA_LARGURA * self.percentual / 100)
+            self.canvas.coords(self._preenchimento, 0, 0, largura, BARRA_ALTURA)
+            self.root.update()
+        except Exception:
+            self._desativar()
+
+    def reiniciar_progresso(self):
+        """Zera a barra, para o próximo pacote quando há mais de um a instalar."""
+        self.percentual = 0.0
+        self.progresso(0)
+
+    def atualizar_janela(self):
+        """Processa eventos da janela enquanto uma etapa longa não traz novidades."""
+        if self.root is None or self.falhou:
+            return
+        try:
+            self.root.update()
+        except Exception:
+            self._desativar()
 
     def fechar(self):
         try:
@@ -117,6 +252,47 @@ class Aviso:
         except Exception:
             pass
         self.root = None
+
+
+# Janela ativa durante atualizar(); None fora dela. Fica em variável do módulo para
+# que download, extração e pip informem o progresso sem mudar suas assinaturas.
+_aviso_progresso = None
+
+
+def progresso_ativo():
+    aviso = _aviso_progresso
+    return aviso is not None and getattr(aviso, "root", None) is not None
+
+
+def informar_progresso(percentual):
+    """Informa o andamento real (0 a 100) à janela de atualização, se houver."""
+    aviso = _aviso_progresso
+    if aviso is None:
+        return
+    try:
+        aviso.progresso(percentual)
+    except Exception:
+        pass
+
+
+def reiniciar_progresso():
+    aviso = _aviso_progresso
+    if aviso is None:
+        return
+    try:
+        aviso.reiniciar_progresso()
+    except Exception:
+        pass
+
+
+def manter_janela_ativa():
+    aviso = _aviso_progresso
+    if aviso is None:
+        return
+    try:
+        aviso.atualizar_janela()
+    except Exception:
+        pass
 
 
 def chave_versao(versao):
@@ -272,7 +448,14 @@ def extrair_seguro(zf, destino):
         alvo = (destino / membro.filename).resolve()
         if alvo != base and base not in alvo.parents:
             raise ValueError(f"pacote com caminho inválido: {membro.filename}")
-    zf.extractall(destino)
+    if not progresso_ativo():
+        zf.extractall(destino)
+        return
+    membros = zf.infolist()
+    faixa = PROGRESSO_EXTRACAO_FIM - PROGRESSO_VERIFICADO
+    for i, membro in enumerate(membros, 1):
+        zf.extract(membro, destino)
+        informar_progresso(PROGRESSO_VERIFICADO + faixa * i / len(membros))
 
 
 def garantir_dependencias(pasta_release, versao=None):
@@ -294,6 +477,7 @@ def garantir_dependencias(pasta_release, versao=None):
                 check=True, capture_output=True, encoding="utf-8", errors="replace",
                 stdin=subprocess.DEVNULL, creationflags=NO_WINDOW, timeout=300,
             )
+            informar_progresso(PROGRESSO_AMBIENTE_FIM)
             python = runtime / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
             instalar_dependencias(str(python), req)
             (pasta_release / ".runtime-isolado").write_text("1", encoding="ascii")
@@ -309,8 +493,79 @@ def garantir_dependencias(pasta_release, versao=None):
     HASH_REQUISITOS.write_text(atual, encoding="utf-8")
 
 
+def contar_requisitos(req):
+    """Quantidade de pacotes diretos em requirements.txt (base da estimativa do pip)."""
+    total = 0
+    for linha in req.read_text(encoding="utf-8", errors="replace").splitlines():
+        linha = linha.split("#", 1)[0].strip()
+        if linha and not linha.startswith("-"):
+            total += 1
+    return max(total, 1)
+
+
+def instalar_dependencias_com_progresso(python, req):
+    """Roda o pip lendo a saída linha a linha para informar o andamento.
+
+    O pip anuncia cada pacote ao coletá-lo ("Collecting ..."), mas só confirma a
+    instalação no fim ("Successfully installed ..."). Por isso a barra avança a cada
+    pacote coletado (o total real só é conhecido depois) e conclui ao final.
+    """
+    comando = [python, "-m", "pip", "install", "-r", str(req),
+               "--disable-pip-version-check", "--no-input"]
+    previstos = contar_requisitos(req)
+    processo = subprocess.Popen(
+        comando, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT, encoding="utf-8", errors="replace",
+        creationflags=NO_WINDOW,
+    )
+    fila = queue.Queue()
+
+    def ler_saida():
+        try:
+            for linha in processo.stdout:
+                fila.put(linha)
+        finally:
+            fila.put(None)
+
+    threading.Thread(target=ler_saida, daemon=True).start()
+    inicio = time.time()
+    saida = []
+    coletados = 0
+    faixa = PROGRESSO_COLETA_FIM - PROGRESSO_AMBIENTE_FIM
+    try:
+        while True:
+            if time.time() - inicio > TEMPO_MAXIMO_PIP:
+                raise subprocess.TimeoutExpired(comando, TEMPO_MAXIMO_PIP)
+            try:
+                linha = fila.get(timeout=0.2)
+            except queue.Empty:
+                manter_janela_ativa()
+                continue
+            if linha is None:
+                break
+            saida.append(linha)
+            if linha.startswith("Collecting "):
+                coletados += 1
+                fracao = coletados / max(previstos, coletados + 1)
+                informar_progresso(PROGRESSO_AMBIENTE_FIM + faixa * fracao)
+            elif linha.startswith("Successfully installed"):
+                informar_progresso(PROGRESSO_DEPENDENCIAS_FIM)
+        codigo = processo.wait()
+    finally:
+        if processo.poll() is None:
+            processo.kill()
+            processo.wait()
+    if codigo != 0:
+        log("".join(saida)[-4000:])
+        raise RuntimeError(MENSAGEM_FALHA_DEPENDENCIAS)
+    informar_progresso(PROGRESSO_DEPENDENCIAS_FIM)
+
+
 def instalar_dependencias(python, req):
     log("Instalando dependências (pip)...")
+    if progresso_ativo():
+        instalar_dependencias_com_progresso(python, req)
+        return
     r = subprocess.run(
         [python, "-m", "pip", "install", "-r", str(req),
          "--disable-pip-version-check", "--no-input"],
@@ -319,10 +574,7 @@ def instalar_dependencias(python, req):
     )
     if r.returncode != 0:
         log((r.stdout or "")[-2000:] + (r.stderr or "")[-2000:])
-        raise RuntimeError(
-            "Não foi possível instalar as dependências da nova versão "
-            "(verifique a conexão com a internet). Detalhes em logs\\launcher.log."
-        )
+        raise RuntimeError(MENSAGEM_FALHA_DEPENDENCIAS)
 
 
 def instalar_zip(caminho, sha256=None):
@@ -342,6 +594,7 @@ def instalar_zip(caminho, sha256=None):
             log(f"Versão {versao} já existe; ignorando pacote.")
             return None
 
+        informar_progresso(PROGRESSO_VERIFICADO)
         RELEASES.mkdir(parents=True, exist_ok=True)
         tmp = RELEASES / f".tmp-{versao}-{os.getpid()}"
         shutil.rmtree(tmp, ignore_errors=True)
@@ -353,6 +606,7 @@ def instalar_zip(caminho, sha256=None):
             os.replace(tmp, destino)
             instalada = True
             definir_atual(versao)
+            informar_progresso(PROGRESSO_CONCLUIDO)
         except Exception:
             runtime_isolado = (tmp / ".runtime-isolado").exists() or (
                 instalada and (destino / ".runtime-isolado").exists()
@@ -400,6 +654,7 @@ def aplicar_atualizacoes_locais(aviso):
             mover_zip(z, "aplicadas")
             continue
         aviso.mostrar("Instalando atualização do MainERP...\nAguarde.")
+        reiniciar_progresso()
         try:
             instalar_zip(z)
             mover_zip(z, "aplicadas")
@@ -438,11 +693,31 @@ def resolver_url(origem, url):
     return str(base / url)
 
 
+def copiar_com_progresso(resposta, arquivo):
+    """Copia o download informando os bytes recebidos (quando o tamanho é conhecido)."""
+    try:
+        total = int(resposta.headers.get("Content-Length") or 0)
+    except (AttributeError, TypeError, ValueError):
+        total = 0
+    lido = 0
+    while True:
+        bloco = resposta.read(64 * 1024)
+        if not bloco:
+            break
+        arquivo.write(bloco)
+        lido += len(bloco)
+        if total > 0:
+            informar_progresso(PROGRESSO_DOWNLOAD_FIM * min(lido, total) / total)
+
+
 def baixar(origem, destino):
     parcial = destino.with_suffix(destino.suffix + ".part")
     if _eh_http(origem):
         with urllib.request.urlopen(origem, timeout=30) as r, open(parcial, "wb") as f:
-            shutil.copyfileobj(r, f)
+            if progresso_ativo():
+                copiar_com_progresso(r, f)
+            else:
+                shutil.copyfileobj(r, f)
     else:
         shutil.copy2(origem, parcial)
     os.replace(parcial, destino)
@@ -563,14 +838,18 @@ def trava_atualizacao():
 
 
 def atualizar(aviso):
+    global _aviso_progresso
     with trava_atualizacao() as obtida:
         if not obtida:
             return
+        # Só janelas que informam progresso (a Aviso real) usam os caminhos com andamento.
+        _aviso_progresso = aviso if hasattr(aviso, "progresso") else None
         try:
             aplicar_atualizacoes_locais(aviso)
             atualizar_online(aviso)
             limpar_releases()
         finally:
+            _aviso_progresso = None
             aviso.fechar()
 
 

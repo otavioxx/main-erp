@@ -31,23 +31,42 @@ UPDATE_MANIFEST_URL = (
 )
 
 ARQUIVOS_DESENVOLVIMENTO = (
-    "CHANGELOG.md", "ROADMAP.md", "README.md", "verificar.bat",
-    "requirements-dev.txt", "pyproject.toml", ".gitignore",
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "README.md",
+    "verificar.bat",
+    "requirements-dev.txt",
+    "pyproject.toml",
+    ".gitignore",
     ".github/workflows/release.yml",
-    "tests/test_about_updates_dialog.py", "tests/test_automatic_backup.py",
-    "tests/test_condicional_money.py", "tests/test_database_migrations.py",
-    "tests/test_database_transactions.py", "tests/test_database_utils.py",
-    "tests/test_dialog_inheritance.py", "tests/test_duplicata.py",
-    "tests/test_instalador_pacote.py", "tests/test_listagem_tables.py",
-    "tests/test_manual_backup.py", "tests/test_money.py", "tests/test_money_reports.py",
-    "tests/test_outras_listagens.py", "tests/test_pedido_model.py",
-    "tests/test_pedido_utils_money.py", "tests/test_produto_model.py",
-    "tests/test_release_updates.py", "tests/test_restore_pending.py",
-    "tests/test_restore_validation.py", "tests/test_table_items.py",
-    "tests/test_splash.py", "tests/test_theme_tokens.py",
+    "tests/test_about_updates_dialog.py",
+    "tests/test_automatic_backup.py",
+    "tests/test_condicional_money.py",
+    "tests/test_database_migrations.py",
+    "tests/test_database_transactions.py",
+    "tests/test_database_utils.py",
+    "tests/test_dialog_inheritance.py",
+    "tests/test_duplicata.py",
+    "tests/test_instalador_pacote.py",
+    "tests/test_listagem_tables.py",
+    "tests/test_manual_backup.py",
+    "tests/test_money.py",
+    "tests/test_money_reports.py",
+    "tests/test_outras_listagens.py",
+    "tests/test_pedido_model.py",
+    "tests/test_pedido_utils_money.py",
+    "tests/test_produto_model.py",
+    "tests/test_release_updates.py",
+    "tests/test_restore_pending.py",
+    "tests/test_restore_validation.py",
+    "tests/test_table_items.py",
+    "tests/test_splash.py",
+    "tests/test_theme_tokens.py",
     "tests/test_themes_ui.py",
-    "tests/test_venda_estoque.py", "tests/test_venda_model.py",
-    "tests/test_venda_utils.py", "tests/test_view_data_models.py",
+    "tests/test_venda_estoque.py",
+    "tests/test_venda_model.py",
+    "tests/test_venda_utils.py",
+    "tests/test_view_data_models.py",
 )
 
 
@@ -66,20 +85,31 @@ def garantir_criptografia_launcher(runtime: Path) -> None:
     """Instala no runtime principal a dependência de assinatura do launcher."""
     linhas = (PROJETO / "requirements.txt").read_text(encoding="utf-8").splitlines()
     requisitos = [
-        linha.strip() for linha in linhas
+        linha.strip()
+        for linha in linhas
         if re.match(r"^cryptography(?:[<>=!~;\s]|$)", linha.strip(), re.IGNORECASE)
     ]
     if len(requisitos) != 1:
         raise ValueError("Não foi possível identificar a dependência cryptography.")
     python = str(python_do_runtime(runtime))
     subprocess.run(
-        [python, "-m", "pip", "install", requisitos[0],
-         "--disable-pip-version-check", "--no-input"],
+        [
+            python,
+            "-m",
+            "pip",
+            "install",
+            requisitos[0],
+            "--disable-pip-version-check",
+            "--no-input",
+        ],
         check=True,
     )
     subprocess.run(
-        [python, "-c",
-         "from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey"],
+        [
+            python,
+            "-c",
+            "from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey",
+        ],
         check=True,
     )
 
@@ -109,10 +139,24 @@ def criar_atalhos(sistema: Path, launcher: Path, icone: Path):
         return
     alvo = python_do_runtime(sistema / "runtime", gui=True)
     subprocess.run(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
-         str(AQUI / "criar_atalhos.ps1"), "-Alvo", str(alvo),
-         "-Launcher", str(launcher), "-Sistema", str(sistema), "-Icone", str(icone),
-         "-AppId", "DigitalSolutions.MainERP"],
+        [
+            "powershell",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(AQUI / "criar_atalhos.ps1"),
+            "-Alvo",
+            str(alvo),
+            "-Launcher",
+            str(launcher),
+            "-Sistema",
+            str(sistema),
+            "-Icone",
+            str(icone),
+            "-AppId",
+            "DigitalSolutions.MainERP",
+        ],
         check=True,
     )
 
@@ -129,7 +173,10 @@ def validar_versao_instalada(sistema: Path, versao_esperada: str) -> None:
         raise ValueError(f"Versão ativa {atual} não está disponível")
     if (release / ".runtime-isolado").exists():
         runtime = sistema / "runtimes" / atual
-        if not python_do_runtime(runtime).is_file() or not python_do_runtime(runtime, gui=True).is_file():
+        if (
+            not python_do_runtime(runtime).is_file()
+            or not python_do_runtime(runtime, gui=True).is_file()
+        ):
             raise ValueError(f"Runtime da versão ativa {atual} não está disponível")
 
 
@@ -147,7 +194,11 @@ def limpar_arquivos_desenvolvimento(origem: Path, destino: Path) -> None:
     removidos = []
     for nome in ARQUIVOS_DESENVOLVIMENTO:
         arquivo = origem / nome
-        if any(parte.is_symlink() for parte in (arquivo, *arquivo.parents) if parte != origem):
+        if any(
+            parte.is_symlink()
+            for parte in (arquivo, *arquivo.parents)
+            if parte != origem
+        ):
             continue
         if arquivo.is_file():
             arquivo.unlink()
@@ -225,7 +276,9 @@ def main():
             raise RuntimeError(f"Launcher retornou código {r.returncode}")
         validar_versao_instalada(sistema, criar_release.ler_versao())
     except (OSError, ValueError, RuntimeError) as erro:
-        sys.exit(f"Falha na instalação: {erro}. Veja {sistema / 'logs' / 'launcher.log'}")
+        sys.exit(
+            f"Falha na instalação: {erro}. Veja {sistema / 'logs' / 'launcher.log'}"
+        )
 
     # 5) atalhos
     if not args.sem_atalhos:

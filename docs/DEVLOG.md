@@ -9,8 +9,18 @@
 - Progresso sem simulação: `PlumaSplash.atualizar(mensagem, percentual=None)` só move a barra quando o percentual é informado e nunca a faz retroceder. Em `app.py`, as etapas iniciais informam valores fixos (0, 5, 10, 15 e 20%) e as 8 telas da `MainWindow` dividem a faixa de 20% a 100%: `percentual_carregamento_telas` converte a mensagem `Carregando tela i/n: ...` na fração de telas já concluídas. Mensagens sem posição não alteram a barra. A `MainWindow` não foi alterada. Os pesos das etapas são uma escolha de projeto, não uma medição de tempo.
 - O tamanho lógico (450 × 300) e o desenho na escala da tela principal foram preservados. `show_splash` não recebe mais parâmetros.
 - `tests/test_splash.py` reescrito para a nova splash (tema, escalas 100%, 125% e 150%, barra, percentual que não retrocede e conversão das mensagens de tela).
-- Verificação: Ruff (check e format) e os 7 testes de `tests/test_splash.py` foram executados em um ambiente isolado com módulos do projeto substituídos por stubs, não no repositório. Pendente no projeto: `verificar.bat` e conferência visual em 100%, 125% e 150% no Windows.
+- Verificação: no Windows, o `verificar.bat` foi aprovado (Ruff e 369 testes aprovados, com 1 ignorado), incluindo os 7 testes de `tests/test_splash.py`. Antes disso, Ruff e esses testes tinham sido executados em um ambiente isolado com módulos do projeto substituídos por stubs. Pendente: conferência visual em 100%, 125% e 150% no Windows.
 - O rodapé com o copyright, que a splash anterior exibia, foi mantido.
+
+### Launcher — janela de atualização com progresso real
+
+- A janela `Aviso` de `distribuicao/launcher.pyw` (tkinter, só biblioteca padrão) foi redesenhada: 320 × 180, sem barra de título, borda de 1 px, símbolo Pluma, barra reta e a palavra "Atualizando". O texto detalhado das etapas passou a ir apenas para o `launcher.log`.
+- Tema fixo claro. O launcher não importa o aplicativo; as quatro cores usadas são constantes copiadas de `CLARO` (`surface`, `border`, `accent_text`, `text_secondary`), com comentário no código. O símbolo é um PNG com transparência (47 × 49 px) embutido, pois o tkinter não lê SVG.
+- Progresso real, informado por uma variável do módulo (`_aviso_progresso`) para não mudar as assinaturas de `baixar`, `extrair_seguro`, `instalar_dependencias` e `instalar_zip`: download em bytes recebidos (quando o servidor informa `Content-Length`), extração arquivo a arquivo, e o `pip` lido linha a linha, com um passo por "Collecting ..." e conclusão em "Successfully installed". O total de pacotes do `pip` só é conhecido no fim da coleta; por isso o avanço da coleta usa os pacotes diretos de `requirements.txt` como base e a instalação em si conta como uma etapa única. As faixas por etapa são uma escolha de projeto, não uma medição de tempo.
+- Caminhos originais preservados: sem janela ativa (ou com um objeto sem `progresso`), `baixar` usa `shutil.copyfileobj`, `extrair_seguro` usa `extractall` e `instalar_dependencias` usa `subprocess.run`, como antes. A janela só é registrada em `atualizar()` e é liberada no `finally`.
+- Novo `tests/test_launcher_progresso.py` (download por servidor local, extração, caminho inseguro, `pip` simulado com sucesso e falha, caminho original sem janela, registro da janela em `atualizar()` e janela tkinter real, ignorada sem ambiente gráfico).
+- Verificação: no Windows, o `verificar.bat` foi aprovado (Ruff e 369 testes aprovados, com 1 ignorado), incluindo os 9 testes de `tests/test_launcher_progresso.py` com a janela tkinter real. Antes disso, no Linux com tkinter 8.6 sob Xvfb, a captura da janela foi conferida visualmente. Pendente: instalação isolada com atualização real (`pip` e pacote) e conferência da janela em 100%, 125% e 150%. O `.pyw` não é coberto pelo Ruff.
+- A nova janela só chega às instalações existentes quando o launcher for reinstalado pelo instalador; uma atualização de código não substitui o launcher.
 
 ## 2026-11-09
 

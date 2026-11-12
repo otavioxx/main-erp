@@ -190,6 +190,8 @@ inicialização já concluídas, sem avanço simulado, e a mensagem é a da etap
 execução. Seu tamanho lógico é preservado e a imagem é desenhada na escala da tela
 principal.
 
+A janela de atualização do launcher (`distribuicao/launcher.pyw`) segue a mesma linguagem: símbolo Pluma, barra de progresso reta e a palavra "Atualizando", sempre no tema claro. O launcher usa só a biblioteca padrão e não importa o aplicativo; por isso as cores dessa janela são constantes copiadas de `CLARO`, mantidas em sincronia manualmente com `theme_tokens.py`.
+
 Em **Configurações > Aparência**, selecione Claro ou Escuro e clique em **Salvar tema**;
 a escolha entra em vigor na próxima abertura. Sem arquivo de configuração, o padrão é
 claro; arquivos existentes sem preferência ou com preferência inválida usam escuro.
