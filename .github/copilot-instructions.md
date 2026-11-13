@@ -22,7 +22,9 @@ Estas instruções definem os padrões que devem ser seguidos pelo GitHub Copilo
 - `README.md`: apresentação do PLUMA, requisitos, instalação, estrutura e orientações gerais.
 - `CHANGELOG.md`: alterações relevantes para o usuário final.
 - `DEVLOG.md`: histórico técnico do desenvolvimento e decisões de implementação.
-- `distribuicao/LEIAME.md`: instalação, distribuição, atualização, releases e manutenção.
+- `docs/instalacao_e_atualizacao.md`: instalação, estrutura de pastas, atualização, rollback e diagnóstico.
+- `docs/publicar_release.md`: publicação de releases, assinaturas, manifesto e política para falhas.
+- `distribuicao/README.md`: função de cada script da pasta de distribuição.
 - `.github/copilot-instructions.md`: regras e orientações para o desenvolvimento com IA.
 
 ## 2. Alterações de código

@@ -1,5 +1,16 @@
 # Histórico de Desenvolvimento
 
+## 2026-11-12
+
+### Documentação — reorganização, etapa 1 (release e instalação)
+
+- Criado `docs/publicar_release.md`, que passa a ser a única descrição do procedimento de release. Reúne o que estava no `README.md`, no `distribuicao/LEIAME.md` e em `docs/nova-relese.md`. A política para falhas segue o `.github/copilot-instructions.md`: a mesma versão só pode ser reutilizada se a GitHub Release não foi publicada, e o estado real da publicação deve ser verificado antes. O exemplo de commit deixou de usar `git add .`.
+- Criado `docs/instalacao_e_atualizacao.md` com a instalação, a estrutura de pastas, a atualização, o rollback e o diagnóstico (conteúdo do `distribuicao/LEIAME.md`). Corrigido o que estava desatualizado: o `launcher.json` já recebe a URL padrão do instalador, a estrutura de pastas inclui `runtimes\` e `dados\novidades\`, e a janela de espera do launcher agora é descrita com a barra de progresso implementada.
+- Criado `distribuicao/README.md`, curto, com a função de cada script da pasta. As descrições de `assinar_release.py`, `criar_instalador.py` e `instalador_bootstrap.py` foram inferidas dos nomes e da documentação anterior, e precisam ser conferidas nos arquivos.
+- `README.md`: a seção "Publicar uma nova versão" virou um ponteiro para `docs/publicar_release.md`, e o link do LEIAME foi trocado. `.github/copilot-instructions.md`: a lista de responsabilidade dos documentos foi atualizada.
+- Removidos `distribuicao/LEIAME.md` e `docs/nova-relese.md`. Antes, `git grep` por `LEIAME`, `nova-relese`, `identidade_visual` e `backup_recuperacao` em `tests`, `distribuicao`, `mainerp` e `.github` encontrou apenas a lista do `copilot-instructions.md` e um comentário em `splash_pluma.py`.
+- Pendente (etapas 2 a 4): enxugar o `README.md`, criar `docs/README.md`, `docs/desenvolvimento.md` e `docs/banco_e_backups.md`, dividir o `docs/identidade_visual.md`, arquivar os documentos históricos da Fase 4.3, ajustar `CHANGELOG.md` e `ROADMAP.md` e conferir todos os links.
+
 ## 2026-11-11
 
 ### Splash — identidade Pluma e progresso real
