@@ -2,6 +2,16 @@
 
 ## 2026-11-12
 
+### Documentação — reorganização, etapa 2 (README e documentos de apoio)
+
+- `README.md` enxugado para a apresentação do sistema: requisitos, instalação resumida, onde ficam os dados, estrutura do projeto e índice de documentos. Tudo o que saiu foi movido para os documentos abaixo; nenhuma das afirmações removidas foi descartada.
+- Criado `docs/banco_e_backups.md` com o funcionamento técnico do banco, do backup automático e manual, da restauração e da validação de backups, antes em um único bloco do README. Os parágrafos foram divididos por assunto, sem alterar o conteúdo.
+- Criado `docs/desenvolvimento.md` com o ambiente, a verificação (`verificar.bat` e os comandos de Ruff e pytest, conforme o `copilot-instructions.md`), como criar migrações e as convenções de commit, dados e logs.
+- Criado `docs/README.md`, índice dos documentos. A seção sobre o tema claro ou escuro foi removida do README porque já consta em `docs/identidade_visual.md`; o README mantém uma frase com o link.
+- `docs/instalacao_e_atualizacao.md`: a referência às migrações passou a apontar para `docs/banco_e_backups.md` e `docs/desenvolvimento.md`.
+- Conferência: as frases-chave do README original foram buscadas nos documentos novos por script, e os links relativos dos documentos entregues foram verificados. Não foi executado nenhum teste de código, pois só houve alteração de documentação.
+- Pendente (etapas 3 e 4): dividir o `docs/identidade_visual.md`, arquivar os documentos históricos da Fase 4.3, ajustar `CHANGELOG.md` e `ROADMAP.md`, e atualizar o `copilot-instructions.md`.
+
 ### Documentação — reorganização, etapa 1 (release e instalação)
 
 - Criado `docs/publicar_release.md`, que passa a ser a única descrição do procedimento de release. Reúne o que estava no `README.md`, no `distribuicao/LEIAME.md` e em `docs/nova-relese.md`. A política para falhas segue o `.github/copilot-instructions.md`: a mesma versão só pode ser reutilizada se a GitHub Release não foi publicada, e o estado real da publicação deve ser verificado antes. O exemplo de commit deixou de usar `git add .`.

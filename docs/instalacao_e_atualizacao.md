@@ -119,8 +119,9 @@ Quando uma release inclui migração, o aplicativo cria automaticamente um backu
 `dados\backups\pre_migracao_*.db` antes de atualizar o esquema. As migrações do projeto são
 aditivas e executadas uma vez. Mesmo assim, faça um backup próprio antes de atualizar um
 banco importante e confirme que ele pode ser restaurado; não confie em uma release de código
-anterior para desfazer uma migração. Para criar migrações, veja a seção "Banco de dados e
-migrações" do `README.md`.
+anterior para desfazer uma migração. Detalhes dos backups em
+[banco_e_backups.md](banco_e_backups.md); para criar migrações, veja
+[desenvolvimento.md](desenvolvimento.md).
 
 ## Atualização online: configuração
 
