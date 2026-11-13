@@ -1,4 +1,4 @@
-"""Exceções do MainERP."""
+"""Exceções do PLUMA."""
 
 
 class ErroERP(Exception):

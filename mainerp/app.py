@@ -69,7 +69,7 @@ def definir_identidade_windows():
     """Dá ao processo uma identidade própria na barra de tarefas do Windows.
 
     Sem isso, rodando via pythonw.exe, o Windows agrupa a janela sob o ícone
-    do Python em vez do ícone do MainERP.
+    do Python em vez do ícone do PLUMA.
     """
     if os.name != "nt":
         return

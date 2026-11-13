@@ -1,4 +1,4 @@
-# launcher.pyw - ponto de entrada fixo do MainERP.
+# launcher.pyw - ponto de entrada fixo do PLUMA.
 #
 # O atalho aponta SEMPRE para este arquivo (via runtime\Scripts\pythonw.exe).
 # Ele usa apenas a biblioteca padrão e raramente precisa mudar. A cada abertura:
@@ -645,7 +645,7 @@ def aplicar_atualizacoes_locais(aviso):
         except Exception as e:
             log(f"Pacote inválido {z.name}: {e}")
             mover_zip(z, "invalidas")
-            mensagem("MainERP - atualização", f"O pacote {z.name} é inválido e foi ignorado.\n\n{e}")
+            mensagem("PLUMA - atualização", f"O pacote {z.name} é inválido e foi ignorado.\n\n{e}")
 
     for chave, z in sorted(pacotes, key=lambda t: t[0]):
         conhecidas = releases_conhecidas()
@@ -653,14 +653,14 @@ def aplicar_atualizacoes_locais(aviso):
             log(f"{z.name}: versão não é mais nova que a instalada; arquivando.")
             mover_zip(z, "aplicadas")
             continue
-        aviso.mostrar("Instalando atualização do MainERP...\nAguarde.")
+        aviso.mostrar("Instalando atualização do PLUMA...\nAguarde.")
         reiniciar_progresso()
         try:
             instalar_zip(z)
             mover_zip(z, "aplicadas")
         except Exception as e:
             mover_zip(z, "invalidas")
-            mensagem("MainERP - atualização",
+            mensagem("PLUMA - atualização",
                      f"Não foi possível instalar {z.name}. O sistema continuará na "
                      f"versão atual.\n\n{e}")
 
@@ -777,7 +777,7 @@ def atualizar_online(aviso):
         sha = manifesto["sha256"]  # obrigatório
         url_zip = resolver_url(origem, manifesto["url"])
         url_assinatura = f"{url_zip}.sig"
-        aviso.mostrar(f"Baixando atualização {versao} do MainERP...\nAguarde.")
+        aviso.mostrar(f"Baixando atualização {versao} do PLUMA...\nAguarde.")
         ATUALIZACOES.mkdir(parents=True, exist_ok=True)
         zip_path = ATUALIZACOES / f"MainERP-{versao}.zip"
         assinatura_path = ATUALIZACOES / f"MainERP-{versao}.zip.sig"

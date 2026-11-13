@@ -1,4 +1,4 @@
-# Identidade Visual — MainERP
+# Identidade Visual — PLUMA
 
 ## 1. Direção visual
 

@@ -1,4 +1,4 @@
-# Roadmap do MainERP
+# Roadmap do PLUMA
 
 Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém tarefas pendentes e decisões registradas. O histórico concluído fica resumido, pois os detalhes estão no CHANGELOG.
 
@@ -53,12 +53,12 @@ Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém tarefas 
 
 ## Fase I: Licenciamento e ativação offline
 
-**Objetivo:** controlar a validade e o uso do MainERP por máquina, sem exigir conexão com a internet ou serviços pagos.
+**Objetivo:** controlar a validade e o uso do PLUMA por máquina, sem exigir conexão com a internet ou serviços pagos.
 
 - [ ] Criar sistema de geração de licenças assinadas com Ed25519, usando chave exclusiva para licenciamento.
 - [ ] Criar identificador de máquina para vincular cada licença a um único computador.
 - [ ] Desenvolver License Manager local para cadastrar empresas, definir validade e emitir licenças.
-- [ ] Implementar validação da licença na inicialização do MainERP.
+- [ ] Implementar validação da licença na inicialização do PLUMA.
 - [ ] Criar tela de ativação para importar o arquivo de licença.
 - [ ] Implementar avisos de vencimento e regras de bloqueio após a expiração.
 - [ ] Armazenar a licença em `dados/`, preservando-a durante atualizações.
@@ -66,7 +66,7 @@ Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém tarefas 
 - [ ] Documentar o processo de emissão, ativação, renovação e transferência de licença.
 - [ ] Testar ativação, validade, expiração, troca de máquina e funcionamento offline em instalações isoladas.
 
-**Pronto quando:** o MainERP exigir uma licença válida vinculada à máquina, funcionar offline e preservar a licença durante atualizações.
+**Pronto quando:** o PLUMA exigir uma licença válida vinculada à máquina, funcionar offline e preservar a licença durante atualizações.
 
 ## Fase C: Relatórios e visualizador embutido
 

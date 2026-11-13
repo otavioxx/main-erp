@@ -1,6 +1,6 @@
-# Instruções do GitHub Copilot — MainERP
+# Instruções do GitHub Copilot — PLUMA
 
-Estas instruções definem os padrões que devem ser seguidos pelo GitHub Copilot durante o desenvolvimento, manutenção e evolução do MainERP.
+Estas instruções definem os padrões que devem ser seguidos pelo GitHub Copilot durante o desenvolvimento, manutenção e evolução do PLUMA.
 
 ## 1. Registro de alterações e documentação
 
@@ -19,7 +19,7 @@ Estas instruções definem os padrões que devem ser seguidos pelo GitHub Copilo
 
 ### Responsabilidade de cada documento
 
-- `README.md`: apresentação do MainERP, requisitos, instalação, estrutura e orientações gerais.
+- `README.md`: apresentação do PLUMA, requisitos, instalação, estrutura e orientações gerais.
 - `CHANGELOG.md`: alterações relevantes para o usuário final.
 - `DEVLOG.md`: histórico técnico do desenvolvimento e decisões de implementação.
 - `distribuicao/LEIAME.md`: instalação, distribuição, atualização, releases e manutenção.
@@ -78,7 +78,7 @@ Para cada tarefa:
 
 ## 4. Banco de dados e integridade
 
-O MainERP utiliza SQLite e controla a versão do banco por meio de `PRAGMA user_version`.
+O PLUMA utiliza SQLite e controla a versão do banco por meio de `PRAGMA user_version`.
 
 ### Regras obrigatórias
 
@@ -120,7 +120,7 @@ Essa estrutura contém o banco de dados, configurações, backups, relatórios, 
 
 ### Diretrizes de arquitetura
 
-- O MainERP é uma aplicação desktop para Windows 10 e 11.
+- O PLUMA é uma aplicação desktop para Windows 10 e 11.
 - Utilize PyQt6 e Qt Widgets para a interface.
 - Não transforme o sistema em aplicação web, mesmo que local.
 - Preserve a separação entre interface, regras de negócio, acesso a dados e infraestrutura.
@@ -273,7 +273,7 @@ Não altere a versão automaticamente. Atualizações de versão devem fazer par
 
 ### Distribuição
 
-O MainERP utiliza distribuição própria, sem PyInstaller.
+O PLUMA utiliza distribuição própria, sem PyInstaller.
 
 A instalação segue esta estrutura:
 
@@ -404,7 +404,7 @@ Toda criação ou exclusão de tags, envio de commits e publicação de releases
 
 ## Princípio geral
 
-O MainERP deve continuar sendo um sistema simples, confiável, seguro, organizado e fácil de manter e atualizar.
+O PLUMA deve continuar sendo um sistema simples, confiável, seguro, organizado e fácil de manter e atualizar.
 
 Toda implementação deve priorizar:
 

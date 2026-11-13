@@ -2,7 +2,7 @@
 
 Este procedimento reduz o risco de perda de dados em um computador pessoal. Ele não
 substitui uma avaliação de integridade dos dados nem garante recuperação em todos os
-casos. Os backups não são criptografados pelo MainERP: proteja o acesso às cópias.
+casos. Os backups não são criptografados pelo PLUMA: proteja o acesso às cópias.
 
 ## Criar e guardar cópias externas
 
@@ -46,7 +46,7 @@ de origem. Ele isola os **dados**, não instala uma segunda cópia do aplicativo
 o instalador ou o launcher. O teste utiliza uma cópia real que pode conter informações
 sensíveis: faça-o somente em um computador confiável.
 
-1. Feche todas as instâncias do MainERP. Não use o atalho normal para este teste: ele
+1. Feche todas as instâncias do PLUMA. Não use o atalho normal para este teste: ele
    pode abrir os dados de produção. Abra uma **nova** janela do PowerShell na raiz do
    projeto e confirme que `.venv\Scripts\python.exe` existe.
 2. Crie uma pasta de teste nova e defina `MAINERP_DATA` apenas nessa janela. Use os

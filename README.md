@@ -1,4 +1,4 @@
-# MainERP
+# PLUMA
 
 Sistema de gestão desktop (Windows) para vendas, condicionais, pedidos de compra,
 recebimentos, estoque e relatórios/etiquetas em PDF. Feito em Python com PyQt6 e SQLite.
@@ -20,7 +20,7 @@ recebimentos, estoque e relatórios/etiquetas em PDF. Feito em Python com PyQt6 
    o arquivo baixado permanece e pode ser excluído depois.
    Na instalação pelo ZIP completo, arquivos de desenvolvimento conhecidos são
    removidos da pasta extraída após o sucesso, exceto em checkouts Git.
-2. Abra o **MainERP** pelo atalho da Área de Trabalho ou do Menu Iniciar. Também há
+2. Abra o **PLUMA** pelo atalho da Área de Trabalho ou do Menu Iniciar. Também há
    um atalho de reserva em `%LOCALAPPDATA%\MainERP\sistema\MainERP.lnk`.
 3. Se já tiver dados, restaure seu backup em *Configurações*. Uma instalação nova sem
    dados anteriores começa com o banco vazio.

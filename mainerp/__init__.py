@@ -1,1 +1,1 @@
-"""Pacote raiz da aplicação MainERP."""
+"""Pacote raiz da aplicação PLUMA."""

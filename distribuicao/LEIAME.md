@@ -1,4 +1,4 @@
-# MainERP - distribuição sem PyInstaller
+# PLUMA - distribuição sem PyInstaller
 
 ## Novidades da versão 0.10
 

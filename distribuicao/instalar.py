@@ -1,10 +1,10 @@
-"""Instalador do MainERP (modelo sem PyInstaller).
+"""Instalador do PLUMA (modelo sem PyInstaller).
 
 Cria, em %LOCALAPPDATA%\\MainERP:
     sistema\\   runtime (Python + bibliotecas), launcher e releases do código
     dados\\     banco, config, backups e relatórios (nunca tocados por atualizações)
 
-e os atalhos "MainERP" na Área de Trabalho e no Menu Iniciar. Pode ser executado
+e os atalhos "PLUMA" na Área de Trabalho e no Menu Iniciar. Pode ser executado
 de novo quando quiser (reinstala o launcher e recria os atalhos, sem apagar dados).
 
 Uso:  instalar.bat      (ou: python distribuicao/instalar.py [--destino PASTA])
@@ -294,7 +294,7 @@ def main():
     print(f"  Sistema (código e atualizações):    {sistema}")
     if not args.sem_atalhos:
         print(
-            "Abra o MainERP pelo atalho. Na primeira abertura o banco estará vazio: "
+            "Abra o PLUMA pelo atalho. Na primeira abertura o banco estará vazio: "
             "restaure seu backup pela tela de Configurações."
         )
 

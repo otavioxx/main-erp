@@ -1,4 +1,4 @@
-## Como publicar uma Release do MainERP
+## Como publicar uma Release do PLUMA
 
 O processo é automatizado pelo GitHub Actions. Você prepara a versão, envia os commits e cria uma tag anotada. O GitHub executa os testes, gera os pacotes, assina e publica a release.
 
@@ -78,7 +78,8 @@ Publicação iniciada
 
 6. Acompanhar o GitHub Actions
 Acesse:
-GitHub Actions — MainERPO workflow Release executará automaticamente:
+GitHub Actions — MainERP
+O workflow Release executará automaticamente:
     1. Validação da tag e da versão.
     2. Verificação com Ruff.
     3. Execução dos testes Pytest.

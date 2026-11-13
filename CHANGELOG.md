@@ -1,6 +1,6 @@
 # Histórico de versões
 
-Este arquivo registra as alterações relevantes do MainERP a cada versão, seguindo as recomendações do [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
+Este arquivo registra as alterações relevantes do PLUMA a cada versão, seguindo as recomendações do [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/).
 
 As alterações são organizadas nas categorias:
 
