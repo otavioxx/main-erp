@@ -19,12 +19,10 @@ identificador técnico `MainERP` (por exemplo, `%LOCALAPPDATA%\MainERP` e `MAINE
 - **Pedidos de compra:** pedidos a fornecedores com recebimento no estoque.
 - **Recebimentos:** controle de parcelas, saldo em aberto e baixa.
 - **Estoque:** cadastro e movimentação por produto.
-- **Relatórios e etiquetas:** geração de PDFs de vendas, pedidos, condicionais e
-  etiquetas.
-- **Backup:** automático e manual, com verificação de integridade e restauração
-  testável.
-- **Atualização online:** o launcher consulta releases públicas, verifica assinatura
-  e SHA-256 antes de instalar, e mantém as versões anteriores para rollback.
+- **Relatórios e etiquetas:** geração de PDFs de vendas, pedidos, condicionais e etiquetas.
+- **Backup:** automático e manual, com verificação de integridade e restauração testável.
+- **Atualização online:** o launcher consulta releases públicas, verifica assinatura e
+  SHA-256 antes de instalar, e mantém as versões anteriores para rollback.
 - **Temas claro e escuro**, com preferência persistida.
 
 O PLUMA é pensado para operação offline em um único PC, com banco em SQLite (WAL).
