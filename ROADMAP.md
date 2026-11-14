@@ -171,3 +171,10 @@ A Fase F é transversal e deve avançar continuamente, sem alterar a ordem princ
 - A licença deve ficar na pasta `dados/`, fora das releases, para sobreviver às atualizações.
 - O licenciamento será offline; a assinatura protege a autenticidade da licença, mas não torna impossível a alteração deliberada do código por alguém com acesso a ele.
 - A decisão atual é manter o sistema desktop em Qt Widgets, com SQLite e ReportLab.
+
+## Pontos de Melhoria Identificados
+
+**Limpeza do Repositório:** A inclusão de diretórios __pycache__ e ficheiros .pyc na árvore de diretórios indica que o ficheiro `.gitignore` precisa de ser atualizado.
+**Gestão de Artefactos:** Os ficheiros de bytecode compilado de Python presentes em várias pastas do projeto devem ser removidos do controlo de versões.
+**Estruturação de Testes:** O diretório `tests/` contém artefactos de cache que demonstram a necessidade de isolar melhor os ambientes de execução de testes.
+**Organização da Documentação e Scripts:** A divisão entre os scripts de suporte em `distribuicao/` e a documentação em `docs/` pode ser complementada com uma revisão contínua das dependências listadas em `requirements.txt` e `requirements-dev.txt`.
