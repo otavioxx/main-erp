@@ -473,9 +473,9 @@ def test_builds_current_project_with_consistent_version(criador, tmp_path, monke
             if "__pycache__" not in caminho.parts
         }
         assert codigo <= set(archive.namelist())
-        assert {f"mainerp/ui/icons/{nome}" for nome in criador.ICONES} <= set(
-            archive.namelist()
-        )
+        assert {
+            f"mainerp/ui/icons/{nome}" for nome in criador.ICONES
+        } <= set(archive.namelist())
 
 
 def test_release_recusa_icone_ausente(criador, tmp_path, monkeypatch):
