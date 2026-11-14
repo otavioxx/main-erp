@@ -30,45 +30,6 @@ UPDATE_MANIFEST_URL = (
     "https://github.com/otavioxx/main-erp/releases/latest/download/version.json"
 )
 
-ARQUIVOS_DESENVOLVIMENTO = (
-    "CHANGELOG.md",
-    "ROADMAP.md",
-    "README.md",
-    "verificar.bat",
-    "requirements-dev.txt",
-    "pyproject.toml",
-    ".gitignore",
-    ".github/workflows/release.yml",
-    "tests/test_about_updates_dialog.py",
-    "tests/test_automatic_backup.py",
-    "tests/test_condicional_money.py",
-    "tests/test_database_migrations.py",
-    "tests/test_database_transactions.py",
-    "tests/test_database_utils.py",
-    "tests/test_dialog_inheritance.py",
-    "tests/test_duplicata.py",
-    "tests/test_instalador_pacote.py",
-    "tests/test_listagem_tables.py",
-    "tests/test_manual_backup.py",
-    "tests/test_money.py",
-    "tests/test_money_reports.py",
-    "tests/test_outras_listagens.py",
-    "tests/test_pedido_model.py",
-    "tests/test_pedido_utils_money.py",
-    "tests/test_produto_model.py",
-    "tests/test_release_updates.py",
-    "tests/test_restore_pending.py",
-    "tests/test_restore_validation.py",
-    "tests/test_table_items.py",
-    "tests/test_splash.py",
-    "tests/test_theme_tokens.py",
-    "tests/test_themes_ui.py",
-    "tests/test_venda_estoque.py",
-    "tests/test_venda_model.py",
-    "tests/test_venda_utils.py",
-    "tests/test_view_data_models.py",
-)
-
 
 def base_padrao() -> Path:
     base = os.environ.get("LOCALAPPDATA") or str(Path.home() / ".mainerp")
@@ -180,35 +141,6 @@ def validar_versao_instalada(sistema: Path, versao_esperada: str) -> None:
             raise ValueError(f"Runtime da versão ativa {atual} não está disponível")
 
 
-def limpar_arquivos_desenvolvimento(origem: Path, destino: Path) -> None:
-    """Remove arquivos conhecidos do ZIP extraído, sem tocar em um checkout Git."""
-    origem = origem.resolve()
-    destino = destino.resolve()
-    if origem == destino or origem in destino.parents or destino in origem.parents:
-        print("Limpeza ignorada: a origem e o destino da instalação se sobrepõem.")
-        return
-    if any((pasta / ".git").exists() for pasta in (origem, *origem.parents)):
-        print("Limpeza ignorada: a origem pertence a um repositório Git.")
-        return
-
-    removidos = []
-    for nome in ARQUIVOS_DESENVOLVIMENTO:
-        arquivo = origem / nome
-        if any(
-            parte.is_symlink()
-            for parte in (arquivo, *arquivo.parents)
-            if parte != origem
-        ):
-            continue
-        if arquivo.is_file():
-            arquivo.unlink()
-            removidos.append(nome)
-    if removidos:
-        print("Arquivos de desenvolvimento removidos da pasta de origem:")
-        for nome in removidos:
-            print(f"  {nome}")
-
-
 def main():
     ap = argparse.ArgumentParser(description="Instala o MainERP sem PyInstaller.")
     ap.add_argument(
@@ -283,11 +215,6 @@ def main():
     # 5) atalhos
     if not args.sem_atalhos:
         criar_atalhos(sistema, launcher, icone)
-
-    try:
-        limpar_arquivos_desenvolvimento(PROJETO, base)
-    except OSError as erro:
-        print(f"Aviso: instalação concluída, mas a limpeza da origem falhou: {erro}")
 
     print("\nInstalação concluída.")
     print(f"  Dados (banco, backups, relatórios): {dados}")

@@ -26,6 +26,8 @@ As alterações são organizadas nas categorias:
 
 ### Removido
 
+- Removida a exclusão automática de arquivos de desenvolvimento da pasta de origem após a instalação pelo ZIP de código.
+
 ## [0.10.10] - 2026-11-10
 
 ### Alterado
@@ -164,7 +166,3 @@ As alterações são organizadas nas categorias:
 ### Adicionado
 
 - Primeira versão distribuída por instalador, com releases versionadas, atualização local e rollback automático.
-
----
-
-**Observações:** as versões 0.10.6 e 0.10.8 não constam no histórico fornecido. Seus registros devem ser recuperados do histórico de desenvolvimento, caso tenham sido publicadas.

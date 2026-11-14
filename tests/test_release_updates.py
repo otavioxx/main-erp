@@ -337,7 +337,7 @@ def test_installer_can_skip_shortcuts_for_isolated_install(
 
 
 @pytest.mark.parametrize("falha", [None, "launcher", "atalhos"])
-def test_installer_cleans_source_only_after_success(
+def test_installer_preserva_arquivos_da_origem(
     instalador, tmp_path, monkeypatch, falha
 ):
     origem = tmp_path / "fonte"
@@ -392,47 +392,10 @@ def test_installer_cleans_source_only_after_success(
     else:
         instalador.main()
     for nome in ("CHANGELOG.md", "ROADMAP.md", "verificar.bat", "tests/test_money.py"):
-        assert (origem / nome).exists() == (falha is not None)
+        assert (origem / nome).read_text(encoding="utf-8") == "origem"
     assert (origem / "tests" / "outro.txt").read_text(encoding="utf-8") == "preservado"
     assert (release / "CHANGELOG.md").read_text(encoding="utf-8") == "historico"
     assert (dados / "erp.db").read_text(encoding="utf-8") == "dados"
-
-
-@pytest.mark.parametrize(
-    "protecao", ["git", "git-pai", "destino-interno", "origem-interna"]
-)
-def test_source_cleanup_refuses_git_or_overlapping_paths(
-    instalador, tmp_path, protecao
-):
-    origem = tmp_path / "origem"
-    origem.mkdir()
-    arquivo = origem / "ROADMAP.md"
-    arquivo.write_text("preservado", encoding="utf-8")
-    destino = tmp_path / "instalacao"
-    if protecao == "git":
-        (origem / ".git").mkdir()
-    elif protecao == "git-pai":
-        (tmp_path / ".git").mkdir()
-    elif protecao == "destino-interno":
-        destino = origem / "instalacao"
-    else:
-        destino = tmp_path
-    instalador.limpar_arquivos_desenvolvimento(origem, destino)
-    assert arquivo.read_text(encoding="utf-8") == "preservado"
-
-
-def test_source_cleanup_does_not_follow_symlink(instalador, tmp_path):
-    origem = tmp_path / "origem"
-    origem.mkdir()
-    externo = tmp_path / "exterior"
-    externo.mkdir()
-    (externo / "test_money.py").write_text("preservado", encoding="utf-8")
-    try:
-        (origem / "tests").symlink_to(externo, target_is_directory=True)
-    except OSError:
-        pytest.skip("Criação de links simbólicos indisponível")
-    instalador.limpar_arquivos_desenvolvimento(origem, tmp_path / "instalacao")
-    assert (externo / "test_money.py").read_text(encoding="utf-8") == "preservado"
 
 
 @pytest.mark.parametrize("versao", ["0.0.0", "0.10.0", "1.20.300"])
@@ -510,9 +473,9 @@ def test_builds_current_project_with_consistent_version(criador, tmp_path, monke
             if "__pycache__" not in caminho.parts
         }
         assert codigo <= set(archive.namelist())
-        assert {
-            f"mainerp/ui/icons/{nome}" for nome in criador.ICONES
-        } <= set(archive.namelist())
+        assert {f"mainerp/ui/icons/{nome}" for nome in criador.ICONES} <= set(
+            archive.namelist()
+        )
 
 
 def test_release_recusa_icone_ausente(criador, tmp_path, monkeypatch):

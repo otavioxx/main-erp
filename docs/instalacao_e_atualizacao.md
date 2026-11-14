@@ -52,13 +52,10 @@ relatórios ficam em `dados\`.
 
 ### Instalação pelo ZIP completo do código
 
-Também é possível usar `distribuicao\instalar.bat` do ZIP completo do código. Após a
-instalação bem-sucedida, o instalador remove da pasta extraída os arquivos de desenvolvimento
-conhecidos, como `ROADMAP.md`, `verificar.bat` e os testes listados no instalador. O ZIP
-original, outros arquivos, pastas e dados são preservados. Em repositórios Git, ou quando
-origem e destino se sobrepõem, a limpeza é ignorada. O histórico instalado permanece
-disponível em **Sobre**. Para reinstalar a partir do código-fonte, extraia novamente o ZIP
-completo: a pasta já limpa não contém mais todos os arquivos originais.
+Também é possível usar `distribuicao\instalar.bat` do ZIP completo do código. O instalador não
+remove nem altera arquivos da pasta de origem: o ZIP extraído permanece completo e pode ser
+reutilizado. Ele pode ser executado de novo quando quiser; reinstala o launcher e recria os
+atalhos, sem apagar dados.
 
 ### Local de instalação
 
