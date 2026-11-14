@@ -1,12 +1,34 @@
 # PLUMA
 
-Sistema de gestão desktop (Windows) para vendas, condicionais, pedidos de compra,
-recebimentos, estoque e relatórios/etiquetas em PDF. Feito em Python com PyQt6 e SQLite.
+Sistema de gestão desktop para Windows, voltado a pequenas empresas: vendas,
+condicionais, pedidos de compra, recebimentos, estoque e relatórios/etiquetas em PDF.
+
+Feito em Python com PyQt6 e SQLite. Distribuído como instalador autocontido com
+atualização online verificada, assinatura Ed25519 dos pacotes e rollback automático
+em caso de falha de inicialização.
 
 > Versão atual: veja `APP_VERSION` em `mainerp/core/config.py`.
 
-O nome do produto é PLUMA. Pastas, variáveis de ambiente e pacotes mantêm o identificador
-técnico `MainERP` (por exemplo, `%LOCALAPPDATA%\MainERP` e `MAINERP_DATA`).
+O nome do produto é **PLUMA**. Pastas, variáveis de ambiente e pacotes mantêm o
+identificador técnico `MainERP` (por exemplo, `%LOCALAPPDATA%\MainERP` e `MAINERP_DATA`).
+
+## O que o PLUMA faz
+
+- **Vendas:** registro com pagamento à vista ou parcelado e emissão de PDF.
+- **Condicionais:** controle de mercadorias em condicional e fechamento.
+- **Pedidos de compra:** pedidos a fornecedores com recebimento no estoque.
+- **Recebimentos:** controle de parcelas, saldo em aberto e baixa.
+- **Estoque:** cadastro e movimentação por produto.
+- **Relatórios e etiquetas:** geração de PDFs de vendas, pedidos, condicionais e
+  etiquetas.
+- **Backup:** automático e manual, com verificação de integridade e restauração
+  testável.
+- **Atualização online:** o launcher consulta releases públicas, verifica assinatura
+  e SHA-256 antes de instalar, e mantém as versões anteriores para rollback.
+- **Temas claro e escuro**, com preferência persistida.
+
+O PLUMA é pensado para operação offline em um único PC, com banco em SQLite (WAL).
+Cada release preserva a pasta `dados\`; a atualização é aplicada apenas ao código.
 
 ## Requisitos
 
@@ -50,28 +72,3 @@ pendentes podem alterar o esquema do banco. Para usar outra pasta de dados, defi
 variável de ambiente `MAINERP_DATA`.
 
 ## Estrutura do projeto
-
-```
-main.py            ponto de entrada compatível com o launcher
-mainerp/app.py     inicialização, splash e ciclo principal do app
-mainerp/core/      configuração, caminhos, logging e erros
-mainerp/data/      conexão SQLite, migrações e modelos
-mainerp/domain/    regras de negócio e utilitários
-mainerp/ui/        janela principal, telas, diálogos, mixins e tema
-mainerp/reports/   geração de PDFs (vendas, pedidos, condicionais, etiquetas)
-tests/             testes automatizados
-distribuicao/      launcher, instalador e geração de releases
-docs/              documentação
-```
-
-## Documentação
-
-O índice completo está em [`docs/README.md`](docs/README.md). Principais documentos:
-
-- [Instalação e atualização](docs/instalacao_e_atualizacao.md)
-- [Desenvolvimento](docs/desenvolvimento.md) (ambiente, verificação, migrações e convenções)
-- [Banco de dados, backups e restauração](docs/banco_e_backups.md) e o
-  [guia de cópia externa](docs/backup_recuperacao.md)
-- [Publicar uma release](docs/publicar_release.md)
-- [Identidade visual](docs/identidade_visual.md)
-- [ROADMAP](ROADMAP.md) e [CHANGELOG](CHANGELOG.md)
