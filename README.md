@@ -69,18 +69,3 @@ As atualizações de código preservam a pasta `dados\`; ao abrir uma nova vers�
 pendentes podem alterar o esquema do banco. Para usar outra pasta de dados, defina a
 variável de ambiente `MAINERP_DATA`.
 
-## Estrutura do projeto
-├── MainERP/
-│   ├── distribuicao/
-│   ├── docs/
-│   ├── mainerp/
-│   ├── tests/
-│   ├── CHANGELOG.md
-│   ├── icon.ico
-│   ├── main.py
-│   ├── pyproject.toml
-│   ├── requirements-dev.txt
-│   ├── requirements.txt
-│   ├── ROADMAP.md
-│   └── verificar.bat
-└── treeview_txt.py
