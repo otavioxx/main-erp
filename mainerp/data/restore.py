@@ -9,6 +9,7 @@ import time
 import zipfile
 from datetime import datetime
 from pathlib import Path
+from random import uniform
 
 from mainerp.data.automatic_backup import criar_snapshot_conexao, criar_snapshot_sqlite
 from mainerp.data.db_utils import DatabaseManager
@@ -63,6 +64,7 @@ def preparar_restauracao(backup_file: str | Path, target_db: str | Path) -> Path
 
 def _conectar_com_trava_exclusiva(target: Path) -> sqlite3.Connection:
     limite = time.monotonic() + 30
+    avisou_disputa = False
     while True:
         destino = sqlite3.connect(target, timeout=max(0, limite - time.monotonic()))
         obtida = False
@@ -72,8 +74,8 @@ def _conectar_com_trava_exclusiva(target: Path) -> sqlite3.Connection:
             if not modo or modo[0].lower() != "exclusive":
                 raise RuntimeError("Não foi possível obter bloqueio exclusivo do banco")
             destino.commit()
-            restante_ms = max(0, int((limite - time.monotonic()) * 1000))
-            destino.execute(f"PRAGMA busy_timeout={restante_ms}")
+            # Não aguardar com uma trava que impeça o concorrente de progredir.
+            destino.execute("PRAGMA busy_timeout=0")
             try:
                 destino.execute("BEGIN EXCLUSIVE")
             except sqlite3.OperationalError as erro:
@@ -85,15 +87,21 @@ def _conectar_com_trava_exclusiva(target: Path) -> sqlite3.Connection:
                 )
                 if not ocupado or time.monotonic() >= limite:
                     raise
-                logger.warning("Disputa pela trava exclusiva de restauração; tentando novamente.")
+                if not avisou_disputa:
+                    logger.warning(
+                        "Disputa pela trava exclusiva de restauração; tentando novamente."
+                    )
+                    avisou_disputa = True
             else:
                 destino.commit()
+                restante_ms = max(0, int((limite - time.monotonic()) * 1000))
+                destino.execute(f"PRAGMA busy_timeout={restante_ms}")
                 obtida = True
                 return destino
         finally:
             if not obtida:
                 destino.close()
-        time.sleep(min(0.05, max(0, limite - time.monotonic())))
+        time.sleep(min(uniform(0.01, 0.05), max(0, limite - time.monotonic())))
 
 
 def aplicar_restauracao_pendente(target_db: str | Path) -> Path | None:

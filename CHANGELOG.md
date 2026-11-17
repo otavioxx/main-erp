@@ -13,6 +13,8 @@ As alterações são organizadas nas categorias:
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-11-17
+
 ### Adicionado
 
 - Restaurada a opção de informar entrada nas vendas em crediário, com parcelamento do saldo.
@@ -26,6 +28,7 @@ As alterações são organizadas nas categorias:
 ### Corrigido
 
 - Corrigida a seleção do valor de entrada ao clicar no campo de crediário.
+- Corrigida uma disputa de travas ao aplicar a mesma restauração simultaneamente em modo WAL.
 
 ### Removido
 

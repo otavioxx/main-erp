@@ -2,6 +2,18 @@
 
 ## 2026-11-17
 
+### Preparação da release 0.11.1
+
+- Preparada a versão 0.11.1 com as alterações posteriores à 0.10.10 e a correção da disputa de travas WAL. A tag da tentativa anterior foi preservada.
+- Validada a instalação limpa e a atualização local de 0.10.10 para 0.11.1 em pastas isoladas, preservando dados de teste e a release anterior. Ruff e testes no Windows passaram novamente (375 aprovados e 1 ignorado).
+
+### Restauração — disputa de travas em WAL
+
+- Reproduzida no Linux a falha com dois processos sincronizados: ambos retinham conexões enquanto aguardavam a trava exclusiva, e uma aplicação terminava com `database is locked`.
+- A tentativa de trava exclusiva passa a falhar imediatamente em caso de disputa, fechando a conexão antes de repetir com intervalo variável. O prazo total de 30 segundos, a reserva de escrita inicial e a trava exclusiva durante o snapshot, a cópia e a validação foram mantidos.
+- O teste determinístico falhou antes da correção e passou 30 vezes no Linux após ela. Os testes de restauração passaram no Linux (37) e no Windows (36, com o teste específico do Linux ignorado).
+- Verificação completa: Ruff aprovado; Windows com 375 testes aprovados e 1 ignorado; Linux em ambiente Python 3.12 isolado com 372 aprovados e 4 ignorados. O GitHub Actions não foi reexecutado.
+
 ### Preparação da release 0.11.0
 
 - Preparada a versão 0.11.0 com as funcionalidades e melhorias posteriores à 0.10.10.

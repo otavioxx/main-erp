@@ -510,7 +510,7 @@ def test_falha_na_trava_exclusiva_nao_reinicia_indefinidamente(
         kwargs["factory"] = ConexaoComFalha
         return conectar(caminho, *args, **kwargs)
 
-    instantes = iter((0, 0, 0, tempo))
+    instantes = iter((0, 0, tempo))
     monkeypatch.setattr(restore.sqlite3, "connect", conectar_com_falha)
     monkeypatch.setattr(restore.time, "monotonic", lambda: next(instantes))
     with pytest.raises(sqlite3.OperationalError, match=mensagem):
@@ -519,7 +519,7 @@ def test_falha_na_trava_exclusiva_nao_reinicia_indefinidamente(
     assert fechadas == [True]
 
 
-def test_trava_exclusiva_usa_apenas_tempo_restante(tmp_path, monkeypatch):
+def test_trava_exclusiva_nao_aguarda_mantendo_a_conexao(tmp_path, monkeypatch):
     import mainerp.data.restore as restore
 
     atual = tmp_path / "atual.db"
@@ -541,7 +541,98 @@ def test_trava_exclusiva_usa_apenas_tempo_restante(tmp_path, monkeypatch):
     monkeypatch.setattr(restore.time, "monotonic", lambda: next(instantes))
     conn = restore._conectar_com_trava_exclusiva(atual)
     conn.close()
+    assert "PRAGMA busy_timeout=0" in comandos
     assert "PRAGMA busy_timeout=10000" in comandos
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Disputa WAL reproduzida no Linux")
+def test_restauracoes_wal_desfazem_disputa_por_travas(tmp_path):
+    atual = tmp_path / "atual.db"
+    origem = tmp_path / "origem.db"
+    criar_banco(atual, "atual")
+    criar_banco(origem, "anterior")
+    conn = sqlite3.connect(atual)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.close()
+    pendente = preparar_restauracao(origem, atual)
+    codigo = """
+import sqlite3, sys, time
+from pathlib import Path
+from types import SimpleNamespace
+import mainerp.data.restore as r
+
+atual, pasta, papel = Path(sys.argv[1]), Path(sys.argv[2]), sys.argv[3]
+real_connect = sqlite3.connect
+primeiro_commit = False
+
+def esperar(nome):
+    limite = time.monotonic() + 10
+    while not (pasta / nome).exists():
+        if time.monotonic() >= limite:
+            raise TimeoutError(f"Barreira não atingida: {nome}")
+        time.sleep(0.005)
+
+class ConexaoObservada(sqlite3.Connection):
+    def execute(self, sql, *args, **kwargs):
+        if sql == "BEGIN IMMEDIATE" and papel == "b" and not primeiro_commit:
+            esperar("a_commit")
+        if sql.startswith("PRAGMA busy_timeout="):
+            timeout = int(sql.split("=")[1])
+            sql = f"PRAGMA busy_timeout={timeout // 10}"
+        return super().execute(sql, *args, **kwargs)
+
+    def commit(self):
+        global primeiro_commit
+        super().commit()
+        if not primeiro_commit:
+            primeiro_commit = True
+            (pasta / f"{papel}_commit").touch()
+            if papel == "a":
+                esperar("b_commit")
+
+def conectar(caminho, *args, **kwargs):
+    if caminho == atual.resolve():
+        kwargs["factory"] = ConexaoObservada
+        kwargs["timeout"] /= 10
+    return real_connect(caminho, *args, **kwargs)
+
+verificar = r.DatabaseManager._verify_database
+def sincronizar(caminho):
+    valido = verificar(caminho)
+    if Path(caminho).name.endswith(".restauracao-pendente.db"):
+        (pasta / f"{papel}_pronto").touch()
+        esperar("b_pronto" if papel == "a" else "a_pronto")
+    return valido
+
+r.DatabaseManager._verify_database = staticmethod(sincronizar)
+r.sqlite3.connect = conectar
+inicio = time.monotonic()
+r.time = SimpleNamespace(
+    monotonic=lambda: inicio + (time.monotonic() - inicio) * 10,
+    sleep=lambda segundos: time.sleep(segundos / 10),
+)
+print("APLICADA" if r.aplicar_restauracao_pendente(atual) else "JA_APLICADA")
+"""
+    processos = [
+        subprocess.Popen(
+            [sys.executable, "-c", codigo, str(atual), str(tmp_path), papel],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        for papel in ("a", "b")
+    ]
+    try:
+        resultados = [proc.communicate(timeout=30) for proc in processos]
+    finally:
+        for proc in processos:
+            if proc.poll() is None:
+                proc.kill()
+                proc.wait(timeout=10)
+    assert all(proc.returncode == 0 for proc in processos), resultados
+    assert sorted(stdout.strip() for stdout, _ in resultados) == ["APLICADA", "JA_APLICADA"]
+    anterior, = (tmp_path / "backups").glob("pre_restore_*.db")
+    assert ler_valor(anterior) == "atual"
+    assert ler_valor(atual) == "anterior"
+    assert not pendente.exists()
 
 
 @pytest.mark.parametrize("journal_mode", ["DELETE", "WAL"])
