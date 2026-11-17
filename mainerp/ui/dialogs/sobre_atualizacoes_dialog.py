@@ -265,7 +265,7 @@ class SobreAtualizacoesDialog(DialogBase):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-        self.setWindowTitle("Sobre - MainERP")
+        self.setWindowTitle("Sobre - PLUMA")
         self.setFixedSize(640, 550)
 
         layout = QVBoxLayout(self)
@@ -274,7 +274,7 @@ class SobreAtualizacoesDialog(DialogBase):
         versao = config.APP_VERSION
 
         # Identificação do sistema.
-        titulo = QLabel("<h1>MainERP</h1>")
+        titulo = QLabel("<h1>PLUMA</h1>")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(titulo)
 
@@ -317,10 +317,10 @@ class SobreAtualizacoesDialog(DialogBase):
         layout.addSpacing(20)
 
         # Apresentação do produto.
-        layout.addWidget(QLabel("<h3>Sobre o MainERP</h3>"))
+        layout.addWidget(QLabel("<h3>Sobre o PLUMA</h3>"))
 
         descricao = QLabel(
-            "O MainERP é um sistema de gestão empresarial desenvolvido "
+            "O PLUMA é um sistema de gestão empresarial desenvolvido "
             "para pequenos comércios e lojas físicas. Seu objetivo é "
             "simplificar a rotina dos negócios, reunindo em um só lugar "
             "ferramentas para vendas, compras, estoque e controle operacional."
@@ -367,7 +367,7 @@ class SobreAtualizacoesDialog(DialogBase):
 
         # Rodapé.
         copyright_label = QLabel(
-            f"MainERP © {date.today().year} | Desenvolvido por Otávio Oliveira"
+            f"PLUMA © {date.today().year} | Desenvolvido por Otávio Oliveira"
         )
         copyright_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(copyright_label)

@@ -44,21 +44,21 @@ def test_carregar_pyw_sem_suporte_nativo_a_extensao(tmp_path, monkeypatch):
 @pytest.fixture
 def launcher():
     return _carregar_modulo(
-        PROJECT_ROOT / "distribuicao" / "launcher.pyw", "launcher_test"
+        PROJECT_ROOT / "instalador" / "launcher.pyw", "launcher_test"
     )
 
 
 @pytest.fixture
 def instalador():
     return _carregar_modulo(
-        PROJECT_ROOT / "distribuicao" / "instalar.py", "instalador_test"
+        PROJECT_ROOT / "instalador" / "instalar.py", "instalador_test"
     )
 
 
 @pytest.fixture
 def criador():
     return _carregar_modulo(
-        PROJECT_ROOT / "distribuicao" / "criar_release.py", "criador_test"
+        PROJECT_ROOT / "instalador" / "criar_release.py", "criador_test"
     )
 
 
@@ -146,7 +146,7 @@ def test_windows_shortcut_has_identity_icon_and_launcher(tmp_path):
     icone = sistema / "icon.ico"
     for arquivo in (alvo, launcher, icone):
         arquivo.touch()
-    script = PROJECT_ROOT / "distribuicao" / "criar_atalhos.ps1"
+    script = PROJECT_ROOT / "instalador" / "criar_atalhos.ps1"
     args = [
         "powershell",
         "-NoProfile",
@@ -197,7 +197,7 @@ def test_windows_shortcut_has_identity_icon_and_launcher(tmp_path):
 
 @pytest.mark.skipif(os.name != "nt", reason="Requer Windows Shell")
 def test_windows_shortcut_failure_is_reported(tmp_path):
-    script = PROJECT_ROOT / "distribuicao" / "criar_atalhos.ps1"
+    script = PROJECT_ROOT / "instalador" / "criar_atalhos.ps1"
     result = subprocess.run(
         [
             "powershell",
@@ -341,10 +341,10 @@ def test_installer_preserva_arquivos_da_origem(
     instalador, tmp_path, monkeypatch, falha
 ):
     origem = tmp_path / "fonte"
-    distribuicao = origem / "distribuicao"
-    distribuicao.mkdir(parents=True)
+    pasta_instalador = origem / "instalador"
+    pasta_instalador.mkdir(parents=True)
     for nome in ("launcher.pyw",):
-        (distribuicao / nome).write_text("launcher", encoding="utf-8")
+        (pasta_instalador / nome).write_text("launcher", encoding="utf-8")
     (origem / "icon.ico").write_bytes(b"icone")
     for nome in ("CHANGELOG.md", "ROADMAP.md", "verificar.bat", "tests/test_money.py"):
         arquivo = origem / nome
@@ -365,7 +365,7 @@ def test_installer_preserva_arquivos_da_origem(
     dados.mkdir()
     (dados / "erp.db").write_text("dados", encoding="utf-8")
     monkeypatch.setattr(instalador, "PROJETO", origem)
-    monkeypatch.setattr(instalador, "AQUI", distribuicao)
+    monkeypatch.setattr(instalador, "AQUI", pasta_instalador)
     monkeypatch.setattr("sys.argv", ["instalar.py", "--destino", str(destino)])
     monkeypatch.setattr(instalador.criar_release, "construir_zip", lambda _: None)
     monkeypatch.setattr(instalador.criar_release, "ler_versao", lambda: "0.10.0")
@@ -948,7 +948,7 @@ with module.trava_atualizacao() as ok:
         sys.executable,
         "-c",
         script,
-        str(PROJECT_ROOT / "distribuicao" / "launcher.pyw"),
+        str(PROJECT_ROOT / "instalador" / "launcher.pyw"),
         str(tmp_path),
     ]
     with launcher.trava_atualizacao() as obtida:
@@ -984,7 +984,7 @@ with module.trava_atualizacao() as ok:
             sys.executable,
             "-c",
             script,
-            str(PROJECT_ROOT / "distribuicao" / "launcher.pyw"),
+            str(PROJECT_ROOT / "instalador" / "launcher.pyw"),
             str(tmp_path),
         ],
         capture_output=True,

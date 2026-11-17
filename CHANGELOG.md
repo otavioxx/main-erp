@@ -15,12 +15,16 @@ As alterações são organizadas nas categorias:
 
 ### Adicionado
 
+- Restaurada a opção de informar entrada nas vendas em crediário, com parcelamento do saldo.
+
 ### Alterado
 
 - Redesenhada a tela de abertura do sistema com a identidade visual Pluma, barra de progresso e indicação da etapa de carregamento.
 - Redesenhada a janela exibida durante as atualizações, com a identidade visual Pluma e barra de progresso do download e da instalação.
 
 ### Corrigido
+
+- Corrigida a seleção do valor de entrada ao clicar no campo de crediário.
 
 ### Segurança
 

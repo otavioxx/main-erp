@@ -1,5 +1,26 @@
 # Histórico de Desenvolvimento
 
+## 2026-11-17
+
+### Vendas em crediário
+
+- Restaurada a entrada no diálogo de pagamento, com validação e cálculo do saldo em centavos; as parcelas usam o valor financiado e exibem o ajuste da última parcela.
+- A entrada continua registrada na venda, sem gerar recebimento. Não houve alteração no banco.
+- Adicionados testes da regra, da interface e do fechamento em banco temporário.
+- O editor da entrada seleciona o valor numérico ao receber clique, mantendo os botões do campo.
+
+## 2026-11-15
+
+### Distribuição — pastas `instalador/` e `publicacao/`
+
+- A pasta `distribuicao/` foi dividida por quem usa cada arquivo. `instalador/` reúne o que o instalador executa e acompanha o download de instalação: `instalar.py`, `instalar.bat`, `criar_atalhos.ps1`, `launcher.pyw` e `criar_release.py` (o instalador usa o `criar_release.py` para empacotar o código). `publicacao/` reúne as ferramentas de quem publica e não vai no `.pyz`: `criar_instalador.py`, `instalador_bootstrap.py`, `assinar_release.py`, `gerar_chave_assinatura.py` e `publicar_atualizacao.bat`.
+- O formato instalado (`sistema\launcher.pyw`, `releases\`, `dados\`) e os nomes dos pacotes (`MainERP-<versão>.zip`, `MainERP-Instalador-<versão>.pyz`) não mudaram. Instaladores `.pyz` já publicados continuam funcionando, pois levam o próprio bootstrap e os próprios arquivos.
+- publicacao/criar_instalador.py insere a raiz do projeto no sys.path e importa from instalador import criar_release, para que o Pylance resolva o módulo.; `instalador_bootstrap.py` passou a executar `instalador/instalar.py`; `publicar_atualizacao.bat` chama `..\instalador\criar_release.py`. `pyproject.toml`: a exceção E402 vale para `instalador/instalar.py` e `publicacao/criar_instalador.py`.
+- Novo `.gitattributes` com `export-ignore` para `.github`, `docs`, `tests`, `publicacao` e arquivos só de desenvolvimento, de modo que o "Source code (zip)" gerado pelo GitHub leve só o necessário para instalar. Substitui, na origem, a limpeza que o instalador fazia e foi removida.
+- Substituídos `distribuicao/README.md` por `instalador/README.md` e `publicacao/README.md`; caminhos atualizados em `docs/`, nos testes e em comentários.
+- `tests/test_launcher_progresso.py`: o carregador do `launcher.pyw` passou a ser informado de forma explícita (`SourceFileLoader`). Sem isso o teste falha fora do Windows, onde o Python não reconhece `.pyw`, e o workflow de release executa o pytest em Linux.
+- Pendente: o workflow `.github/workflows/release.yml` precisa dos novos caminhos (não estava no pacote analisado), e a conferência no Windows com `verificar.bat` e uma instalação de teste isolada.
+
 ## 2026-11-12
 
 ### Documentação — reorganização, etapa 2 (README e documentos de apoio)

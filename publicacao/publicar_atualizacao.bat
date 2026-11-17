@@ -5,9 +5,9 @@ setlocal
 cd /d "%~dp0"
 where py >nul 2>nul
 if %errorlevel%==0 (
-    py -3 criar_release.py --instalar %*
+    py -3 "..\instalador\criar_release.py" --instalar %*
 ) else (
-    python criar_release.py --instalar %*
+    python "..\instalador\criar_release.py" --instalar %*
 )
 echo.
 pause

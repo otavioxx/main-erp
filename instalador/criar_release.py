@@ -1,8 +1,8 @@
 """Gera o pacote de release do MainERP (um .zip com o código-fonte).
 
 Uso (na pasta do projeto):
-    python distribuicao/criar_release.py              # gera dist/MainERP-<versão>.zip
-    python distribuicao/criar_release.py --instalar   # idem + coloca o zip em atualizacoes\\
+    python instalador/criar_release.py                # gera dist/MainERP-<versão>.zip
+    python instalador/criar_release.py --instalar     # idem + coloca o zip em atualizacoes\\
                                                       # (aplicado na próxima abertura do sistema)
 
 A versão estável MAJOR.MINOR.PATCH vem de APP_VERSION em mainerp/core/config.py.

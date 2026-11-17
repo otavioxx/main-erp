@@ -40,6 +40,21 @@ def test_calculos_de_venda_usam_centavos_inteiros():
 
 
 @pytest.mark.parametrize(
+    ("total", "entrada", "esperado"), [(10000, 0, 10000), (10001, 2500, 7501)]
+)
+def test_calcular_financiado_centavos(total, entrada, esperado):
+    assert VendaCalculator.calcular_financiado_centavos(total, entrada) == esperado
+
+
+@pytest.mark.parametrize(
+    ("total", "entrada"), [(10000, -1), (10000, 10000), (10000, 10001), (0, 0)]
+)
+def test_calcular_financiado_rejeita_entrada_invalida(total, entrada):
+    with pytest.raises(ValueError):
+        VendaCalculator.calcular_financiado_centavos(total, entrada)
+
+
+@pytest.mark.parametrize(
     ("subtotal", "desconto", "esperado"),
     [
         (100, 15, 85.0),

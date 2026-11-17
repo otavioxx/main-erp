@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QGuiApplication
+from PyQt6.QtGui import QGuiApplication, QMouseEvent
 from PyQt6.QtWidgets import (
     QButtonGroup,
     QDialog,
@@ -19,8 +19,20 @@ from PyQt6.QtWidgets import (
 )
 
 from mainerp.data.money import de_centavos, para_centavos
-from mainerp.domain.utils.helpers import formatar_moeda
+from mainerp.domain.utils.helpers import SelectAllDoubleSpinBox, formatar_moeda
+from mainerp.domain.utils.venda_utils import VendaCalculator
 from mainerp.ui.theme_tokens import DIMENSOES
+
+
+class _EditorEntrada(QLineEdit):
+    def __init__(self, campo: SelectAllDoubleSpinBox):
+        super().__init__(campo)
+        self._campo = campo
+
+    def mousePressEvent(self, event: QMouseEvent | None) -> None:
+        super().mousePressEvent(event)
+        if event is not None and event.button() == Qt.MouseButton.LeftButton:
+            self._campo.selectAll()
 
 
 class PagamentoDialog(QDialog):
@@ -30,7 +42,6 @@ class PagamentoDialog(QDialog):
         super().__init__(parent)
         self.valor_total = float(de_centavos(para_centavos(valor_total)))
         self.cliente_id = cliente_id
-        self.valor_entrada = 0.0
         self._init_ui()
 
     def _init_ui(self):
@@ -65,6 +76,22 @@ class PagamentoDialog(QDialog):
         self.rb_dinheiro.setChecked(True)
         pagamento_group.setLayout(pagamento_layout)
         layout.addWidget(pagamento_group)
+
+        self.entrada_group = QGroupBox("Valor de Entrada")
+        entrada_layout = QVBoxLayout(self.entrada_group)
+        self.entrada_input = SelectAllDoubleSpinBox()
+        editor_entrada = _EditorEntrada(self.entrada_input)
+        self.entrada_input.setLineEdit(editor_entrada)
+        self.entrada_input.setDecimals(2)
+        self.entrada_input.setRange(0, max(0, self.valor_total))
+        self.entrada_input.setPrefix("R$ ")
+        editor_entrada.setTextMargins(
+            DIMENSOES.espacamento, 0, DIMENSOES.espacamento, 0
+        )
+        entrada_layout.addWidget(self.entrada_input)
+        self.label_financiado = QLabel()
+        entrada_layout.addWidget(self.label_financiado)
+        layout.addWidget(self.entrada_group)
 
         # Parcelas (só aparece no crediário)
         self.parcelas_group = QGroupBox("Parcelamento")
@@ -132,6 +159,7 @@ class PagamentoDialog(QDialog):
             rb.toggled.connect(self._atualizar_campos)
 
         self.parcelas_spinner.valueChanged.connect(self._calcular_parcela)
+        self.entrada_input.valueChanged.connect(self._calcular_parcela)
 
         # AGORA SIM PODE CHAMAR O MÉTODO
         self._atualizar_campos()
@@ -162,6 +190,7 @@ class PagamentoDialog(QDialog):
         """Mostra/oculta campos baseado na forma de pagamento"""
         is_crediario = self.rb_crediario.isChecked()
 
+        self.entrada_group.setVisible(is_crediario)
         # Verificar se os grupos existem antes de tentar modificá-los
         if hasattr(self, "parcelas_group"):
             self.parcelas_group.setVisible(is_crediario)
@@ -184,20 +213,27 @@ class PagamentoDialog(QDialog):
             return
 
         if self.rb_crediario.isChecked():
-            valor_financiado_centavos = para_centavos(self.valor_total)
+            valor_financiado_centavos = para_centavos(self.valor_total) - para_centavos(
+                self.entrada_input.value()
+            )
+            self.label_financiado.setText(
+                f"Valor financiado: {formatar_moeda(float(de_centavos(valor_financiado_centavos)))}"
+            )
             if (
                 valor_financiado_centavos > 0
                 and hasattr(self, "parcelas_spinner")
                 and self.parcelas_spinner.value() > 0
             ):
-                valor_parcela_centavos = para_centavos(
-                    de_centavos(valor_financiado_centavos)
-                    / self.parcelas_spinner.value()
-                )
+                parcelas = self.parcelas_spinner.value()
+                valor_parcela_centavos = valor_financiado_centavos // parcelas
                 valor_parcela = float(de_centavos(valor_parcela_centavos))
-                self.label_valor_parcela.setText(
-                    f"Valor da parcela: {formatar_moeda(valor_parcela)}"
+                texto = f"Valor da parcela: {formatar_moeda(valor_parcela)}"
+                ultima = valor_financiado_centavos - valor_parcela_centavos * (
+                    parcelas - 1
                 )
+                if ultima != valor_parcela_centavos:
+                    texto += f" (última: {formatar_moeda(float(de_centavos(ultima)))})"
+                self.label_valor_parcela.setText(texto)
             else:
                 self.label_valor_parcela.setText("Valor da parcela: R$ 0,00")
         else:
@@ -214,6 +250,26 @@ class PagamentoDialog(QDialog):
     def _validar_e_aceitar(self):
         """Valida dados antes de aceitar"""
         if self.rb_crediario.isChecked():
+            try:
+                financiado = VendaCalculator.calcular_financiado_centavos(
+                    para_centavos(self.valor_total),
+                    para_centavos(self.entrada_input.value()),
+                )
+            except ValueError as erro:
+                QMessageBox.warning(self, "Erro", str(erro))
+                return
+
+            if (
+                self.entrada_input.value() > 0
+                and financiado < self.parcelas_spinner.value()
+            ):
+                QMessageBox.warning(
+                    self,
+                    "Erro",
+                    "O valor financiado deve permitir parcelas de pelo menos R$ 0,01.",
+                )
+                return
+
             # Validar formato da data
             data_texto = self.data_vencimento.text().strip()
             if not self._validar_data(data_texto):
@@ -247,13 +303,28 @@ class PagamentoDialog(QDialog):
                 # Se houver erro na conversão, usar data padrão
                 data_vencimento = (datetime.now() + timedelta(days=30)).date()
 
-        valor_financiado = self.valor_total
+        entrada_centavos = (
+            para_centavos(self.entrada_input.value())
+            if self.rb_crediario.isChecked()
+            else 0
+        )
+        valor_financiado = (
+            float(
+                de_centavos(
+                    VendaCalculator.calcular_financiado_centavos(
+                        para_centavos(self.valor_total), entrada_centavos
+                    )
+                )
+            )
+            if self.rb_crediario.isChecked()
+            else self.valor_total
+        )
 
         # Retorna no formato esperado pelo código original
         return {
             "forma_pagamento": forma,
             "parcelas": parcelas,
             "data_primeiro_vencimento": data_vencimento,
-            "valor_entrada": self.valor_entrada,
+            "valor_entrada": float(de_centavos(entrada_centavos)),
             "valor_financiado": valor_financiado,
         }

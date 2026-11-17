@@ -1,0 +1,13 @@
+# Fora do "Source code (zip)" que o GitHub gera para cada release: o download de
+# código-fonte leva só o necessário para instalar (instalador/, mainerp/ e a raiz).
+# Não afeta clones, o workflow de release nem o conteúdo do instalador .pyz.
+/.github export-ignore
+/docs export-ignore
+/tests export-ignore
+/publicacao export-ignore
+/ROADMAP.md export-ignore
+/verificar.bat export-ignore
+/requirements-dev.txt export-ignore
+/pyproject.toml export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore

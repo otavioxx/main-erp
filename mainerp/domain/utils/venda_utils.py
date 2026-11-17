@@ -80,6 +80,15 @@ class VendaCalculator:
     """Calculador para operações financeiras de vendas"""
 
     @staticmethod
+    def calcular_financiado_centavos(total: int, entrada: int) -> int:
+        """Calcula o saldo do crediário, validando a entrada."""
+        if entrada < 0 or entrada >= total:
+            raise ValueError(
+                "A entrada deve ser maior ou igual a zero e menor que o total."
+            )
+        return total - entrada
+
+    @staticmethod
     def calcular_subtotal_produto_centavos(preco: float, quantidade: int) -> int:
         """Calcula subtotal de um produto em centavos."""
         return para_centavos(preco) * int(quantidade)

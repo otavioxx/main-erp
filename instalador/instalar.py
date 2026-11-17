@@ -7,7 +7,7 @@ Cria, em %LOCALAPPDATA%\\MainERP:
 e os atalhos "PLUMA" na Área de Trabalho e no Menu Iniciar. Pode ser executado
 de novo quando quiser (reinstala o launcher e recria os atalhos, sem apagar dados).
 
-Uso:  instalar.bat      (ou: python distribuicao/instalar.py [--destino PASTA])
+Uso:  instalar.bat      (ou: python instalador/instalar.py [--destino PASTA])
 """
 
 import argparse

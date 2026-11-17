@@ -903,7 +903,7 @@ def main(argv):
         if not versao:
             mensagem("MainERP",
                      "Nenhuma versão do sistema está instalada.\n"
-                     "Execute o instalador novamente (distribuicao\\instalar.bat).")
+                     "Execute o instalador novamente (instalador\\instalar.bat).")
             return 1
 
         try:

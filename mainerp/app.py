@@ -28,7 +28,7 @@ from mainerp.ui.views.main_window import MainWindow
 
 logger = logging.getLogger(__name__)
 
-# Códigos de saída entendidos pelo launcher (distribuicao/launcher.pyw)
+# Códigos de saída entendidos pelo launcher (instalador/launcher.pyw)
 EXIT_REINICIAR = 100  # o sistema pediu reinício (ex.: após restaurar backup)
 EXIT_JA_EM_EXECUCAO = 3  # outra instância já está aberta (não é uma falha)
 EXIT_RESTAURACAO_FALHOU = 4  # não iniciar versão antiga com restauração pendente

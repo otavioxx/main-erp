@@ -24,7 +24,7 @@ Estas instruções definem os padrões que devem ser seguidos pelo GitHub Copilo
 - `DEVLOG.md`: histórico técnico do desenvolvimento e decisões de implementação.
 - `docs/instalacao_e_atualizacao.md`: instalação, estrutura de pastas, atualização, rollback e diagnóstico.
 - `docs/publicar_release.md`: publicação de releases, assinaturas, manifesto e política para falhas.
-- `distribuicao/README.md`: função de cada script da pasta de distribuição.
+- `instalador/README.md` e `publicacao/README.md`: função de cada arquivo dessas pastas.
 - `.github/copilot-instructions.md`: regras e orientações para o desenvolvimento com IA.
 
 ## 2. Alterações de código
@@ -146,7 +146,8 @@ Respeite as responsabilidades atuais dos principais diretórios:
 - `mainerp/ui/`: janela principal, telas, diálogos, mixins e tema.
 - `mainerp/reports/`: geração de relatórios e PDFs.
 - `tests/`: testes automatizados.
-- `distribuicao/`: geração de pacotes, instalador e ferramentas de distribuição.
+- `instalador/`: instalador, launcher e `criar_release.py`; é o que acompanha o download de instalação.
+- `publicacao/`: ferramentas de quem publica (empacotamento do instalador, assinatura e chaves); não vai no download.
 
 Não altere essa organização sem avaliar os impactos e justificar a necessidade.
 

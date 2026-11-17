@@ -52,10 +52,12 @@ relatórios ficam em `dados\`.
 
 ### Instalação pelo ZIP completo do código
 
-Também é possível usar `distribuicao\instalar.bat` do ZIP completo do código. O instalador não
-remove nem altera arquivos da pasta de origem: o ZIP extraído permanece completo e pode ser
-reutilizado. Ele pode ser executado de novo quando quiser; reinstala o launcher e recria os
-atalhos, sem apagar dados.
+Também é possível usar `instalador\instalar.bat` do ZIP de código-fonte da release. Esse ZIP
+traz somente o necessário para instalar (`instalador\`, `mainerp\` e os arquivos da raiz):
+testes, documentação e ferramentas de publicação ficam de fora (veja `.gitattributes`). O
+instalador não remove nem altera arquivos da pasta de origem: o ZIP extraído permanece
+completo e pode ser reutilizado. Ele pode ser executado de novo quando quiser; reinstala o
+launcher e recria os atalhos, sem apagar dados.
 
 ### Local de instalação
 

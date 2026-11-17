@@ -10,8 +10,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_pacote_instalador_contem_codigo_e_componentes(tmp_path, monkeypatch):
-    monkeypatch.syspath_prepend(str(ROOT / "distribuicao"))
-    from distribuicao import criar_instalador, criar_release
+    monkeypatch.syspath_prepend(str(ROOT))
+    from instalador import criar_release
+    from publicacao import criar_instalador
 
     pacote = criar_instalador.construir_instalador(tmp_path)
     with zipfile.ZipFile(pacote) as arquivo:
@@ -22,10 +23,10 @@ def test_pacote_instalador_contem_codigo_e_componentes(tmp_path, monkeypatch):
             "main.py",
             "icon.ico",
             "requirements.txt",
-            "distribuicao/instalar.py",
-            "distribuicao/launcher.pyw",
-            "distribuicao/criar_release.py",
-            "distribuicao/criar_atalhos.ps1",
+            "instalador/instalar.py",
+            "instalador/launcher.pyw",
+            "instalador/criar_release.py",
+            "instalador/criar_atalhos.ps1",
             "mainerp/ui/theme_tokens.py",
             "mainerp/ui/icones.py",
             "mainerp/ui/icons/shopping-cart.svg",
@@ -49,13 +50,16 @@ def test_pacote_instalador_contem_codigo_e_componentes(tmp_path, monkeypatch):
             caminho.relative_to(ROOT).as_posix()
             for caminho in criar_release.arquivos_do_release()
         } <= nomes
-        assert not any(nome.startswith(("tests/", ".git/", "dados/")) for nome in nomes)
+        assert not any(
+            nome.startswith(("tests/", ".git/", "dados/", "publicacao/")) for nome in nomes
+        )
 
 
 @pytest.mark.parametrize("tipo", ["release", "instalador"])
 def test_icones_funcionam_no_pacote_extraido(tmp_path, monkeypatch, tipo):
-    monkeypatch.syspath_prepend(str(ROOT / "distribuicao"))
-    from distribuicao import criar_instalador, criar_release
+    monkeypatch.syspath_prepend(str(ROOT))
+    from instalador import criar_release
+    from publicacao import criar_instalador
 
     pacote = (
         criar_release.construir_zip(tmp_path)
@@ -98,9 +102,9 @@ def test_bootstrap_remove_somente_seus_temporarios(tmp_path, codigo):
     marcador = tmp_path / "resultado.txt"
     pacote = tmp_path / "instalador.pyz"
     with zipfile.ZipFile(pacote, "w") as arquivo:
-        arquivo.write(ROOT / "distribuicao" / "instalador_bootstrap.py", "__main__.py")
+        arquivo.write(ROOT / "publicacao" / "instalador_bootstrap.py", "__main__.py")
         arquivo.writestr(
-            "distribuicao/instalar.py",
+            "instalador/instalar.py",
             "import pathlib, sys\n"
             "pathlib.Path(sys.argv[1]).write_text(__file__, encoding='utf-8')\n"
             f"sys.exit({codigo})\n",
@@ -128,7 +132,7 @@ def test_bootstrap_remove_somente_seus_temporarios(tmp_path, codigo):
 def test_bootstrap_recusa_caminhos_externos(tmp_path):
     pacote = tmp_path / "instalador.pyz"
     with zipfile.ZipFile(pacote, "w") as arquivo:
-        arquivo.write(ROOT / "distribuicao" / "instalador_bootstrap.py", "__main__.py")
+        arquivo.write(ROOT / "publicacao" / "instalador_bootstrap.py", "__main__.py")
         arquivo.writestr("../fora.txt", "não deve ser criado")
     resultado = subprocess.run(
         [sys.executable, str(pacote)],

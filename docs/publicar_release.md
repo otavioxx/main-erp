@@ -83,7 +83,7 @@ o banco, use uma cópia dos dados, nunca o único banco de produção.
 Uma instalação de teste pode ser criada com:
 
 ```powershell
-python distribuicao\instalar.py --destino C:\Temp\MainERP-teste --sem-atalhos
+python instalador\instalar.py --destino C:\Temp\MainERP-teste --sem-atalhos
 ```
 
 A opção `--destino` altera a pasta do sistema, mas não altera automaticamente o local de
@@ -112,7 +112,7 @@ Confira que a tag ainda não existe e que a versão do código corresponde a ela
 
 ```powershell
 git tag --list v0.10.11
-python distribuicao/criar_release.py --verificar-tag v0.10.11
+python instalador/criar_release.py --verificar-tag v0.10.11
 ```
 
 O resultado esperado é `Tag v0.10.11 válida.`
@@ -193,7 +193,7 @@ manualmente com artefatos de commits diferentes.
   recusadas.
 - Antes da primeira publicação automatizada, configure em **Settings > Secrets and variables >
   Actions** o secret `MAINERP_ED25519_PRIVATE_KEY` com o conteúdo do PEM da chave privada.
-- Gere a chave uma única vez com `python distribuicao\gerar_chave_assinatura.py`. O PEM
+- Gere a chave uma única vez com `python publicacao\gerar_chave_assinatura.py`. O PEM
   privado fica fora do repositório, em `%LOCALAPPDATA%\MainERP\signing\ed25519-private.pem`.
   Nunca o inclua em commits, logs, mensagens ou chats, e mantenha uma cópia segura. O
   launcher contém somente a chave pública.
@@ -228,7 +228,7 @@ O launcher consulta, por padrão:
 ## Conteúdo do pacote
 
 O gerador inclui os arquivos de runtime da raiz e os arquivos Python dos pacotes listados em
-`PACOTES`, em `distribuicao/criar_release.py`. Ao criar um pacote novo, atualize essa lista e
+`PACOTES`, em `instalador/criar_release.py`. Ao criar um pacote novo, atualize essa lista e
 execute os testes. Não inclua arquivos locais ou dados pessoais entre os arquivos Python
 desses pacotes.
 
@@ -237,13 +237,13 @@ desses pacotes.
 Para gerar e inspecionar o pacote localmente, sem publicar:
 
 ```powershell
-python distribuicao/criar_release.py
+python instalador/criar_release.py
 ```
 
 Isso cria `dist/MainERP-<versão>.zip` e `dist/version.json`; não publica a release.
 
 Para atualizar o computador onde o código está disponível, execute
-`distribuicao\publicar_atualizacao.bat`: ele gera o ZIP da versão configurada e o coloca em
+`publicacao\publicar_atualizacao.bat`: ele gera o ZIP da versão configurada e o coloca em
 `%LOCALAPPDATA%\MainERP\sistema\atualizacoes\` do usuário atual. Feche o sistema e abra-o
 novamente pelo atalho; o launcher instala os pacotes da fila antes de abrir o aplicativo.
 

@@ -5,19 +5,26 @@ import sys
 import threading
 import zipfile
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
-CAMINHO_LAUNCHER = Path(__file__).resolve().parents[1] / "distribuicao" / "launcher.pyw"
+CAMINHO_LAUNCHER = Path(__file__).resolve().parents[1] / "instalador" / "launcher.pyw"
 
 
 @pytest.fixture
 def launcher(tmp_path, monkeypatch):
-    spec = importlib.util.spec_from_file_location("launcher_pyw",CAMINHO_LAUNCHER,)
+    # O carregador é informado de forma explícita: fora do Windows o Python não
+    # reconhece a extensão .pyw como código-fonte.
+    loader = importlib.machinery.SourceFileLoader("launcher_pyw", str(CAMINHO_LAUNCHER))
+    # cast: o verificador de tipos não reconhece SourceFileLoader como LoaderProtocol
+    # em versões recentes do Python (padrão já usado em test_release_updates.py).
+    spec = importlib.util.spec_from_file_location(
+        "launcher_pyw", CAMINHO_LAUNCHER, loader=cast(Any, loader)
+    )
     assert spec is not None
-    assert spec.loader is not None
     modulo = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(modulo)
+    loader.exec_module(modulo)
     monkeypatch.setattr(modulo, "LOGS", tmp_path / "logs")
     return modulo
 

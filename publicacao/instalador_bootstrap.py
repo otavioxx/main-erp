@@ -17,7 +17,7 @@ def main():
                     raise ValueError(f"Caminho inválido no instalador: {item.filename}")
             pacote.extractall(destino)
         return subprocess.call(
-            [sys.executable, str(destino / "distribuicao" / "instalar.py"), *sys.argv[1:]]
+            [sys.executable, str(destino / "instalador" / "instalar.py"), *sys.argv[1:]]
         )
 
 
