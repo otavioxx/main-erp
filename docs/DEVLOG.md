@@ -8,6 +8,7 @@
 - Corrigida a preparação do teste de backups simultâneos para manter a instância do Qt ativa antes da criação dos workers; uma execução completa havia falhado devido à destruição dos objetos Qt.
 - O workflow já utiliza os novos caminhos de `instalador/` e `publicacao/`.
 - Validação no Windows: Ruff e 375 testes aprovados. Instalador 0.11.0 e atualização local da 0.10.10 foram testados em pastas isoladas, preservando um arquivo de dados de teste e a release anterior.
+- A publicação falhou no teste Linux de restauração concorrente em WAL com `database is locked`. O empacotamento e a publicação não foram executados; a release 0.11.0 não foi publicada e sua tag permanece no remoto. As alterações voltaram para `[Unreleased]`, e a versão do código foi restabelecida para 0.10.10 até a correção.
 
 ### Vendas em crediário
 

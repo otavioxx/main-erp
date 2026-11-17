@@ -13,8 +13,6 @@ As alterações são organizadas nas categorias:
 
 ## [Unreleased]
 
-## [0.11.0] - 2026-11-17
-
 ### Adicionado
 
 - Restaurada a opção de informar entrada nas vendas em crediário, com parcelamento do saldo.
