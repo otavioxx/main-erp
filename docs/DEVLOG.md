@@ -2,6 +2,13 @@
 
 ## 2026-11-17
 
+### Preparação da release 0.11.0
+
+- Preparada a versão 0.11.0 com as funcionalidades e melhorias posteriores à 0.10.10.
+- Corrigida a preparação do teste de backups simultâneos para manter a instância do Qt ativa antes da criação dos workers; uma execução completa havia falhado devido à destruição dos objetos Qt.
+- O workflow já utiliza os novos caminhos de `instalador/` e `publicacao/`.
+- Validação no Windows: Ruff e 375 testes aprovados. Instalador 0.11.0 e atualização local da 0.10.10 foram testados em pastas isoladas, preservando um arquivo de dados de teste e a release anterior.
+
 ### Vendas em crediário
 
 - Restaurada a entrada no diálogo de pagamento, com validação e cálculo do saldo em centavos; as parcelas usam o valor financiado e exibem o ajuste da última parcela.

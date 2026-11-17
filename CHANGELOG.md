@@ -13,6 +13,8 @@ As alterações são organizadas nas categorias:
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-11-17
+
 ### Adicionado
 
 - Restaurada a opção de informar entrada nas vendas em crediário, com parcelamento do saldo.
@@ -21,12 +23,11 @@ As alterações são organizadas nas categorias:
 
 - Redesenhada a tela de abertura do sistema com a identidade visual Pluma, barra de progresso e indicação da etapa de carregamento.
 - Redesenhada a janela exibida durante as atualizações, com a identidade visual Pluma e barra de progresso do download e da instalação.
+- Atualizada a identidade do produto para PLUMA em telas, avisos e ícone. Para receber a nova janela de atualização, instalações existentes precisam atualizar o launcher pelo instalador.
 
 ### Corrigido
 
 - Corrigida a seleção do valor de entrada ao clicar no campo de crediário.
-
-### Segurança
 
 ### Removido
 

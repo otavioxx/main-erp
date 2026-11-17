@@ -289,6 +289,9 @@ def test_snapshot_com_transacao_concorrente_em_wal(tmp_path, monkeypatch):
 
 
 def test_backups_simultaneos_usam_arquivos_independentes(tmp_path, monkeypatch):
+    from PyQt6.QtWidgets import QApplication
+
+    app = QApplication.instance() or QApplication([])
     banco = tmp_path / "erp.db"
     conn = sqlite3.connect(banco)
     conn.execute("CREATE TABLE dados (valor INTEGER)")
@@ -316,9 +319,6 @@ def test_backups_simultaneos_usam_arquivos_independentes(tmp_path, monkeypatch):
         thread.join(timeout=20)
     assert all(not thread.is_alive() for thread in threads)
     # Signals emitted on worker threads are queued for the Qt main thread.
-    from PyQt6.QtWidgets import QApplication
-
-    app = QApplication.instance() or QApplication([])
     app.processEvents()
     assert not erros
     assert len(set(concluidos)) == 2

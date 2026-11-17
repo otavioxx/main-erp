@@ -16,7 +16,7 @@ class Config:
 
     # Constantes da aplicação
     APP_NAME = "MainERP"
-    APP_VERSION = "0.10.10"
+    APP_VERSION = "0.11.0"
     DEBUG_MODE = False
 
     def __init__(self, config_file: str | None = None):
