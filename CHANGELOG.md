@@ -13,6 +13,10 @@ As alterações são organizadas nas categorias:
 
 ## [Unreleased]
 
+### Alterado
+
+- Aprimorado o diálogo de backup, com barra de progresso no estilo do splash, mensagens mais legíveis e resultado no próprio diálogo.
+
 ## [0.11.2] - 2026-11-17
 
 ### Adicionado

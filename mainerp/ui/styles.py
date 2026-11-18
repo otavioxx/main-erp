@@ -696,7 +696,7 @@ class ConstrutorEstilos:
             font-weight: bold;
         }}
         QLabel[estiloVisual="backup-status"] {{
-            font-size: 14px;
+            font-size: {self.fonte.tamanho_base + 4}px;
         }}
         QTextEdit[estiloVisual="backup-detalhes"] {{
             font-family: Consolas, monospace;

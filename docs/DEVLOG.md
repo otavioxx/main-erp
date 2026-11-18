@@ -2,6 +2,13 @@
 
 ## 2026-11-18
 
+### Diálogo de backup manual
+
+- Corrigido o ícone para usar `CODE_DIR`, independentemente da pasta de execução.
+- Progresso, sucesso, erros e falha ao salvar preferências agora aparecem no diálogo; o fechamento fica disponível após a verificação do ZIP.
+- Seguidos os padrões de título, botão primário e estados semânticos do tema. A barra usa o mesmo trilho e acento do splash; mensagens têm fonte maior e janela dimensionada para comportá-las.
+- A tela mantém o estado atual do backup visível, como na referência de [Windows Backup](https://support.microsoft.com/en-gb/windows/experience/backup-recovery/back-up-and-restore-with-windows-backup).
+
 ### Verificação pós-gravação de backups
 
 - [Backup automático](mainerp\data\automatic_backup.py): após publicar o snapshot, a cópia é relida (tamanho e SHA-256 do temporário) e passa por `integrity_check`; se falhar, o arquivo é removido e o erro chega à interface via `backup_falhou`.

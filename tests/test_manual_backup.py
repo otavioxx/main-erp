@@ -111,12 +111,11 @@ def test_backup_recente_so_dispensa_dialogo_se_for_validado(
     avisos = []
     monkeypatch.setattr(QMessageBox, "warning", lambda *args: avisos.append(args))
     assert BackupDialog.should_show_dialog() is (estado != "valido")
-    if estado == "valido":
-        assert not avisos
-    else:
-        assert len(avisos) == 1
-        assert "backup" in avisos[0][2].lower()
-        assert "novo" in avisos[0][2].lower()
+    assert not avisos
+    assert bool(BackupDialog.aviso_validacao) is (estado not in ("valido",))
+    if estado != "valido":
+        dialogo = BackupDialog(force_show=True)
+        assert "não pôde ser validado" in dialogo.status_label.text()
     app.processEvents()
 
 
@@ -148,12 +147,13 @@ def test_fechamento_nao_dispensa_dialogo_ao_perder_backup_recente(
     MainWindow.closeEvent(cast(MainWindow, janela), evento)
     assert not evento.isAccepted()
     assert operacoes == ["parar", "dialogo", "iniciar"]
-    assert len(avisos) == 1
+    assert not avisos
+    assert BackupDialog.aviso_validacao
     app.processEvents()
 
 
 def test_backup_legado_sem_hash_ainda_verifica_conteudo_zip(tmp_path, monkeypatch):
-    from PyQt6.QtWidgets import QApplication, QMessageBox
+    from PyQt6.QtWidgets import QApplication
 
     app = QApplication.instance() or QApplication([])
     monkeypatch.setattr(BackupConfig, "CONFIG_FILE", str(tmp_path / "settings.json"))
@@ -169,12 +169,13 @@ def test_backup_legado_sem_hash_ainda_verifica_conteudo_zip(tmp_path, monkeypatc
         ),
         encoding="utf-8",
     )
-    avisos = []
-    monkeypatch.setattr(QMessageBox, "warning", lambda *args: avisos.append(args))
     assert not BackupDialog.should_show_dialog()
     arquivo.write_bytes(b"corrompido")
     assert BackupDialog.should_show_dialog()
-    assert len(avisos) == 1
+    assert BackupDialog.aviso_validacao
+    dialogo = BackupDialog(force_show=True)
+    assert BackupDialog.aviso_validacao == ""
+    assert "não pôde ser validado" in dialogo.status_label.text()
     app.processEvents()
 
 
@@ -578,53 +579,95 @@ def test_backup_informa_falha_ao_salvar_metadados(tmp_path, monkeypatch):
     arquivo = tmp_path / "backup.zip"
     with zipfile.ZipFile(arquivo, "w") as zipf:
         zipf.writestr("erp.db", "dados")
-    avisos, emitidos, aceitos = [], [], []
+    emitidos, estados, mensagens = [], [], []
 
-    class Caixa:
-        Icon = SimpleNamespace(Information=1)
-        StandardButton = SimpleNamespace(Ok=1)
-
-        def __init__(self, parent):
-            pass
-
-        @staticmethod
-        def warning(*args):
-            avisos.append(args)
-
-        def setIcon(self, value):
-            pass
-
-        def setWindowTitle(self, value):
-            pass
-
-        def setText(self, value):
-            pass
-
-        def addButton(self, value):
-            pass
-
-        def exec(self):
-            pass
-
-    monkeypatch.setattr("mainerp.ui.dialogs.backup_dialog.QMessageBox", Caixa)
-    estados = []
     monkeypatch.setattr(
         "mainerp.ui.dialogs.backup_dialog.definir_estado_visual",
-        lambda widget, estado: estados.append(estado),
+        lambda _widget, estado: estados.append(estado),
     )
-    monkeypatch.setattr(BackupConfig, "save_last_backup_date", lambda **kwargs: False)
+    monkeypatch.setattr(BackupConfig, "save_last_backup_date", lambda **_kwargs: False)
     status = SimpleNamespace(
-        setText=lambda value: None, setStyleSheet=lambda value: None
+        setText=mensagens.append,
+        setVisible=lambda _visible: None,
+    )
+    botao = SimpleNamespace(
+        setText=lambda texto: mensagens.append(texto), setEnabled=lambda _value: None
     )
     dialogo = SimpleNamespace(
         status_label=status,
+        btn_backup=botao,
+        aviso_preferencia="",
+        backup_verificado=False,
         backup_realizado=SimpleNamespace(emit=emitidos.append),
-        accept=lambda: aceitos.append(True),
+        _mostrar_status=lambda mensagem, estado: (
+            mensagens.append(mensagem),
+            estados.append(estado),
+        ),
     )
 
     BackupDialog._backup_concluido(cast(BackupDialog, dialogo), str(arquivo))
 
-    assert len(avisos) == 1
+    assert dialogo.backup_verificado
     assert estados == ["sucesso"]
     assert emitidos == [str(arquivo)]
-    assert aceitos == [True]
+    assert "Backup criado e verificado" in mensagens[0]
+    assert "data e o local" in mensagens[0]
+    assert "Fechar" in mensagens
+
+
+def test_icone_backup_independe_da_pasta_de_execucao(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    dialogo = BackupDialog(force_show=True)
+
+    assert not dialogo.windowIcon().isNull()
+
+
+def test_progresso_e_falha_ficam_no_dialogo():
+    dialogo = BackupDialog(force_show=True)
+
+    dialogo._atualizar_progresso(50)
+    assert dialogo.progresso_backup.value() == 50
+    assert "Criando e verificando" in dialogo.status_label.text()
+
+    dialogo._backup_erro("falha simulada")
+    assert "falha simulada" in dialogo.status_label.text()
+    assert "permissão" in dialogo.status_label.text()
+    assert dialogo.btn_backup.isEnabled()
+
+
+@pytest.mark.parametrize("tema", ["light", "dark"])
+def test_barra_backup_usa_trilho_e_acento_do_splash(tema):
+    from PyQt6.QtCore import Qt
+    from PyQt6.QtGui import QColor, QImage
+
+    from mainerp.ui.styles import aplicar_tema
+    from mainerp.ui.theme_tokens import CLARO, ESCURO
+
+    app = QApplication.instance() or QApplication([])
+    tema_anterior = app.property("mainerp_tema")
+    aplicar_tema(app, tema)
+    dialogo = None
+    try:
+        dialogo = BackupDialog(force_show=True)
+        barra = dialogo.progresso_backup
+        barra.setValue(50)
+
+        imagem = QImage(barra.size(), QImage.Format.Format_ARGB32)
+        imagem.fill(Qt.GlobalColor.transparent)
+        barra.render(imagem)
+        cores = CLARO if tema == "light" else ESCURO
+
+        assert barra.height() == 4
+        assert imagem.pixelColor(64, 2) == QColor(cores.accent_text)
+        assert imagem.pixelColor(195, 2) == QColor(cores.border)
+        assert dialogo.minimumWidth() >= 640
+        assert dialogo.minimumHeight() >= 500
+        assert dialogo.status_label.font().pixelSize() >= 16
+    finally:
+        if dialogo is not None:
+            dialogo.deleteLater()
+        if tema_anterior in ("light", "dark"):
+            aplicar_tema(app, tema_anterior)
+        else:
+            app.setProperty("mainerp_tema", tema_anterior)

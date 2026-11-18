@@ -13,22 +13,23 @@ import uuid
 import zipfile
 from datetime import datetime
 
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QGuiApplication, QIcon
+from PyQt6.QtCore import QRectF, Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QColor, QGuiApplication, QIcon, QPainter
 from PyQt6.QtWidgets import (
     QDialog,
     QFileDialog,
     QGroupBox,
     QHBoxLayout,
     QLabel,
-    QMessageBox,
+    QProgressBar,
     QPushButton,
     QVBoxLayout,
+    QWidget,
 )
 
 from mainerp.core.app_logging import registrar_excecao
 from mainerp.core.config import obter_config
-from mainerp.core.paths import caminho_dados
+from mainerp.core.paths import CODE_DIR, caminho_dados
 from mainerp.data.automatic_backup import (
     calcular_sha256,
     criar_snapshot_sqlite,
@@ -36,9 +37,31 @@ from mainerp.data.automatic_backup import (
     verificar_banco_no_zip,
     verificar_copia_gravada,
 )
-from mainerp.ui.styles import definir_estado_visual
+from mainerp.ui.styles import cores_ativas, definir_estado_visual
 
 logger = logging.getLogger(__name__)
+
+
+class _BarraProgressoBackup(QProgressBar):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setTextVisible(False)
+        self.setFixedSize(260, 4)
+
+    def paintEvent(self, _event):
+        painter = QPainter(self)
+        cores = cores_ativas()
+        painter.fillRect(
+            QRectF(0, 0, self.width(), self.height()),
+            QColor(cores.border),
+        )
+        preenchido = self.width() * self.value() / 100
+        if preenchido > 0:
+            painter.fillRect(
+                QRectF(0, 0, preenchido, self.height()),
+                QColor(cores.accent_text),
+            )
+        painter.end()
 
 
 class BackupConfig:
@@ -330,7 +353,9 @@ Tamanho do snapshot: {os.path.getsize(snapshot) / (1024 * 1024):.2f} MB
                 try:
                     os.remove(full_backup_path)
                 except OSError:
-                    logger.exception("Falha ao remover backup que não passou na verificação")
+                    logger.exception(
+                        "Falha ao remover backup que não passou na verificação"
+                    )
                 self.backup_error.emit(
                     f"A cópia gravada não passou na verificação e foi descartada: {e!s}"
                 )
@@ -360,6 +385,7 @@ class BackupDialog(QDialog):
 
     BackupConfig = BackupConfig
     backup_realizado = pyqtSignal(str)  # Sinal emitido quando backup é feito
+    aviso_validacao = ""
 
     def __init__(self, parent=None, force_show=False):
         """
@@ -374,6 +400,9 @@ class BackupDialog(QDialog):
         self.backup_thread = None
         self.force_show = force_show  # Flag para forçar exibição
         self.backup_verificado = False  # Flag para controlar se o backup foi verificado
+        self.aviso_preferencia = ""
+        aviso_validacao = type(self).aviso_validacao
+        type(self).aviso_validacao = ""
 
         # Carregar último caminho salvo
         self.destination_folder = BackupConfig.get_last_path()
@@ -382,6 +411,12 @@ class BackupDialog(QDialog):
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowCloseButtonHint)
 
         self._init_ui()
+        if aviso_validacao:
+            self._mostrar_status(
+                f"O último backup não pôde ser validado: {aviso_validacao}\n"
+                "Crie um novo backup para continuar.",
+                "erro",
+            )
 
     def showEvent(self, event):
         """Centraliza quando o diálogo é exibido"""
@@ -405,6 +440,7 @@ class BackupDialog(QDialog):
         Returns:
             True se deve mostrar o diálogo, False caso contrário
         """
+        BackupDialog.aviso_validacao = ""
         if force_show or BackupConfig.should_show_backup_dialog():
             return True
 
@@ -412,29 +448,25 @@ class BackupDialog(QDialog):
         if valido:
             return False
         logger.warning("Não foi possível validar o último backup manual: %s", motivo)
-        QMessageBox.warning(
-            None,
-            "Backup anterior indisponível ou inválido",
-            f"Não foi possível validar o último backup manual: {motivo}.\n\n"
-            "Verifique se o destino está acessível ou selecione outra pasta "
-            "e faça um novo backup.",
-        )
+        BackupDialog.aviso_validacao = motivo
         return True
 
     def _init_ui(self):
         """Inicializa interface do diálogo"""
-        self.setWindowTitle("Backup do Sistema - Obrigatório")
-        self.setMinimumSize(500, 400)
-        self.setWindowIcon(QIcon("icon.ico") if os.path.exists("icon.ico") else QIcon())
+        self.setWindowTitle("Backup do Sistema")
+        self.setMinimumSize(640, 500)
+        caminho_icone = CODE_DIR / "icon.ico"
+        if caminho_icone.is_file():
+            self.setWindowIcon(QIcon(str(caminho_icone)))
 
         layout = QVBoxLayout()
         layout.setSpacing(15)
         layout.setContentsMargins(20, 20, 20, 20)
 
         # Título
-        titulo = QLabel("BACKUP OBRIGATÓRIO")
-        titulo.setProperty("estiloVisual", "backup-titulo")
-        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        titulo = QLabel("Backup do sistema")
+        titulo.setProperty("class", "title")
+        titulo.setAlignment(Qt.AlignmentFlag.AlignLeft)
         layout.addWidget(titulo)
 
         # Informações do arquivo
@@ -462,9 +494,7 @@ class BackupDialog(QDialog):
         destino_group = QGroupBox("Local de Salvamento")
         destino_layout = QVBoxLayout()
 
-        self.caminho_label = QLabel(
-            f"<b>Pasta selecionada:</b> {self.destination_folder}"
-        )
+        self.caminho_label = QLabel(f"Pasta selecionada: {self.destination_folder}")
         self.caminho_label.setWordWrap(True)
         self.caminho_label.setProperty("estiloVisual", "caminho")
         destino_layout.addWidget(self.caminho_label)
@@ -477,13 +507,31 @@ class BackupDialog(QDialog):
         destino_group.setLayout(destino_layout)
         layout.addWidget(destino_group)
 
-        # Mensagem de status
-        self.status_label = QLabel("")
-        self.status_label.setVisible(False)
+        self.status_label = QLabel("Selecione a pasta de destino e inicie o backup.")
         self.status_label.setProperty("estiloVisual", "backup-status")
+        self.status_label.setProperty("estadoVisual", "acento")
         self.status_label.setWordWrap(True)
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        self.status_label.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(self.status_label)
+
+        self.progresso_container = QWidget()
+        progresso_layout = QHBoxLayout(self.progresso_container)
+        progresso_layout.setContentsMargins(0, 0, 0, 0)
+        self.progresso_backup = _BarraProgressoBackup()
+        self.progresso_backup.setRange(0, 100)
+        self.progresso_backup.setValue(0)
+        progresso_layout.addStretch()
+        progresso_layout.addWidget(self.progresso_backup)
+        self.progresso_percentual = QLabel("0%")
+        self.progresso_percentual.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
+        self.progresso_percentual.setMinimumWidth(44)
+        progresso_layout.addWidget(self.progresso_percentual)
+        progresso_layout.addStretch()
+        self.progresso_container.setVisible(False)
+        layout.addWidget(self.progresso_container)
 
         layout.addStretch()
 
@@ -491,9 +539,9 @@ class BackupDialog(QDialog):
         button_layout = QHBoxLayout()
 
         # Botão Realizar Backup (centralizado)
-        self.btn_backup = QPushButton("REALIZAR BACKUP E FECHAR")
+        self.btn_backup = QPushButton("Realizar backup")
         self.btn_backup.clicked.connect(self._iniciar_backup)
-        self.btn_backup.setProperty("class", "success")
+        self.btn_backup.setProperty("class", "primary")
 
         button_layout.addStretch()
         button_layout.addWidget(self.btn_backup)
@@ -544,32 +592,35 @@ class BackupDialog(QDialog):
 
                 self.destination_folder = folder
                 self.caminho_label.setText(
-                    f"<b>Pasta selecionada:</b> {self.destination_folder}"
+                    f"Pasta selecionada: {self.destination_folder}"
                 )
                 # Salvar o novo caminho
                 if not BackupConfig.save_last_path(folder):
-                    QMessageBox.warning(
-                        self,
-                        "Configuração não salva",
-                        "A pasta foi selecionada, mas não foi possível salvar "
-                        "essa preferência para a próxima vez.",
+                    self.aviso_preferencia = (
+                        "A pasta foi selecionada, mas não será lembrada na próxima vez."
                     )
+                    self._mostrar_status(self.aviso_preferencia, "erro")
+                else:
+                    self.aviso_preferencia = ""
+                    self._mostrar_status("Pasta de destino atualizada.", "acento")
             except Exception as e:
-                QMessageBox.critical(
-                    self,
-                    "Erro",
-                    f"A pasta selecionada não tem permissão de escrita:\n\n{e!s}",
+                self._mostrar_status(
+                    f"A pasta selecionada não tem permissão de escrita:\n{e!s}",
+                    "erro",
                 )
 
     def _iniciar_backup(self):
         """Inicia o processo de backup"""
+        if self.backup_verificado:
+            self.accept()
+            return
+
         # Validar se o arquivo do banco existe
         if not os.path.exists(self.db_path):
-            QMessageBox.critical(
-                self,
-                "Erro",
+            self._mostrar_status(
                 f"Arquivo do banco de dados não encontrado:\n{self.db_path}\n\n"
-                f"O sistema não pode ser fechado sem fazer backup.",
+                "O sistema não pode ser fechado sem fazer backup.",
+                "erro",
             )
             return
 
@@ -578,11 +629,10 @@ class BackupDialog(QDialog):
             try:
                 os.makedirs(self.destination_folder)
             except Exception as e:
-                QMessageBox.critical(
-                    self,
-                    "Erro",
-                    f"Não foi possível criar a pasta de destino:\n{e!s}\n\n"
-                    f"Por favor, selecione outra pasta.",
+                self._mostrar_status(
+                    f"Não foi possível criar a pasta de destino:\n{e!s}\n"
+                    "Selecione outra pasta.",
+                    "erro",
                 )
                 return
 
@@ -593,35 +643,49 @@ class BackupDialog(QDialog):
                 f.write("test")
             os.remove(test_file)
         except Exception as e:
-            QMessageBox.critical(
-                self,
-                "Erro",
-                f"A pasta selecionada não tem permissão de escrita:\n\n{e!s}\n\n"
-                f"Por favor, selecione outra pasta.",
+            self._mostrar_status(
+                f"A pasta selecionada não tem permissão de escrita:\n{e!s}\n"
+                "Selecione outra pasta.",
+                "erro",
             )
             return
 
         # Salvar o caminho atual (caso tenha sido alterado mas não salvo)
         if not BackupConfig.save_last_path(self.destination_folder):
-            QMessageBox.warning(
-                self,
-                "Configuração não salva",
-                "O backup continuará, mas não foi possível salvar a pasta escolhida.",
+            self.aviso_preferencia = (
+                "O backup continuará, mas a pasta escolhida não será lembrada."
             )
 
         # Desabilitar botão durante o backup
         self.btn_backup.setEnabled(False)
 
-        # Mostrar status de processamento
-        self.status_label.setVisible(True)
-        self.status_label.setText("Criando backup...")
-        definir_estado_visual(self.status_label, "acento")
+        self.progresso_backup.setValue(0)
+        self.progresso_percentual.setText("0%")
+        self.progresso_container.setVisible(True)
+        self._mostrar_status("Preparando a criação do backup...", "acento")
 
         # Criar e iniciar thread de backup
         self.backup_thread = BackupThread(self.db_path, self.destination_folder)
+        self.backup_thread.progress_changed.connect(self._atualizar_progresso)
         self.backup_thread.backup_completed.connect(self._backup_concluido)
         self.backup_thread.backup_error.connect(self._backup_erro)
         self.backup_thread.start()
+
+    def _mostrar_status(self, mensagem, estado):
+        self.status_label.setText(mensagem)
+        self.status_label.setVisible(True)
+        definir_estado_visual(self.status_label, estado)
+
+    def _atualizar_progresso(self, valor):
+        self.progresso_backup.setValue(valor)
+        self.progresso_percentual.setText(f"{valor}%")
+        if valor < 50:
+            mensagem = "Preparando os dados do backup..."
+        elif valor < 100:
+            mensagem = "Criando e verificando o arquivo de backup..."
+        else:
+            mensagem = "Finalizando a verificação do backup..."
+        self._mostrar_status(mensagem, "acento")
 
     def _backup_concluido(self, backup_path):
         """Chamado quando o backup é concluído com sucesso"""
@@ -658,63 +722,45 @@ class BackupDialog(QDialog):
 
         # Salvar a data do backup com hash para verificação futura
         if not BackupConfig.save_last_backup_date(backup_path=backup_path):
-            QMessageBox.warning(
-                self,
-                "Configuração não salva",
-                "O arquivo de backup foi criado, mas não foi possível salvar sua "
-                "data e localização. O sistema poderá solicitar outro backup.",
+            self.aviso_preferencia = (
+                "Não foi possível salvar a data e o local; o sistema poderá "
+                "solicitar outro backup."
             )
-
-        self.status_label.setText("Backup concluído e verificado com sucesso!")
-        definir_estado_visual(self.status_label, "sucesso")
 
         # Marcar que o backup foi verificado
         self.backup_verificado = True
 
-        # Mostrar mensagem de confirmação
-        msg_box = QMessageBox(self)
-        msg_box.setIcon(QMessageBox.Icon.Information)
-        msg_box.setWindowTitle("Backup Concluído")
-        msg_box.setText(
-            f"Backup realizado com sucesso!\n\n"
+        tamanho_mb = os.path.getsize(backup_path) / (1024 * 1024)
+        mensagem = (
+            "Backup criado e verificado com sucesso.\n"
             f"Arquivo: {os.path.basename(backup_path)}\n"
             f"Local: {os.path.dirname(backup_path)}\n"
-            f"Tamanho: {os.path.getsize(backup_path) / (1024 * 1024):.2f} MB\n\n"
+            f"Tamanho: {tamanho_mb:.2f} MB"
         )
-
-        # Botão OK padrão
-        msg_box.addButton(QMessageBox.StandardButton.Ok)
-
-        msg_box.exec()
+        if self.aviso_preferencia:
+            mensagem += f"\n\nAtenção: {self.aviso_preferencia}"
+        self._mostrar_status(mensagem, "sucesso")
+        self.btn_backup.setText("Fechar")
+        self.btn_backup.setEnabled(True)
 
         # Emitir sinal de backup realizado
         self.backup_realizado.emit(backup_path)
-
-        # Fechar o diálogo de backup
-        self.accept()
 
     def _backup_erro(self, mensagem_erro):
         """Chamado quando ocorre erro no backup"""
         # Habilitar botão novamente
         self.btn_backup.setEnabled(True)
 
-        # Esconder status
-        self.status_label.setVisible(False)
+        self.progresso_container.setVisible(False)
 
         # Reset da flag de verificação
         self.backup_verificado = False
 
-        # Mensagem de erro mais detalhada
-        QMessageBox.critical(
-            self,
-            "Erro no Backup",
-            f"Ocorreu um erro durante o backup:\n\n{mensagem_erro}\n\n"
-            f"O sistema NÃO será fechado.\n\n"
-            f"Por favor, verifique:\n"
-            f"• Se a unidade de destino tem espaço disponível\n"
-            f"• Se a unidade de destino está funcionando corretamente\n"
-            f"• Se você tem permissão de escrita na pasta\n\n"
-            f"Tente novamente ou selecione outra pasta.",
+        self._mostrar_status(
+            f"Não foi possível concluir o backup:\n{mensagem_erro}\n\n"
+            "O sistema permanece aberto. Verifique o espaço e a permissão "
+            "de gravação, ou selecione outra pasta e tente novamente.",
+            "erro",
         )
 
     def _abrir_pasta(self, backup_path):
@@ -731,29 +777,24 @@ class BackupDialog(QDialog):
                 __name__,
                 "Exception handled in BackupDialog._abrir_pasta in dialogs/backup_dialog.py",
             )
-            QMessageBox.warning(
-                self, "Aviso", f"Não foi possível abrir a pasta:\n{e!s}"
+            self._mostrar_status(
+                f"Não foi possível abrir a pasta do backup:\n{e!s}", "erro"
             )
 
     def closeEvent(self, event):
         """Intercepta o fechamento da janela - NÃO PERMITE FECHAR SEM BACKUP"""
         if self.backup_thread and self.backup_thread.isRunning():
-            QMessageBox.information(
-                self,
-                "Backup em Andamento",
-                "O backup ainda está em andamento.\n\n"
-                "Aguarde a conclusão do backup para fechar o sistema.",
-                QMessageBox.StandardButton.Ok,
+            self._mostrar_status(
+                "O backup está em andamento. Aguarde a conclusão para fechar.",
+                "acento",
             )
             event.ignore()
 
         elif not self.backup_verificado:
-            QMessageBox.warning(
-                self,
-                "Backup Obrigatório",
-                "Para fechar o sistema é necessário realizar um backup com sucesso.\n\n"
-                "Clique no botão 'REALIZAR BACKUP E FECHAR' para continuar.",
-                QMessageBox.StandardButton.Ok,
+            self._mostrar_status(
+                "Para encerrar o sistema, crie e verifique um backup usando "
+                "o botão abaixo.",
+                "acento",
             )
             event.ignore()
 
