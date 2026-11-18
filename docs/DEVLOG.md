@@ -1,5 +1,11 @@
 # Histórico de Desenvolvimento
 
+## 2026-11-18
+
+### Dialogo de seleção de produto
+
+- Ajustado dimensionamento da janela de [dialogo de seleção de produtos](mainerp\ui\dialogs\produto_selection_dialog.py) de Medio para Large.
+
 ## 2026-11-17
 
 ### Preparação da release 0.11.2
