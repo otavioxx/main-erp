@@ -8,6 +8,8 @@
 - A coleta de lixo podia encerrar o `QApplication` durante o teste e destruir o objeto Qt de backup. Os testes de backup manual agora mantêm a aplicação Qt viva durante o módulo e verificam o tratamento da falha mesmo com coleta de lixo.
 - Preparada a versão 0.11.2, preservando as tags das tentativas anteriores.
 - Ruff aprovado e testes completos aprovados no Windows (375, com 1 ignorado) e no Linux com Python 3.12 (372, com 4 ignorados). Instalação limpa e atualização local de 0.10.10 para 0.11.2 foram verificadas em pastas isoladas, preservando os dados de teste e a release anterior.
+- A release 0.11.2 foi publicada pelo GitHub Actions como a mais recente. Os seis artefatos foram baixados sem autenticação; manifesto, hashes SHA-256 e assinaturas Ed25519 foram verificados.
+- Em instalação isolada, o launcher da 0.10.10 baixou e instalou a 0.11.2 online, preservando os dados de teste e a release anterior. O teste executou o launcher diretamente com `--somente-atualizar`, sem criar atalho.
 
 ### Preparação da release 0.11.1
 
