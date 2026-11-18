@@ -39,7 +39,7 @@ class ProdutoSelectionDialog(DialogSizeMixin, TableScrollNavigationMixin, QDialo
 
         aplicar_maiuscula_formulario(self)
         self._carregar_produtos()
-        self.setup_dialog_size_medium()  # type: ignore[reportAttributeAccessIssue]
+        self.setup_dialog_size_large()  # type: ignore[reportAttributeAccessIssue]
 
     def _init_ui(self):
         """Inicializa interface otimizada"""
