@@ -29,7 +29,12 @@ from PyQt6.QtWidgets import (
 from mainerp.core.app_logging import registrar_excecao
 from mainerp.core.config import obter_config
 from mainerp.core.paths import caminho_dados
-from mainerp.data.automatic_backup import criar_snapshot_sqlite
+from mainerp.data.automatic_backup import (
+    calcular_sha256,
+    criar_snapshot_sqlite,
+    verificar_banco_no_zip,
+    verificar_copia_gravada,
+)
 from mainerp.ui.styles import definir_estado_visual
 
 logger = logging.getLogger(__name__)
@@ -296,8 +301,10 @@ Tamanho do snapshot: {os.path.getsize(snapshot) / (1024 * 1024):.2f} MB
                 self.backup_error.emit(f"Erro ao testar zip: {e!s}")
                 return
 
-            # Renomear o arquivo temporário para o nome final
+            # Registrar tamanho e hash antes de publicar, para conferir a cópia gravada
             try:
+                tamanho = os.path.getsize(temp_zip)
+                sha256 = calcular_sha256(temp_zip)
                 os.replace(temp_zip, full_backup_path)
             except Exception as e:
                 registrar_excecao(
@@ -307,20 +314,27 @@ Tamanho do snapshot: {os.path.getsize(snapshot) / (1024 * 1024):.2f} MB
                 self.backup_error.emit(f"Erro ao salvar arquivo final: {e!s}")
                 return
 
-            # Verificação final do arquivo salvo
-            if not os.path.exists(full_backup_path):
-                self.backup_error.emit("Arquivo de backup não foi salvo")
+            # Verificação final: relê o arquivo publicado (tamanho, hash, ZIP e banco)
+            try:
+                verificar_copia_gravada(full_backup_path, tamanho, sha256)
+                verificar_banco_no_zip(
+                    full_backup_path, os.path.basename(self.source_db)
+                )
+            except Exception as e:
+                registrar_excecao(
+                    __name__,
+                    "Exception handled in BackupThread.run in dialogs/backup_dialog.py",
+                )
+                try:
+                    os.remove(full_backup_path)
+                except OSError:
+                    logger.exception("Falha ao remover backup que não passou na verificação")
+                self.backup_error.emit(
+                    f"A cópia gravada não passou na verificação e foi descartada: {e!s}"
+                )
                 return
 
-            # Verificar tamanho do arquivo
-            if os.path.getsize(full_backup_path) == 0:
-                self.backup_error.emit("Arquivo de backup está vazio")
-                return
-
-            # Calcular hash do backup para verificação futura
-            with open(full_backup_path, "rb") as f:
-                self.backup_hash = hashlib.md5(f.read()).hexdigest()
-
+            self.backup_hash = sha256
             self.progress_changed.emit(100)
             self.backup_completed.emit(full_backup_path)
 

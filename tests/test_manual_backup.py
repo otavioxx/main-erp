@@ -337,6 +337,36 @@ def test_backups_simultaneos_usam_arquivos_independentes(tmp_path, monkeypatch):
     assert not list(tmp_path.glob("temp_*.zip"))
 
 
+def test_copia_manual_corrompida_na_publicacao_e_descartada(tmp_path, monkeypatch):
+    banco = tmp_path / "erp.db"
+    conn = sqlite3.connect(banco)
+    conn.execute("CREATE TABLE dados (valor INTEGER)")
+    conn.commit()
+    conn.close()
+    destino = tmp_path / "destino"
+    destino.mkdir()
+    substituir = os.replace
+
+    def substituir_e_corromper(origem, final):
+        substituir(origem, final)
+        with open(final, "ab") as arquivo:
+            arquivo.write(b"lixo")
+
+    monkeypatch.setattr(
+        "mainerp.ui.dialogs.backup_dialog.os.replace", substituir_e_corromper
+    )
+    worker = BackupThread(str(banco), str(destino))
+    concluidos, erros = [], []
+    worker.backup_completed.connect(concluidos.append)
+    worker.backup_error.connect(erros.append)
+
+    worker.run()
+
+    assert not concluidos
+    assert erros and "não passou na verificação" in erros[0]
+    assert not list(destino.iterdir())
+
+
 @pytest.mark.parametrize("etapa", ["compactacao", "publicacao"])
 def test_falha_disco_na_publicacao_preserva_backup_anterior(
     tmp_path, monkeypatch, etapa

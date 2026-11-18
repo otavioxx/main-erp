@@ -1,8 +1,10 @@
+import hashlib
 import logging
 import os
 import sqlite3
 import tempfile
 import uuid
+import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -42,6 +44,38 @@ def criar_snapshot_sqlite(caminho_banco: str | Path, destino: str | Path) -> Non
         origem.close()
 
 
+def calcular_sha256(caminho: str | Path) -> str:
+    resumo = hashlib.sha256()
+    with open(caminho, "rb") as arquivo:
+        for bloco in iter(lambda: arquivo.read(1024 * 1024), b""):
+            resumo.update(bloco)
+    return resumo.hexdigest()
+
+
+def verificar_copia_gravada(caminho: str | Path, tamanho: int, sha256: str) -> None:
+    """Relê a cópia publicada e confere tamanho e hash registrados na gravação."""
+    atual = os.path.getsize(caminho)
+    if atual == 0 or atual != tamanho:
+        raise OSError(
+            f"Tamanho da cópia gravada difere do esperado ({atual} de {tamanho} bytes)"
+        )
+    if calcular_sha256(caminho) != sha256:
+        raise OSError("O conteúdo da cópia gravada não confere com o original (hash)")
+
+
+def verificar_banco_no_zip(caminho_zip: str | Path, nome_banco: str) -> None:
+    """Confere o ZIP e a integridade SQLite do banco que ele contém."""
+    with zipfile.ZipFile(caminho_zip) as arquivo:
+        if arquivo.testzip() is not None:
+            raise OSError("O arquivo ZIP gravado está corrompido")
+        with tempfile.TemporaryDirectory() as pasta:
+            extraido = Path(pasta) / "backup.db"
+            with arquivo.open(nome_banco) as origem, extraido.open("wb") as destino:
+                while bloco := origem.read(1024 * 1024):
+                    destino.write(bloco)
+            verificar_integridade_backup(extraido)
+
+
 def criar_backup_automatico(
     caminho_banco: str | Path,
     pasta_backups: str | Path,
@@ -66,7 +100,15 @@ def criar_backup_automatico(
     try:
         os.close(descritor)
         criar_snapshot_sqlite(caminho_banco, temporario)
+        tamanho = temporario.stat().st_size
+        sha256 = calcular_sha256(temporario)
         os.link(temporario, destino)
+        try:
+            verificar_copia_gravada(destino, tamanho, sha256)
+            verificar_integridade_backup(destino)
+        except BaseException:
+            destino.unlink(missing_ok=True)
+            raise
         return destino
     finally:
         temporario.unlink(missing_ok=True)

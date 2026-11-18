@@ -455,7 +455,7 @@ def test_backup_recente_corrompido_avisa_e_repete_apos_falha(tmp_path, monkeypat
     _aguardar_backup(service)
     assert service.resultado == "Integridade SQLite verificada"
     assert not service.aviso_pendente
-    assert em_segundo_plano == [True, True, True]
+    assert em_segundo_plano == [True, True, True, True]
     service.parar()
     app.processEvents()
 
@@ -541,6 +541,26 @@ def test_colisao_de_nome_nao_sobrescreve_backup_existente(tmp_path, monkeypatch)
     assert not list(pasta.glob("*.tmp"))
 
 
+def test_copia_automatica_corrompida_na_publicacao_e_descartada(tmp_path, monkeypatch):
+    import shutil
+
+    banco = tmp_path / "erp.db"
+    with sqlite3.connect(banco) as conn:
+        conn.execute("CREATE TABLE teste (id INTEGER)")
+    pasta = tmp_path / "backups"
+
+    def publicar_corrompido(origem, destino):
+        shutil.copyfile(origem, destino)
+        with open(destino, "ab") as arquivo:
+            arquivo.write(b"lixo")
+
+    monkeypatch.setattr(automatic_backup.os, "link", publicar_corrompido)
+
+    with pytest.raises(OSError, match="hash|Tamanho"):
+        criar_backup_automatico(banco, pasta, datetime(2026, 11, 7, 9, 30))
+    assert not list(pasta.iterdir())
+
+
 def test_verificacao_inacessivel_avisa_e_cria_backup(tmp_path, monkeypatch):
     banco = tmp_path / "erp.db"
     with sqlite3.connect(banco) as conn:
@@ -554,8 +574,12 @@ def test_verificacao_inacessivel_avisa_e_cria_backup(tmp_path, monkeypatch):
     worker.aviso.connect(avisos.append)
     worker.backup_criado.connect(concluidos.append)
 
-    def verificar(_):
-        raise PermissionError("acesso negado")
+    original = automatic_backup.verificar_integridade_backup
+
+    def verificar(caminho):
+        if Path(caminho) == arquivo:
+            raise PermissionError("acesso negado")
+        original(caminho)
 
     monkeypatch.setattr(automatic_backup, "verificar_integridade_backup", verificar)
     worker.run()

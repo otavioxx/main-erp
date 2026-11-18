@@ -21,7 +21,7 @@ Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém tarefas 
 
 **Objetivo:** a perda do disco do PC não pode significar perda do sistema.
 
-- [ ] Verificar a cópia depois de gravar (tamanho e hash) e avisar na interface se falhar.
+- [x] Verificar a cópia depois de gravar (tamanho e hash) e avisar na interface se falhar.
 - [ ] Validar backups automáticos recentes também quanto a esquema e consistência dos dados, não só integridade SQLite.
 - [ ] Tratar destino ausente (pendrive desconectado, pasta indisponível): avisar sem travar o sistema e tentar de novo na próxima oportunidade.
 - [ ] Validar uma restauração a partir da cópia externa em instalação isolada, conferindo registros e totais.
