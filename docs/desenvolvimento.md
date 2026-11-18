@@ -59,7 +59,13 @@ migração está em [banco_e_backups.md](banco_e_backups.md).
 ## Convenções
 
 - Mensagens de commit no formato `tipo: descrição` (`feat`, `fix`, `refactor`, `chore`,
-  `docs`).
+  `docs`, `style`).
+  - `feat` Nova funcionalidade
+  - `fix`Correção de erro
+  - `refactor`Melhoria no código sem mudar comportamento
+  - `chore`Configurações, dependencias e tarefas internas
+  - `docs`Apenas testos e documentos
+  - `style`Ajustes visuais
 - Dados do usuário nunca entram no Git (`*.db`, `config.json`, `backups/`, `relatorios/`).
 - Os logs da aplicação vão para `dados\logs\sistema.log` (arquivo de 5 MB e até 5 cópias).
 - O launcher mantém seu próprio log em `sistema\logs\launcher.log`.
