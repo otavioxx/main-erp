@@ -32,6 +32,7 @@ from mainerp.core.paths import caminho_dados
 from mainerp.data.automatic_backup import (
     calcular_sha256,
     criar_snapshot_sqlite,
+    forcar_gravacao_em_disco,
     verificar_banco_no_zip,
     verificar_copia_gravada,
 )
@@ -303,6 +304,7 @@ Tamanho do snapshot: {os.path.getsize(snapshot) / (1024 * 1024):.2f} MB
 
             # Registrar tamanho e hash antes de publicar, para conferir a cópia gravada
             try:
+                forcar_gravacao_em_disco(temp_zip)
                 tamanho = os.path.getsize(temp_zip)
                 sha256 = calcular_sha256(temp_zip)
                 os.replace(temp_zip, full_backup_path)

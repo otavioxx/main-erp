@@ -44,6 +44,13 @@ def criar_snapshot_sqlite(caminho_banco: str | Path, destino: str | Path) -> Non
         origem.close()
 
 
+def forcar_gravacao_em_disco(caminho: str | Path) -> None:
+    """Força o sistema operacional a gravar o arquivo em disco (fsync)."""
+    with open(caminho, "rb+") as arquivo:
+        arquivo.flush()
+        os.fsync(arquivo.fileno())
+
+
 def calcular_sha256(caminho: str | Path) -> str:
     resumo = hashlib.sha256()
     with open(caminho, "rb") as arquivo:
@@ -100,6 +107,7 @@ def criar_backup_automatico(
     try:
         os.close(descritor)
         criar_snapshot_sqlite(caminho_banco, temporario)
+        forcar_gravacao_em_disco(temporario)
         tamanho = temporario.stat().st_size
         sha256 = calcular_sha256(temporario)
         os.link(temporario, destino)

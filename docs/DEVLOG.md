@@ -6,6 +6,7 @@
 
 - [Backup automático](mainerp\data\automatic_backup.py): após publicar o snapshot, a cópia é relida (tamanho e SHA-256 do temporário) e passa por `integrity_check`; se falhar, o arquivo é removido e o erro chega à interface via `backup_falhou`.
 - [Backup manual](mainerp\ui\dialogs\backup_dialog.py): o ZIP publicado é relido (tamanho, SHA-256, `testzip` e integridade do banco dentro do ZIP); se falhar, é descartado e o erro é exibido no diálogo, sem registrar a data do último backup.
+- Antes de publicar, o arquivo temporário passa por `fsync` nos dois fluxos, para que a releitura não dependa só do cache do sistema.
 - Removida a leitura integral do ZIP em memória no `BackupThread`.
 
 ### Dialogo de seleção de produto
