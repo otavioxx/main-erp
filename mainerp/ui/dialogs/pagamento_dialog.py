@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QGuiApplication, QMouseEvent
 from PyQt6.QtWidgets import (
+    QAbstractSpinBox,
     QButtonGroup,
     QDialog,
     QDialogButtonBox,
@@ -22,6 +23,11 @@ from mainerp.data.money import de_centavos, para_centavos
 from mainerp.domain.utils.helpers import SelectAllDoubleSpinBox, formatar_moeda
 from mainerp.domain.utils.venda_utils import VendaCalculator
 from mainerp.ui.theme_tokens import DIMENSOES
+
+
+class _EntradaManual(SelectAllDoubleSpinBox):
+    def stepEnabled(self) -> QAbstractSpinBox.StepEnabledFlag:
+        return QAbstractSpinBox.StepEnabledFlag.StepNone
 
 
 class _EditorEntrada(QLineEdit):
@@ -79,7 +85,7 @@ class PagamentoDialog(QDialog):
 
         self.entrada_group = QGroupBox("Valor de Entrada")
         entrada_layout = QVBoxLayout(self.entrada_group)
-        self.entrada_input = SelectAllDoubleSpinBox()
+        self.entrada_input = _EntradaManual()
         editor_entrada = _EditorEntrada(self.entrada_input)
         self.entrada_input.setLineEdit(editor_entrada)
         self.entrada_input.setDecimals(2)

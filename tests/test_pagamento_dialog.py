@@ -1,5 +1,11 @@
+import os
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QPoint, QPointF, Qt
+from PyQt6.QtGui import QWheelEvent
 from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import (
     QApplication,
@@ -87,8 +93,81 @@ def test_clicar_na_entrada_seleciona_valor_para_substituicao(app):
         QStyle.SubControl.SC_SpinBoxUp,
         campo,
     )
-    QTest.mouseClick(campo, Qt.MouseButton.LeftButton, pos=seta.center())  # type: ignore[reportCallIssue]
-    assert campo.value() == 13
+    if not seta.isEmpty():
+        QTest.mouseClick(campo, Qt.MouseButton.LeftButton, pos=seta.center())  # type: ignore[reportCallIssue]
+        assert campo.value() == 12
+    for tecla in (
+        Qt.Key.Key_Up,
+        Qt.Key.Key_Down,
+        Qt.Key.Key_PageUp,
+        Qt.Key.Key_PageDown,
+    ):
+        QTest.keyClick(editor, tecla)  # type: ignore[reportCallIssue]
+        assert campo.value() == 12
+
+    for delta in (120, -120):
+        evento = QWheelEvent(
+            QPointF(5, 5),
+            QPointF(campo.mapToGlobal(QPoint(5, 5))),
+            QPoint(),
+            QPoint(0, delta),
+            Qt.MouseButton.NoButton,
+            Qt.KeyboardModifier.NoModifier,
+            Qt.ScrollPhase.NoScrollPhase,
+            False,
+        )
+        QApplication.sendEvent(campo, evento)
+        assert campo.value() == 12
+
+
+@pytest.mark.parametrize("tema", ["light", "dark"])
+def test_entrada_permite_digitacao_com_tema(tmp_path, tema):
+    root = Path(__file__).resolve().parents[1]
+    env = {
+        **os.environ,
+        "MAINERP_DATA": str(tmp_path),
+        "QT_QPA_PLATFORM": "offscreen",
+        "PYTHONPATH": str(root),
+    }
+    script = """
+import sys
+from PyQt6.QtCore import Qt
+from PyQt6.QtTest import QTest
+from PyQt6.QtWidgets import QApplication, QLineEdit, QStyle, QStyleOptionSpinBox
+from mainerp.ui.dialogs.pagamento_dialog import PagamentoDialog
+from mainerp.ui.styles import aplicar_tema
+
+app = QApplication([])
+aplicar_tema(app, sys.argv[1])
+dialogo = PagamentoDialog(100, 1)
+dialogo.rb_crediario.setChecked(True)
+dialogo.show()
+app.processEvents()
+campo = dialogo.entrada_input
+editor = campo.findChild(QLineEdit)
+assert editor is not None
+assert editor.width() >= campo.width() - 10, (editor.width(), campo.width())
+opcoes = QStyleOptionSpinBox()
+campo.initStyleOption(opcoes)
+for botao in (QStyle.SubControl.SC_SpinBoxUp, QStyle.SubControl.SC_SpinBoxDown):
+    assert campo.style().subControlRect(
+        QStyle.ComplexControl.CC_SpinBox, opcoes, botao, campo
+    ).width() == 0
+QTest.mouseClick(editor, Qt.MouseButton.LeftButton)
+QTest.keyClicks(editor, "25")
+assert campo.value() == 25
+assert dialogo.get_dados()["valor_financiado"] == 75
+"""
+    resultado = subprocess.run(
+        [sys.executable, "-c", script, tema],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert resultado.returncode == 0, resultado.stdout + resultado.stderr
 
 
 @pytest.mark.usefixtures("app")

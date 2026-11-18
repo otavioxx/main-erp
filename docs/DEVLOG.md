@@ -2,6 +2,15 @@
 
 ## 2026-11-18
 
+### Preparação da release 0.12.0
+
+- Consolidadas as melhorias compatíveis de verificação de backups, acompanhamento do backup manual, dimensionamento do diálogo de seleção de produtos e entrada digitada no crediário.
+- Ruff e suíte completa aprovados no Windows (383 testes aprovados, 1 ignorado) e no Linux com Python 3.12 (380 aprovados, 4 ignorados).
+
+### Entrada no crediário
+
+- O campo de entrada mantém o editor numérico e a validação; o tema oculta os botões e o campo desativa incrementos por teclado e roda do mouse. Evitado `NoButtons`, que reduz a largura do editor com o tema Qt.
+
 ### Diálogo de backup manual
 
 - Corrigido o ícone para usar `CODE_DIR`, independentemente da pasta de execução.

@@ -13,9 +13,17 @@ As alterações são organizadas nas categorias:
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-18
+
 ### Alterado
 
 - Aprimorado o diálogo de backup, com barra de progresso no estilo do splash, mensagens mais legíveis e resultado no próprio diálogo.
+- O valor de entrada no crediário passa a ser informado por digitação, sem incrementos por setas ou roda do mouse.
+- Ajustado o dimensionamento do diálogo de seleção de produtos para evitar rolagem horizontal em telas estreitas.
+
+### Corrigido
+
+- Reforçada a verificação de backups manuais e automáticos após a gravação, descartando cópias com tamanho, hash ou integridade inválidos.
 
 ## [0.11.2] - 2026-11-17
 
