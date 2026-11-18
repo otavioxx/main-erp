@@ -13,7 +13,7 @@ As alterações são organizadas nas categorias:
 
 ## [Unreleased]
 
-## [0.11.1] - 2026-11-17
+## [0.11.2] - 2026-11-17
 
 ### Adicionado
 

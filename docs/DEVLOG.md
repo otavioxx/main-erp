@@ -2,6 +2,13 @@
 
 ## 2026-11-17
 
+### Preparação da release 0.11.2
+
+- A tentativa de publicar 0.11.1 falhou no teste de backup manual no GitHub Actions, antes do empacotamento; nenhuma release foi publicada.
+- A coleta de lixo podia encerrar o `QApplication` durante o teste e destruir o objeto Qt de backup. Os testes de backup manual agora mantêm a aplicação Qt viva durante o módulo e verificam o tratamento da falha mesmo com coleta de lixo.
+- Preparada a versão 0.11.2, preservando as tags das tentativas anteriores.
+- Ruff aprovado e testes completos aprovados no Windows (375, com 1 ignorado) e no Linux com Python 3.12 (372, com 4 ignorados). Instalação limpa e atualização local de 0.10.10 para 0.11.2 foram verificadas em pastas isoladas, preservando os dados de teste e a release anterior.
+
 ### Preparação da release 0.11.1
 
 - Preparada a versão 0.11.1 com as alterações posteriores à 0.10.10 e a correção da disputa de travas WAL. A tag da tentativa anterior foi preservada.

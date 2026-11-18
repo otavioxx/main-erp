@@ -1,3 +1,4 @@
+import gc
 import json
 import os
 import sqlite3
@@ -11,6 +12,7 @@ from types import SimpleNamespace
 from typing import cast
 
 import pytest
+from PyQt6.QtWidgets import QApplication
 
 from mainerp.data.automatic_backup import criar_snapshot_sqlite
 from mainerp.data.database import Database
@@ -20,6 +22,11 @@ from mainerp.ui.dialogs.restore_backup_dialog import (
     RestoreBackupThread,
     VerifyBackupThread,
 )
+
+
+@pytest.fixture(scope="module", autouse=True)
+def aplicacao_qt():
+    return QApplication.instance() or QApplication([])
 
 
 def test_backup_manual_inclui_transacoes_do_wal(tmp_path):
@@ -191,6 +198,7 @@ def test_falha_ao_criar_snapshot_nao_publica_backup(tmp_path, monkeypatch):
     worker.backup_error.connect(erros.append)
 
     def falhar(*args):
+        gc.collect()
         raise OSError("disco indisponível")
 
     monkeypatch.setattr(
