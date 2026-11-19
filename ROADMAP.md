@@ -151,6 +151,9 @@ está no [CHANGELOG](CHANGELOG.md); os guias estão no
 **Objetivo:** concluir a validação visual e de usabilidade dos componentes do sistema.
 
 - [ ] Validação visual das telas nos dois temas, somente em 100% no Windows.
+- [ ] Padronizar botões de confirmação/cancelamento nos diálogos e configurações.
+- [ ] Aplicar a classe semântica correta às ações de restauração e aos botões destrutivos.
+- [ ] Corrigir o carregamento do ícone nos diálogos que usam caminho relativo.
 - [ ] Validar contraste dos estados visíveis (foco, seleção, desativado e hover) nos dois temas.
 - [ ] Conferir navegação por teclado e atalhos nas listagens e diálogos principais.
 - [ ] Usar o mesmo conjunto de tokens nos relatórios (ligação com a C2).
