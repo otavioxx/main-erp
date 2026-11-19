@@ -1,5 +1,8 @@
 # Identidade Visual — PLUMA
 
+Este documento reúne princípios, comportamento da interface, paleta, implementação e
+critérios de validação da identidade visual.
+
 ## 1. Direção visual
 
 O MainERP adota uma identidade visual inspirada em sistemas ERP corporativos, priorizando sobriedade, legibilidade, consistência e densidade de informação.
@@ -26,7 +29,7 @@ Princípios:
   ícones e seleção, sem supor que uma cor isolada garante contraste em todo contexto.
 - **Temas:** claro como padrão para configurações novas e escuro como opção.
 
-### Navegação e densidade
+## Navegação e densidade
 
 A navegação lateral usa itens compactos com ícone e texto, faixa reta no item ativo
 e contorno visível para foco de teclado. A largura permanece em 220 unidades Qt para
@@ -38,7 +41,7 @@ Testes também verificam as métricas para fontes base de 12 e 14 pt. O trabalho
 atual prioriza exclusivamente 100%; os registros anteriores de outras escalas são
 históricos, não critérios para a etapa atual.
 
-### Tela-modelo de listagem
+## Tela-modelo de listagem
 
 Cada listagem mantém título, painel de filtros, barra de ações e grade com cabeçalho
 destacado e linhas alternadas. A barra usa ícones Lucide monocromáticos e texto; as
@@ -137,13 +140,6 @@ Botões sólidos de confirmação e ações destrutivas possuem cores próprias:
 | `button_semantic_text` | `#FFFFFF` | Texto dos botões |
 
 Essas cores são específicas para botões sólidos e não substituem os tokens semânticos de texto, fundo e borda.
-
-### Referências
-
-As imagens são referências visuais, não capturas da aplicação implementada:
-[tema claro](tema-claro.png) e [tema escuro](tema-escuro.png).
-Para capturas do tema anterior e medições da proposta original, consulte a
-[linha de base de Clientes e contraste](base_clientes_contraste.md).
 
 ## 3. Regras de utilização
 

@@ -1,6 +1,7 @@
 # Roadmap do PLUMA
 
-Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém tarefas pendentes e decisões registradas. O histórico concluído fica resumido, pois os detalhes estão no CHANGELOG.
+Roadmap do produto, com tarefas pendentes e decisões registradas. O histórico de mudanças
+publicadas está no [CHANGELOG](CHANGELOG.md); os guias estão no [índice da documentação](docs/README.md).
 
 ## Regras de trabalho
 
@@ -25,7 +26,7 @@ Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém tarefas 
 - [ ] Validar backups automáticos recentes também quanto a esquema e consistência dos dados, não só integridade SQLite.
 - [ ] Tratar destino ausente (pendrive desconectado, pasta indisponível): avisar sem travar o sistema e tentar de novo na próxima oportunidade.
 - [ ] Validar uma restauração a partir da cópia externa em instalação isolada, conferindo registros e totais.
-- [ ] Atualizar `docs/backup_recuperacao.md` com a rotina e um lembrete periódico de teste de restauração.
+- [x] Documentar a rotina de cópia externa e teste periódico de restauração em `docs/backup_recuperacao.md`.
 
 **Pronto quando:** cópias externas forem verificadas e uma restauração completa puder ser realizada em instalação isolada.
 
@@ -43,6 +44,18 @@ Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém tarefas 
 - [ ] SQLite: o adaptador de datas padrão está obsoleto desde o Python 3.12. Hoje funciona, mas pode ser removido numa versão futura. Vale registrar adaptadores de data explicitamente.
 - [ ] Unificar o cálculo do total do pedido (subtotal - desconto + frete) entre modelo, utilitários e tela.
 - [ ] Definir uma regra única para preço de venda zero, alinhando cadastro de produtos e validação da venda.
+- [ ] Rejeitar estoque negativo no modelo de produto, inclusive em atualizações diretas.
+- [ ] Impedir a inativação de produto quando não for possível verificar pedidos e condicionais vinculados.
+- [ ] Definir a regra de inativação de clientes com vendas ou parcelas em aberto, preservando o recebimento de valores existentes.
+- [ ] Exigir nome não vazio e validar CPF/CNPJ quando informado; normalizar o documento para impedir duplicidade por formatação.
+- [ ] Diferenciar erros de integridade no cadastro de clientes, sem reportar toda falha como CPF/CNPJ duplicado.
+- [ ] Validar email e telefone somente quando informados.
+- [ ] Adicionar testes para validações de clientes, documentos duplicados com formatações diferentes e inativação.
+- [ ] Definir a regra de inativação de fornecedores com pedidos pendentes, preservando o tratamento dos pedidos existentes.
+- [ ] Exigir nome não vazio e validar CNPJ quando informado; normalizar o documento para impedir duplicidade por formatação.
+- [ ] Diferenciar erros de integridade no cadastro de fornecedores, sem reportar toda falha como CNPJ duplicado.
+- [ ] Validar email e telefone somente quando informados.
+- [ ] Adicionar testes para validações de fornecedores, CNPJ duplicado com formatações diferentes e inativação.
 - [ ] Tornar atômicas as operações compostas de venda/estoque e recebimento de pedidos; qualquer falha deve reverter todas as etapas.
 - [ ] Validar identificadores dinâmicos (tabelas, campos e ordenação) nos utilitários SQL; valores já devem continuar parametrizados.
 - [ ] Substituir ou remover o helper legado de backup que copia o arquivo SQLite diretamente, sem snapshot consistente.
@@ -129,6 +142,7 @@ Estas tarefas devem ser executadas aos poucos, junto com as demais fases.
 
 - [ ] Revisar os 160 `except Exception` ao tocar em cada módulo, restringindo ou registrando.
 - [ ] Evitar que falhas em consultas de persistência sejam retornadas como listas vazias ou ausência de registro.
+- [ ] Diferenciar nos rótulos os percentuais de lucro sobre venda e markup sobre custo.
 - [ ] Dividir arquivos grandes quando forem alterados (`produto_view`, `print_venda`, `styles`, `backup_dialog`, `duplicata`).
 
 ## Fase H: Evolução do produto
@@ -171,13 +185,3 @@ A Fase F é transversal e deve avançar continuamente, sem alterar a ordem princ
 - A licença deve ficar na pasta `dados/`, fora das releases, para sobreviver às atualizações.
 - O licenciamento será offline; a assinatura protege a autenticidade da licença, mas não torna impossível a alteração deliberada do código por alguém com acesso a ele.
 - A decisão atual é manter o sistema desktop em Qt Widgets, com SQLite e ReportLab.
-
-## Pontos de Melhoria Identificados
-
-**Limpeza do Repositório:** A inclusão de diretórios __pycache__ e ficheiros .pyc na árvore de diretórios indica que o ficheiro `.gitignore` precisa de ser atualizado.
-**Gestão de Artefactos:** Os ficheiros de bytecode compilado de Python presentes em várias pastas do projeto devem ser removidos do controlo de versões.
-**Estruturação de Testes:** O diretório `tests/` contém artefactos de cache que demonstram a necessidade de isolar melhor os ambientes de execução de testes.
-**Organização da Documentação e Scripts:** A divisão entre os scripts de suporte em `distribuicao/` e a documentação em `docs/` pode ser complementada com uma revisão contínua das dependências listadas em `requirements.txt` e `requirements-dev.txt`.
-**Limpeza da Pasta de Distribuição (distribuicao/):** A pasta agrupa corretamente scripts de suporte importantes (como instaladores em Python, scripts Batch e PowerShell), mas contém ficheiros de cache internos que poluem o diretório de entrega do software. Os artefactos gerados durante a criação de releases devem ser mantidos estritamente fora do repositório de código fonte.
-**Reestruturação da Pasta de Testes (tests/):** O diretório `tests/` agrupa uma quantidade massiva de scripts de teste na mesma pasta de nível superior, acompanhados respetivamente por caches de execução de testes. Separar os testes por categorias lógicas (por exemplo, criando subpastas como unit/, integration/ e models/) tornaria a manutenção a longo prazo muito mais escalável.
-**Redundância em Módulos Utilitários (data/):** Na pasta `mainerp/data/`, encontram-se em simultâneo os ficheiros `database_utils.py` e `db_utils.py`. A existência de dois módulos com responsabilidades sobrepostas para utilitários de base de dados gera ambiguidade e duplicação de código, devendo ser consolidados num único módulo padrão.

@@ -1,7 +1,7 @@
 # Banco de dados, backups e restauração
 
-Funcionamento técnico do banco SQLite, dos backups e da restauração do PLUMA. Para o passo a
-passo do usuário (cópia externa e teste de restauração em um ambiente isolado), veja
+Funcionamento técnico do banco SQLite, dos backups e da restauração do PLUMA. Para o guia
+prático de cópia externa e teste de restauração em ambiente isolado, veja
 [backup_recuperacao.md](backup_recuperacao.md). Para criar migrações, veja
 [desenvolvimento.md](desenvolvimento.md).
 

@@ -7,6 +7,19 @@
 - Consolidadas as melhorias compatíveis de verificação de backups, acompanhamento do backup manual, dimensionamento do diálogo de seleção de produtos e entrada digitada no crediário.
 - Ruff e suíte completa aprovados no Windows (383 testes aprovados, 1 ignorado) e no Linux com Python 3.12 (380 aprovados, 4 ignorados).
 
+### Documentação — organização e navegação
+
+- Criado `docs/README.md` como índice para guias de uso, desenvolvimento, recuperação,
+  identidade visual e publicação.
+- Melhorado o `README.md` da raiz para destacar recursos, instalação, preservação dos dados
+  e acesso aos guias, sem duplicar os procedimentos detalhados.
+- Criado `docs/backup_recuperacao.md` com orientação para cópia externa e teste isolado de
+  restauração; o item correspondente do ROADMAP foi concluído.
+- Organizada a navegação de `docs/identidade_visual.md` por seções e removidas referências
+  a imagens e documentos que não existem no repositório.
+- Corrigidas as instruções das categorias do CHANGELOG para corresponder ao padrão em
+  português já utilizado.
+
 ### Entrada no crediário
 
 - O campo de entrada mantém o editor numérico e a validação; o tema oculta os botões e o campo desativa incrementos por teclado e roda do mouse. Evitado `NoButtons`, que reduz a largura do editor com o tema Qt.
@@ -20,14 +33,14 @@
 
 ### Verificação pós-gravação de backups
 
-- [Backup automático](mainerp\data\automatic_backup.py): após publicar o snapshot, a cópia é relida (tamanho e SHA-256 do temporário) e passa por `integrity_check`; se falhar, o arquivo é removido e o erro chega à interface via `backup_falhou`.
-- [Backup manual](mainerp\ui\dialogs\backup_dialog.py): o ZIP publicado é relido (tamanho, SHA-256, `testzip` e integridade do banco dentro do ZIP); se falhar, é descartado e o erro é exibido no diálogo, sem registrar a data do último backup.
+- [Backup automático](../mainerp/data/automatic_backup.py): após publicar o snapshot, a cópia é relida (tamanho e SHA-256 do temporário) e passa por `integrity_check`; se falhar, o arquivo é removido e o erro chega à interface via `backup_falhou`.
+- [Backup manual](../mainerp/ui/dialogs/backup_dialog.py): o ZIP publicado é relido (tamanho, SHA-256, `testzip` e integridade do banco dentro do ZIP); se falhar, é descartado e o erro é exibido no diálogo, sem registrar a data do último backup.
 - Antes de publicar, o arquivo temporário passa por `fsync` nos dois fluxos, para que a releitura não dependa só do cache do sistema.
 - Removida a leitura integral do ZIP em memória no `BackupThread`.
 
 ### Dialogo de seleção de produto
 
-- Ajustado dimensionamento da janela de [dialogo de seleção de produtos](mainerp\ui\dialogs\produto_selection_dialog.py) de Medio para Large.
+- Ajustado dimensionamento da janela de [diálogo de seleção de produtos](../mainerp/ui/dialogs/produto_selection_dialog.py) de Medio para Large.
 
 ## 2026-11-17
 
