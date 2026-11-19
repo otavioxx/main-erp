@@ -13,6 +13,11 @@ As alterações são organizadas nas categorias:
 
 ## [Unreleased]
 
+### Corrigido
+
+- Evitada a sobrescrita de arquivos existentes durante o teste de escrita do destino do backup manual.
+- Backups automáticos recentes e novos agora passam por validação de esquema e consistência antes da retenção.
+
 ## [0.12.0] - 2026-11-18
 
 ### Alterado

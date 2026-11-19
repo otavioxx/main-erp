@@ -42,6 +42,18 @@ from mainerp.ui.styles import cores_ativas, definir_estado_visual
 logger = logging.getLogger(__name__)
 
 
+def _testar_escrita_destino(pasta: str) -> None:
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        prefix="mainerp_backup_write_",
+        suffix=".tmp",
+        dir=pasta,
+        delete=True,
+    ) as arquivo:
+        arquivo.write("test")
+
+
 class _BarraProgressoBackup(QProgressBar):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -584,11 +596,8 @@ class BackupDialog(QDialog):
 
         if folder:
             # Verificar se a pasta tem permissão de escrita
-            test_file = os.path.join(folder, "test_write.tmp")
             try:
-                with open(test_file, "w") as f:
-                    f.write("test")
-                os.remove(test_file)
+                _testar_escrita_destino(folder)
 
                 self.destination_folder = folder
                 self.caminho_label.setText(
@@ -637,11 +646,8 @@ class BackupDialog(QDialog):
                 return
 
         # Verificar permissão de escrita na pasta
-        test_file = os.path.join(self.destination_folder, "test_write.tmp")
         try:
-            with open(test_file, "w") as f:
-                f.write("test")
-            os.remove(test_file)
+            _testar_escrita_destino(self.destination_folder)
         except Exception as e:
             self._mostrar_status(
                 f"A pasta selecionada não tem permissão de escrita:\n{e!s}\n"

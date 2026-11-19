@@ -1,5 +1,18 @@
 # Histórico de Desenvolvimento
 
+## 2026-11-19
+
+### Validação de backups automáticos
+
+- Backups automáticos recentes e recém-criados passam pela validação de esquema, integridade e referências antes de dispensar nova cópia ou aplicar retenção.
+- A validação falha de forma explícita; cópias novas inválidas são removidas e cópias recentes inválidas provocam uma nova tentativa.
+- Testes cobrem esquema incompleto, referência órfã e preservação de backups antigos quando a nova cópia falha.
+
+### Teste de escrita do backup manual
+
+- As verificações do destino usam arquivo temporário de nome exclusivo e removido ao fechar, sem sobrescrever arquivos preexistentes.
+- Teste de regressão confirma que `test_write.tmp` existente permanece intacto.
+
 ## 2026-11-18
 
 ### Preparação da release 0.12.0

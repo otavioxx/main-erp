@@ -10,6 +10,8 @@ from pathlib import Path
 
 from PyQt6.QtCore import QObject, QThread, QTimer, pyqtSignal
 
+from mainerp.data.db_utils import DatabaseManager
+
 logger = logging.getLogger(__name__)
 
 BACKUP_PREFIX = "backup_automatico_"
@@ -113,7 +115,7 @@ def criar_backup_automatico(
         os.link(temporario, destino)
         try:
             verificar_copia_gravada(destino, tamanho, sha256)
-            verificar_integridade_backup(destino)
+            verificar_backup_automatico(destino)
         except BaseException:
             destino.unlink(missing_ok=True)
             raise
@@ -174,6 +176,16 @@ def verificar_integridade_backup(caminho: Path) -> None:
         conn.close()
 
 
+def verificar_backup_automatico(caminho: str | Path) -> None:
+    """Valida integridade SQLite, esquema e consistência referencial do backup."""
+    if DatabaseManager._verify_database(caminho):
+        return
+    verificar_integridade_backup(Path(caminho))
+    raise sqlite3.DatabaseError(
+        "Backup automático não passou na validação de esquema e consistência"
+    )
+
+
 def aplicar_retencao_backups(
     pasta_backups: str | Path,
     agora: datetime | None = None,
@@ -221,7 +233,7 @@ class _BackupWorker(QThread):
         try:
             if self.recente is not None:
                 try:
-                    verificar_integridade_backup(self.recente)
+                    verificar_backup_automatico(self.recente)
                 except (sqlite3.Error, OSError) as erro:
                     self.aviso.emit(
                         f"Backup automático recente inválido ou inacessível: {erro}. "

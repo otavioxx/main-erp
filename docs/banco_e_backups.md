@@ -18,7 +18,8 @@ Antes de migrar um banco existente com tabelas, é criado um backup em
   aberto. Se não houver um arquivo recente, ou se o último tiver ao menos 24 horas, tenta criar
   um snapshot SQLite.
 - **Verificação:** um arquivo recente é verificado em segundo plano; se estiver inválido ou
-  inacessível, o sistema avisa e tenta criar outro.
+  inacessível, inclusive por esquema ou referências inconsistentes, o sistema avisa e tenta
+  criar outro. A cópia nova também é validada; a retenção só ocorre após validação bem-sucedida.
 - **Relógio:** arquivos com data mais de um minuto no futuro provocam um alerta para conferir o
   relógio: não contam como recentes e suspendem a retenção, mas não impedem novos backups. Sem
   uma fonte de tempo confiável, não é possível detectar todas as alterações incorretas do
@@ -75,8 +76,10 @@ antes de abrir o banco; um snapshot anterior é mantido em `dados\backups`.
 ## Validação de um backup
 
 A validação verifica integridade, tabelas, nomes de colunas, valores inteiros em centavos e
-referências estrangeiras declaradas, após migrar uma cópia temporária. Backups com referências
-órfãs ou valores inválidos em centavos são recusados; preserve o original para diagnóstico.
+referências estrangeiras declaradas, após migrar uma cópia temporária. Backups automáticos
+recentes e novos passam por essas verificações; se a cópia nova falhar, a retenção não é
+aplicada. Backups com referências órfãs ou valores inválidos em centavos são recusados;
+preserve o original para diagnóstico.
 
 A validação não garante a correção de todos os dados, tipos, restrições ou regras de negócio,
 nem detecta relacionamentos não declarados no esquema.

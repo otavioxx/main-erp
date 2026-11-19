@@ -17,7 +17,12 @@ from PyQt6.QtWidgets import QApplication
 from mainerp.data.automatic_backup import criar_snapshot_sqlite
 from mainerp.data.database import Database
 from mainerp.data.restore import caminho_restauracao_pendente
-from mainerp.ui.dialogs.backup_dialog import BackupConfig, BackupDialog, BackupThread
+from mainerp.ui.dialogs.backup_dialog import (
+    BackupConfig,
+    BackupDialog,
+    BackupThread,
+    _testar_escrita_destino,
+)
 from mainerp.ui.dialogs.restore_backup_dialog import (
     RestoreBackupThread,
     VerifyBackupThread,
@@ -27,6 +32,15 @@ from mainerp.ui.dialogs.restore_backup_dialog import (
 @pytest.fixture(scope="module", autouse=True)
 def aplicacao_qt():
     return QApplication.instance() or QApplication([])
+
+
+def test_teste_de_escrita_preserva_arquivo_existente_no_destino(tmp_path):
+    existente = tmp_path / "test_write.tmp"
+    existente.write_text("dados existentes", encoding="utf-8")
+
+    _testar_escrita_destino(str(tmp_path))
+
+    assert existente.read_text(encoding="utf-8") == "dados existentes"
 
 
 def test_backup_manual_inclui_transacoes_do_wal(tmp_path):
