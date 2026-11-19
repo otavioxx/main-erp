@@ -53,6 +53,27 @@ está no [CHANGELOG](CHANGELOG.md); os guias estão no
 ### Regras de negócio e validações
 
 - [ ] Unificar o cálculo do total do pedido (subtotal - desconto + frete) entre modelo, utilitários e tela.
+- [ ] Restringir recebimento e cancelamento a pedidos pendentes, impedindo recebimento duplicado.
+- [ ] Definir se o recebimento substitui custo e preço de venda do produto e se deve manter a margem padrão de 30%.
+- [ ] Validar no modelo quantidades e valores dos itens do pedido, além das validações da tela.
+- [ ] Adicionar testes para transições de status, recebimento duplicado e validação dos itens.
+- [ ] Definir como itens em condicionais ativas afetam o estoque disponível e aplicar a regra na venda, devolução e conversão.
+- [ ] Validar no modelo das condicionais quantidades, preços, descontos e transições de status.
+- [ ] Unificar o prazo padrão de devolução e validar as datas informadas na condicional.
+- [ ] Adicionar testes para estoque, validações, estados e prazos de condicionais.
+- [ ] Definir a regra para desconto total e venda com valor zero, alinhando as formas de pagamento.
+- [ ] Centralizar as validações da venda no fluxo comum e revalidar o estoque ao finalizar.
+- [ ] Unificar as regras de cancelamento e exclusão, impedindo devolução duplicada de estoque e exclusão com parcelas pagas.
+- [ ] Adicionar testes para validações, valor zero, estoque e transições de cancelamento/exclusão.
+- [ ] Definir a regra para pagamentos parciais e excedentes no crediário, incluindo valores acima do saldo devedor.
+- [ ] Validar no modelo valor, data e forma de pagamento dos recebimentos.
+- [ ] Redistribuir diferenças entre parcelas em centavos, sem perda por arredondamento.
+- [ ] Definir e padronizar o intervalo mensal dos vencimentos das parcelas.
+- [ ] Adicionar testes para pagamentos parciais/excedentes, validações, arredondamento e vencimentos.
+- [ ] Definir regras para devolução parcial, valor líquido após descontos, destino do item e opções de ressarcimento, respeitando os direitos do consumidor.
+- [ ] Definir como devoluções de vendas a prazo reduzem parcelas em aberto antes de gerar crédito sobre valores já pagos.
+- [ ] Definir regras do vale-troca: titularidade, uso parcial, saldo remanescente, validade e estorno em cancelamentos.
+- [ ] Persistir o desconto da venda rateado por item para calcular corretamente devoluções parciais.
 - [ ] Definir uma regra única para preço de venda zero, alinhando cadastro de produtos e validação da venda.
 - [ ] Rejeitar estoque negativo no modelo de produto, inclusive em atualizações diretas.
 - [ ] Impedir a inativação de produto quando não for possível verificar pedidos e condicionais vinculados.
@@ -66,10 +87,17 @@ está no [CHANGELOG](CHANGELOG.md); os guias estão no
 - [ ] Diferenciar erros de integridade no cadastro de fornecedores, sem reportar toda falha como CNPJ duplicado.
 - [ ] Validar email e telefone somente quando informados.
 - [ ] Adicionar testes para validações de fornecedores, CNPJ duplicado com formatações diferentes e inativação.
+- [ ] Exibir nas configurações avançadas somente valores reais, removendo informações fixas ou desatualizadas.
+- [ ] Validar dados da empresa no modelo, não apenas na tela, incluindo CNPJ e contatos quando informados.
+- [ ] Recusar logos inválidos antes de persistir os dados da empresa.
+- [ ] Remover opções de configuração sem efeito ou implementar seu comportamento correspondente.
+- [ ] Adicionar testes para validação dos dados da empresa, logo inválido e valores exibidos nas configurações.
 
 ### Persistência e tratamento de falhas
 
-- [ ] Tornar atômicas as operações compostas de venda/estoque e recebimento de pedidos; qualquer falha deve reverter todas as etapas.
+- [ ] Criar migração SQLite aditiva para registrar devoluções e movimentações de vale-troca vinculadas às vendas e clientes.
+- [ ] Tornar atômicas as operações de venda, devolução, estoque, parcelas e vale-troca, além do recebimento de pedidos e conversão de condicionais; qualquer falha deve reverter todas as etapas.
+- [ ] Remover ou alinhar o método legado de criação de tabelas de condicionais ao esquema versionado.
 - [ ] Validar identificadores dinâmicos (tabelas, campos e ordenação) nos utilitários SQL; valores já devem continuar parametrizados.
 - [ ] Substituir ou remover o helper legado de backup que copia o arquivo SQLite diretamente, sem snapshot consistente.
 - [ ] Proteger a atualização do texto “Registros exibidos” em `listagem_modelo.py` quando a tabela já tiver sido destruída durante o encerramento após uma falha.
@@ -150,6 +178,10 @@ está no [CHANGELOG](CHANGELOG.md); os guias estão no
 
 **Objetivo:** priorizar recursos que melhorem a operação diária das pequenas empresas.
 
+- [ ] **Prioridade alta:** registrar devoluções parciais vinculadas à venda original, com recebimento e destino explícito dos itens.
+- [ ] **Prioridade alta:** emitir e resgatar vales-troca vinculados ao cliente, com saldo auditável, uso parcial e reversão em vendas canceladas.
+- [ ] **Prioridade alta:** conciliar devoluções de vendas a prazo com parcelas em aberto e o valor já pago antes de emitir crédito.
+- [ ] **Prioridade alta:** testar devolução, estoque, crediário, saldo do vale e cancelamento da venda.
 - [ ] **Prioridade alta:** configurar estoque mínimo por produto e listar itens para reposição, considerando pedidos pendentes e fornecedor; criação do pedido continua manual.
 - [ ] **Prioridade alta:** destacar parcelas vencidas com dias de atraso e saldo em aberto por cliente.
 - [ ] **Prioridade média:** painel enxuto com vendas por período e produtos mais vendidos, estoque baixo e recebíveis vencidos.
