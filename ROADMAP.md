@@ -24,7 +24,8 @@ está no [CHANGELOG](CHANGELOG.md); os guias estão no
 **Objetivo:** a perda do disco do PC não pode significar perda do sistema.
 
 - [x] Verificar a cópia depois de gravar (tamanho e hash) e avisar na interface se falhar.
-- [ ] Validar backups automáticos recentes também quanto a esquema e consistência dos dados, não só integridade SQLite.
+- [ ] Evitar sobrescrever arquivos existentes ao testar a escrita no destino do backup manual.
+- [ ] Validar esquema e consistência dos backups automáticos recentes e dos novos antes da retenção.
 - [ ] Tratar destino ausente (pendrive desconectado, pasta indisponível): avisar sem travar o sistema e tentar de novo na próxima oportunidade.
 - [ ] Validar uma restauração a partir da cópia externa em instalação isolada, conferindo registros e totais.
 - [x] Documentar a rotina de cópia externa e teste periódico de restauração em `docs/backup_recuperacao.md`.
@@ -100,6 +101,7 @@ está no [CHANGELOG](CHANGELOG.md); os guias estão no
 - [ ] Remover ou alinhar o método legado de criação de tabelas de condicionais ao esquema versionado.
 - [ ] Validar identificadores dinâmicos (tabelas, campos e ordenação) nos utilitários SQL; valores já devem continuar parametrizados.
 - [ ] Substituir ou remover o helper legado de backup que copia o arquivo SQLite diretamente, sem snapshot consistente.
+- [ ] Avisar quando não for possível remover um backup manual que falhou na verificação.
 - [ ] Proteger a atualização do texto “Registros exibidos” em `listagem_modelo.py` quando a tabela já tiver sido destruída durante o encerramento após uma falha.
 
 **Pronto quando:** as verificações automatizadas estiverem funcionando no CI e as pendências técnicas prioritárias estiverem corrigidas, sem regressões.
