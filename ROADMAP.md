@@ -1,7 +1,8 @@
 # Roadmap do PLUMA
 
-Roadmap do produto, com tarefas pendentes e decisões registradas. O histórico de mudanças
-publicadas está no [CHANGELOG](CHANGELOG.md); os guias estão no [índice da documentação](docs/README.md).
+Roadmap do produto, organizado pela sequência de execução. O histórico de mudanças publicadas
+está no [CHANGELOG](CHANGELOG.md); os guias estão no
+[índice da documentação](docs/README.md).
 
 ## Regras de trabalho
 
@@ -34,14 +35,23 @@ publicadas está no [CHANGELOG](CHANGELOG.md); os guias estão no [índice da do
 
 **Objetivo:** corrigir pendências técnicas que podem comprometer a manutenção, a integridade e a evolução do sistema.
 
+### Verificação e CI
+
 - [ ] Corrigir e incluir no CI o teste de interface Windows que falha nas escalas 1.25 e 1.5.
 - [ ] Executar Ruff e pytest em pull requests e exigir esses checks para integrar à `main`.
 - [x] Declarar Pillow em `requirements.txt` e validar instalação limpa.
+- [ ] Corrigir o teste `test_release_updates` para ler a saída do subprocesso com a codificação correta no Windows.
+
+### Distribuição e compatibilidade
+
 - [ ] Recusar publicação de versão igual ou inferior à última release antes de marcar como `latest`.
 - [ ] `--destino` do instalador: corrigir (definir `MAINERP_DATA`) ou restringir explicitamente. Até lá, usar o destino padrão.
 - [ ] Definir procedimento seguro para a trava legada `.update.lock`, sem apagar trava em uso.
 - [ ] Decidir sobre as colunas `REAL` antigas, que hoje são preenchidas junto com `*_centavos`. Opção: migração 4 que remove as colunas antigas depois de confirmar que nenhuma leitura depende delas. Testar em cópia do banco.
 - [ ] SQLite: o adaptador de datas padrão está obsoleto desde o Python 3.12. Hoje funciona, mas pode ser removido numa versão futura. Vale registrar adaptadores de data explicitamente.
+
+### Regras de negócio e validações
+
 - [ ] Unificar o cálculo do total do pedido (subtotal - desconto + frete) entre modelo, utilitários e tela.
 - [ ] Definir uma regra única para preço de venda zero, alinhando cadastro de produtos e validação da venda.
 - [ ] Rejeitar estoque negativo no modelo de produto, inclusive em atualizações diretas.
@@ -56,11 +66,13 @@ publicadas está no [CHANGELOG](CHANGELOG.md); os guias estão no [índice da do
 - [ ] Diferenciar erros de integridade no cadastro de fornecedores, sem reportar toda falha como CNPJ duplicado.
 - [ ] Validar email e telefone somente quando informados.
 - [ ] Adicionar testes para validações de fornecedores, CNPJ duplicado com formatações diferentes e inativação.
+
+### Persistência e tratamento de falhas
+
 - [ ] Tornar atômicas as operações compostas de venda/estoque e recebimento de pedidos; qualquer falha deve reverter todas as etapas.
 - [ ] Validar identificadores dinâmicos (tabelas, campos e ordenação) nos utilitários SQL; valores já devem continuar parametrizados.
 - [ ] Substituir ou remover o helper legado de backup que copia o arquivo SQLite diretamente, sem snapshot consistente.
-- [ ] Erro após a falha: o RuntimeError em listagem_modelo.py (linha 41) indica que o texto “Registros exibidos” tenta ler uma tabela já destruída. É provável que só apareça no encerramento depois da falha, mas vale proteger essa chamada quando mexer nessa tela.
-- [ ] Aviso em test_release_updates: o teste lê a saída de um subprocesso como UTF-8, e o Windows devolve outra codificação (o byte 0x87 é o “ç”). É só um aviso, mas dá para corrigir informando o encoding.
+- [ ] Proteger a atualização do texto “Registros exibidos” em `listagem_modelo.py` quando a tabela já tiver sido destruída durante o encerramento após uma falha.
 
 **Pronto quando:** as verificações automatizadas estiverem funcionando no CI e as pendências técnicas prioritárias estiverem corrigidas, sem regressões.
 
@@ -102,10 +114,6 @@ publicadas está no [CHANGELOG](CHANGELOG.md); os guias estão no [índice da do
 - [ ] Separar dados de layout: cada relatório passa a ter uma função que busca e calcula (em centavos) e outra que só desenha. Tirar o SQL de dentro dos `print_*.py`.
 - [ ] Migrar um relatório por vez, começando por vendas, com comparação visual antes e depois. Os demais seguem em sequência.
 
-### C4. Impressão
-
-- [ ] Validar em impressoras reais e tamanhos personalizados, incluindo etiquetas. Registrar os limites que os testes automatizados não cobrem.
-
 **Pronto quando:** todos os relatórios abrem no visualizador do sistema, com o mesmo padrão visual, e a abertura externa continua disponível.
 
 ## Fase D: Identidade visual
@@ -118,6 +126,10 @@ publicadas está no [CHANGELOG](CHANGELOG.md); os guias estão no [índice da do
 - [ ] Usar o mesmo conjunto de tokens nos relatórios (ligação com a C2).
 
 **Pronto quando:** telas e relatórios estiverem consistentes nos dois temas e a navegação principal estiver validada.
+
+## Fase C4: Impressão dos relatórios
+
+- [ ] Validar em impressoras reais e tamanhos personalizados, incluindo etiquetas. Registrar os limites que os testes automatizados não cobrem.
 
 ## Fase E: Operação, distribuição e launcher
 
@@ -134,17 +146,6 @@ publicadas está no [CHANGELOG](CHANGELOG.md); os guias estão no [índice da do
 
 **Pronto quando:** instalação, atualização, recuperação e inicialização estiverem validadas em ambiente Windows limpo, sem comprometer os dados ou a licença.
 
-## Fase F: Qualidade contínua
-
-**Objetivo:** reduzir gradualmente a dívida técnica sem criar uma fase de refatoração extensa que atrase as entregas.
-
-Estas tarefas devem ser executadas aos poucos, junto com as demais fases.
-
-- [ ] Revisar os 160 `except Exception` ao tocar em cada módulo, restringindo ou registrando.
-- [ ] Evitar que falhas em consultas de persistência sejam retornadas como listas vazias ou ausência de registro.
-- [ ] Diferenciar nos rótulos os percentuais de lucro sobre venda e markup sobre custo.
-- [ ] Dividir arquivos grandes quando forem alterados (`produto_view`, `print_venda`, `styles`, `backup_dialog`, `duplicata`).
-
 ## Fase H: Evolução do produto
 
 **Objetivo:** priorizar recursos que melhorem a operação diária das pequenas empresas.
@@ -153,8 +154,8 @@ Estas tarefas devem ser executadas aos poucos, junto com as demais fases.
 - [ ] **Prioridade alta:** destacar parcelas vencidas com dias de atraso e saldo em aberto por cliente.
 - [ ] **Prioridade média:** painel enxuto com vendas por período e produtos mais vendidos, estoque baixo e recebíveis vencidos.
 - [ ] **Prioridade posterior:** avaliar contas a pagar e despesas, com visão simples de compromissos e fluxo de caixa.
-- [ ] Auditoria: registrar quem alterou o quê (vendas, preços, estoque).
-- [ ] Se mais de um PC precisar usar o mesmo banco: migrar de SQLite para um servidor (PostgreSQL), o que a Fase 2 deixa muito mais simples.
+- [ ] **Evolução futura:** auditar alterações de vendas, preços e estoque, registrando quem alterou o quê e quando.
+- [ ] **Se houver uso em mais de um PC:** reavaliar a persistência compartilhada. A decisão atual é manter SQLite para uso em um único PC; PostgreSQL não está planejado enquanto esse cenário atender.
 
 **Pronto quando:** os recursos forem implementados conforme a prioridade e validados nos fluxos reais de operação.
 
@@ -162,12 +163,20 @@ Estas tarefas devem ser executadas aos poucos, junto com as demais fases.
 
 **Objetivo:** manter ideias de evolução que não são necessárias para a operação atual.
 
-- [ ] **Auditoria:** registro de quem alterou o quê e quando nas tabelas principais.
-- [ ] **Painel:** indicadores, reaproveitando os componentes dos relatórios.
 - [ ] Frontend mais moderno: reavaliar só depois das fases anteriores. A decisão atual é seguir em Qt Widgets.
-- [ ] ~~PostgreSQL~~: retirado do planejamento, porque o banco é usado em um único PC e o SQLite em WAL atende. Reavaliar apenas se surgir uso em múltiplos PCs.
 
 **Pronto quando:** cada item for reavaliado conforme a necessidade real do produto, antes de entrar em desenvolvimento.
+
+## Fase F: Qualidade contínua
+
+**Objetivo:** reduzir gradualmente a dívida técnica sem criar uma fase de refatoração extensa que atrase as entregas.
+
+Estas tarefas são transversais: devem avançar aos poucos, junto com as demais fases.
+
+- [ ] Revisar os 160 `except Exception` ao tocar em cada módulo, restringindo ou registrando.
+- [ ] Evitar que falhas em consultas de persistência sejam retornadas como listas vazias ou ausência de registro.
+- [ ] Diferenciar nos rótulos os percentuais de lucro sobre venda e markup sobre custo.
+- [ ] Dividir arquivos grandes quando forem alterados (`produto_view`, `print_venda`, `styles`, `backup_dialog`, `duplicata`).
 
 ---
 
@@ -175,7 +184,7 @@ Estas tarefas devem ser executadas aos poucos, junto com as demais fases.
 
 **A → B → I → C1 → C2 → C3 → D → C4 → E → H → G**
 
-A Fase A protege os dados antes de qualquer evolução. A Fase B estabiliza a base técnica. A Fase I estabelece o licenciamento antes da consolidação da distribuição. A Fase C entrega melhorias nos relatórios em sequência, e a D finaliza a identidade visual. A Fase E consolida a operação e a distribuição já considerando o licenciamento. A Fase H prioriza recursos concretos do produto, enquanto a G permanece como planejamento futuro.
+A Fase A protege os dados antes de qualquer evolução. A Fase B estabiliza a base técnica. A Fase I estabelece o licenciamento antes da consolidação da distribuição. As Fases C1–C3 estruturam o visualizador e os relatórios; D finaliza a identidade visual antes da validação de impressão C4. A Fase E consolida a operação e a distribuição já considerando o licenciamento. A Fase H prioriza recursos concretos do produto, enquanto a G permanece como planejamento futuro.
 
 A Fase F é transversal e deve avançar continuamente, sem alterar a ordem principal.
 

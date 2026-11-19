@@ -20,6 +20,15 @@
 - Corrigidas as instruções das categorias do CHANGELOG para corresponder ao padrão em
   português já utilizado.
 
+### ROADMAP — reorganização por sequência
+
+- Organizadas as fases pela ordem planejada de execução; a Fase F ficou separada como
+  trabalho transversal.
+- Agrupadas as pendências da Fase B por verificação/CI, distribuição/compatibilidade,
+  regras de negócio e persistência.
+- Consolidadas em H as referências duplicadas de auditoria, painel e evolução para uso em
+  múltiplos computadores; os itens preexistentes do arquivo foram preservados.
+
 ### Entrada no crediário
 
 - O campo de entrada mantém o editor numérico e a validação; o tema oculta os botões e o campo desativa incrementos por teclado e roda do mouse. Evitado `NoButtons`, que reduz a largura do editor com o tema Qt.
