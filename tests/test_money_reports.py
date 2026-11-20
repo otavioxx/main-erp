@@ -1,9 +1,14 @@
+from contextlib import closing, nullcontext
+from datetime import date
 from pathlib import Path
 
 import pytest
+from test_database_migrations import remover_colunas_reais_em_memoria
 
+from mainerp.data import database_utils
 from mainerp.data.database import Database
 from mainerp.data.models import empresa as empresa_model
+from mainerp.domain.utils.venda_utils import VendaUtils
 from mainerp.reports import (
     print_condicional,
     print_pedido,
@@ -129,3 +134,69 @@ def test_relatorios_leem_centavos_e_preservam_valores_em_reais(database, tmp_pat
         None, None, "Todas", pasta_destino=str(tmp_path)
     )
     assert Path(arquivo).exists()
+
+
+@pytest.mark.parametrize("sem_real", [False, True], ids=["esquema-3", "esquema-4"])
+def test_listagem_filtros_e_pdfs_de_venda(database, monkeypatch, tmp_path, sem_real):
+    hoje = date.today()
+    with database.transacao() as cursor:
+        cursor.execute("INSERT INTO clientes (id, nome) VALUES (2, 'Outro')")
+        cursor.execute(
+            "UPDATE vendas SET data_venda = ?, total_centavos = 1234, "
+            "desconto_centavos = 56 WHERE id = 1",
+            (hoje.isoformat(),),
+        )
+        cursor.execute(
+            "INSERT INTO vendas (id, cliente_id, data_venda, total, forma_pagamento) "
+            "VALUES (2, 2, ?, 99.99, 'Dinheiro'), (3, 1, '2000-01-01', 42, 'Pix')",
+            (hoje.isoformat(),),
+        )
+
+    monkeypatch.setattr(database_utils, "obter_database", lambda: database)
+    conexao = (
+        closing(remover_colunas_reais_em_memoria(database.get_connection()))
+        if sem_real
+        else nullcontext()
+    )
+    with conexao as copia, monkeypatch.context() as ajustes:
+        if copia is not None:
+            ajustes.setattr(database, "get_connection", lambda: copia)
+        hoje_br = hoje.strftime("%d/%m/%Y")
+        assert [v[0] for v in VendaUtils.filtrar_vendas(hoje_br, hoje_br)] == [2, 1]
+        assert VendaUtils.filtrar_vendas(hoje_br, hoje_br, 1) == [
+            (
+                1,
+                1,
+                hoje.isoformat(),
+                12.34,
+                "Pix",
+                "concluida",
+                1,
+                0.56,
+                0.0,
+                0.0,
+                "",
+                1234,
+                56,
+                0,
+                0,
+                "Cliente",
+            )
+        ]
+        relatorio = print_relat_venda.PrintRelatVenda
+        assert relatorio._buscar_vendas_com_cliente()[-1][3:8] == (
+            12.34,
+            "Pix",
+            "concluida",
+            1,
+            0.56,
+        )
+        pdfs = (
+            relatorio.gerar_relatorio_por_periodo(
+                hoje_br, hoje_br, 1, "concluida", "Pix", str(tmp_path)
+            ),
+            print_venda.PrintVenda.gerar_comprovante(1, str(tmp_path)),
+        )
+        for pdf in pdfs:
+            assert pdf is not None
+            assert Path(pdf).read_bytes().startswith(b"%PDF-")

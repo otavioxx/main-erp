@@ -1,11 +1,70 @@
 # Histórico de Desenvolvimento
 
+## 2026-11-20
+
+### Preparação da release 0.12.1
+
+- Consolidadas correções de compatibilidade do launcher com o esquema do banco e da validação de backups, além de melhorias de identificação PLUMA, recuperação de destino removível e documentação.
+- Ruff e suíte completa passaram no Windows (396 testes, 1 ignorado) e no Linux com Python 3.12 (393 testes, 4 ignorados).
+- Instalação limpa de 0.12.1 e atualização local de 0.11.2 para 0.12.1 validadas em diretórios isolados; arquivo de dados de teste e release anterior permaneceram intactos.
+- Na validação do PR, o runner Windows iniciou em 683×480 e os diálogos excederam a área disponível. Restaurada a configuração de 1920×1080 do workflow para validar as escalas de interface no ambiente esperado.
+
+- Padronizado o nome público como PLUMA em janelas, launcher, instalador, descrição de atalhos, notas de atualização e documentação de identidade. Contratos técnicos legados, como `%LOCALAPPDATA%\MainERP`, nomes dos pacotes, variáveis `MAINERP_*` e repositório, foram preservados para não quebrar instalações e atualizações.
+- Atualizado o AppUserModelID do Windows de `DigitalSolutions.MainERP` para `OTCTecnology.MainERP`, mantendo o segmento técnico do produto para compatibilidade.
+- O instalador `.pyz` atualizou o launcher numa cópia isolada da instalação. Com o backup de 18/11, a candidata recusou a abertura sem o novo protocolo e deixou o banco intacto. Pelo novo launcher, a migração preservou 5.335 registros e 9.155 valores em centavos, gerou o backup pré-migração e impediu a seleção de uma versão antiga incompatível. A instalação em uso não foi atualizada.
+- O launcher consulta `PRAGMA user_version` em modo somente leitura e identifica o limite de cada release pelo registro `Database.MIGRACOES`, sem importar o aplicativo. A seleção, o rollback e a retenção de releases consideram o banco configurado e a restauração pendente. Sem uma alternativa compatível após uma falha, o launcher preserva os dados e orienta instalar um pacote de recuperação.
+- A candidata local do esquema 4 reuniu a migração, a listagem corrigida e as escritas em centavos. O ensaio com o launcher instalado e o backup de 18/11 preservou 5.335 registros e 9.155 valores em centavos, além de criar a cópia pré-migração. Uma falha antes da confirmação fez o launcher voltar ao código anterior, mas o banco permaneceu no esquema 4. Após uma falha depois da confirmação, a restauração de um snapshot do esquema 4 pela candidata recuperou a venda, o recebimento e a baixa de estoque gravados depois da migração. O teste foi local, com dependências copiadas do runtime instalado; não houve publicação nem teste de atualização online.
+- A consulta da listagem de vendas passou a selecionar colunas explicitamente e a ler os valores em centavos, sem mudar a ordem dos campos retornados. Com cópias isoladas do backup de 18/11, foram validados a abertura, os filtros por data e cliente, o relatório por período e o comprovante nos esquemas 3 e 4. A migração 4 continua experimental.
+- No ensaio isolado com o backup de 18/11, a migração experimental para o esquema 4 preservou 5.335 registros e 9.155 valores em centavos. A abertura com banco novo e a restauração de cópias nos esquemas 3 e 4 funcionaram. Com dados reais, a janela abriu, mas a tela de vendas falhou; a listagem ainda depende da posição dos campos retornados por `SELECT v.*`. O código atual recusou o backup do esquema 4 e voltou a abrir após restaurar a cópia pré-migração. O launcher não foi testado.
+- Em uma cópia isolada do código, adaptadas as gravações monetárias para usar apenas centavos. Testes no esquema experimental cobriram produtos, vendas, estoque, duplicatas, pedidos, condicionais e consultas de relatórios. A inicialização normal continua no esquema 3; o experimento não foi publicado.
+- Ensaiada em memória a remoção das 19 colunas monetárias `REAL` no esquema 3. A cópia preservou os valores em centavos, índices e chaves estrangeiras. A migração não foi registrada na aplicação: há gravações que ainda dependem das colunas legadas.
+- Os testes de atalhos do Windows capturam a saída do PowerShell em bytes quando só verificam o código de saída; a leitura de JSON continua usando UTF-8 explícito. Os 63 testes de atualização passaram no Windows.
+- Integrado o workflow Qualidade no PR #2. Ruff e pytest passaram no GitHub Actions (379 testes aprovados, 5 ignorados). Confirmado o ruleset ativo que exige pull request e os dois checks para integrar à `main`.
+- Adicionado um workflow independente da publicação para testar a interface no Windows em pull requests para `main`, nas escalas de 125% e 150%. Os dois casos passaram localmente com Python 3.12.0rc3; falta confirmar no GitHub Actions.
+- Restaurado um backup do pendrive na inicialização do PLUMA com dados isolados. Os registros das 13 tabelas e as 19 somas em centavos conferiram com o ZIP, que permaneceu inalterado. O banco anterior foi preservado.
+- O backup manual preserva o destino indisponível, verifica a escrita em segundo plano e permite cancelar a tentativa sem encerrar o PLUMA. O teste simula indisponibilidade e reconexão em pasta isolada.
+
+## 2026-11-19
+
+### Validação de backups automáticos
+
+- Backups automáticos recentes e recém-criados passam pela validação de esquema, integridade e referências antes de dispensar nova cópia ou aplicar retenção.
+- A validação falha de forma explícita; cópias novas inválidas são removidas e cópias recentes inválidas provocam uma nova tentativa.
+- Testes cobrem esquema incompleto, referência órfã e preservação de backups antigos quando a nova cópia falha.
+
+### Teste de escrita do backup manual
+
+- As verificações do destino usam arquivo temporário de nome exclusivo e removido ao fechar, sem sobrescrever arquivos preexistentes.
+- Teste de regressão confirma que `test_write.tmp` existente permanece intacto.
+
 ## 2026-11-18
 
 ### Preparação da release 0.12.0
 
 - Consolidadas as melhorias compatíveis de verificação de backups, acompanhamento do backup manual, dimensionamento do diálogo de seleção de produtos e entrada digitada no crediário.
 - Ruff e suíte completa aprovados no Windows (383 testes aprovados, 1 ignorado) e no Linux com Python 3.12 (380 aprovados, 4 ignorados).
+
+### Documentação — organização e navegação
+
+- Criado `docs/README.md` como índice para guias de uso, desenvolvimento, recuperação,
+  identidade visual e publicação.
+- Melhorado o `README.md` da raiz para destacar recursos, instalação, preservação dos dados
+  e acesso aos guias, sem duplicar os procedimentos detalhados.
+- Criado `docs/backup_recuperacao.md` com orientação para cópia externa e teste isolado de
+  restauração; o item correspondente do ROADMAP foi concluído.
+- Organizada a navegação de `docs/identidade_visual.md` por seções e removidas referências
+  a imagens e documentos que não existem no repositório.
+- Corrigidas as instruções das categorias do CHANGELOG para corresponder ao padrão em
+  português já utilizado.
+
+### ROADMAP — reorganização por sequência
+
+- Organizadas as fases pela ordem planejada de execução; a Fase F ficou separada como
+  trabalho transversal.
+- Agrupadas as pendências da Fase B por verificação/CI, distribuição/compatibilidade,
+  regras de negócio e persistência.
+- Consolidadas em H as referências duplicadas de auditoria, painel e evolução para uso em
+  múltiplos computadores; os itens preexistentes do arquivo foram preservados.
 
 ### Entrada no crediário
 
@@ -20,14 +79,14 @@
 
 ### Verificação pós-gravação de backups
 
-- [Backup automático](mainerp\data\automatic_backup.py): após publicar o snapshot, a cópia é relida (tamanho e SHA-256 do temporário) e passa por `integrity_check`; se falhar, o arquivo é removido e o erro chega à interface via `backup_falhou`.
-- [Backup manual](mainerp\ui\dialogs\backup_dialog.py): o ZIP publicado é relido (tamanho, SHA-256, `testzip` e integridade do banco dentro do ZIP); se falhar, é descartado e o erro é exibido no diálogo, sem registrar a data do último backup.
+- [Backup automático](../mainerp/data/automatic_backup.py): após publicar o snapshot, a cópia é relida (tamanho e SHA-256 do temporário) e passa por `integrity_check`; se falhar, o arquivo é removido e o erro chega à interface via `backup_falhou`.
+- [Backup manual](../mainerp/ui/dialogs/backup_dialog.py): o ZIP publicado é relido (tamanho, SHA-256, `testzip` e integridade do banco dentro do ZIP); se falhar, é descartado e o erro é exibido no diálogo, sem registrar a data do último backup.
 - Antes de publicar, o arquivo temporário passa por `fsync` nos dois fluxos, para que a releitura não dependa só do cache do sistema.
 - Removida a leitura integral do ZIP em memória no `BackupThread`.
 
 ### Dialogo de seleção de produto
 
-- Ajustado dimensionamento da janela de [dialogo de seleção de produtos](mainerp\ui\dialogs\produto_selection_dialog.py) de Medio para Large.
+- Ajustado dimensionamento da janela de [diálogo de seleção de produtos](../mainerp/ui/dialogs/produto_selection_dialog.py) de Medio para Large.
 
 ## 2026-11-17
 

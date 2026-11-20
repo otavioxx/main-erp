@@ -18,6 +18,7 @@
 # palavra "Atualizando") mostra o andamento real: bytes baixados, arquivos extraídos
 # e pacotes processados pelo pip. Ela usa só tkinter e nunca bloqueia a atualização.
 
+import ast
 import base64
 import contextlib
 import hashlib
@@ -26,6 +27,7 @@ import os
 import queue
 import re
 import shutil
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -50,6 +52,7 @@ UPDATE_MANIFEST_URL = (
 CHAVE_PUBLICA_ED25519_B64 = "H9gLoB9JOf7ca1NHIfbGeuCOh71sG/h5CjhoivGz8KA="
 
 EXIT_REINICIAR = 100  # o sistema pediu reinício
+EXIT_BANCO_INCOMPATIVEL = 5
 CODIGOS_NORMAIS = {0, 3, 4}  # 4 = restauração falhou; não abrir versão anterior
 MANTER_RELEASES = 3
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
@@ -174,7 +177,7 @@ class Aviso:
         import tkinter as tk
 
         root = tk.Tk()
-        root.title("MainERP")
+        root.title("PLUMA")
         root.overrideredirect(True)  # sem barra de título; borda fina própria
         root.attributes("-topmost", True)
         root.configure(bg=COR_BORDA)
@@ -355,30 +358,98 @@ def releases_validas():
     return [v for v in releases_conhecidas() if release_valida(v)]
 
 
+def pasta_dados() -> Path:
+    if destino := os.environ.get("MAINERP_DATA"):
+        return Path(destino).expanduser().absolute()
+    if local := os.environ.get("LOCALAPPDATA"):
+        return Path(local).absolute() / "MainERP" / "dados"
+    return Path.home() / ".mainerp" / "dados"
+
+
+def esquema_necessario() -> int:
+    dados = pasta_dados()
+    try:
+        config = json.loads((dados / "config.json").read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        config = {}
+    banco = config.get("database", {}) if isinstance(config, dict) else {}
+    nome = banco.get("name", "erp.db") if isinstance(banco, dict) else "erp.db"
+    caminho = (dados / nome).resolve()
+    pendente = caminho.with_name(caminho.name + ".restauracao-pendente.db")
+
+    esquema = 0
+    for arquivo in (caminho, pendente):
+        try:
+            arquivo.stat()
+        except FileNotFoundError:
+            continue
+        uri = arquivo.as_uri() + "?mode=ro"
+        with contextlib.closing(sqlite3.connect(uri, uri=True)) as conn:
+            versao = conn.execute("PRAGMA user_version").fetchone()[0]
+            if versao < 0:
+                raise ValueError(f"Versão de esquema inválida: {versao}")
+            esquema = max(esquema, versao)
+    return esquema
+
+
+def suporta_esquema(versao: str, esquema: int) -> bool:
+    codigo = RELEASES / versao / "mainerp" / "data" / "database.py"
+    try:
+        arvore = ast.parse(codigo.read_text(encoding="utf-8"))
+        for classe in arvore.body:
+            if not isinstance(classe, ast.ClassDef) or classe.name != "Database":
+                continue
+            for item in classe.body:
+                if (
+                    isinstance(item, ast.AnnAssign)
+                    and isinstance(item.target, ast.Name)
+                    and item.target.id == "MIGRACOES"
+                    and item.value is not None
+                ):
+                    migracoes = ast.literal_eval(item.value)
+                    numeros = [numero for numero, _ in migracoes]
+                    if any(type(n) is not int for n in numeros) or numeros != list(
+                        range(1, len(numeros) + 1)
+                    ):
+                        raise ValueError("Registro de migrações inválido")
+                    return esquema <= len(numeros)
+    except FileNotFoundError:
+        pass  # release anterior ao esquema versionado
+    except (OSError, SyntaxError, TypeError, ValueError) as erro:
+        log(f"Não foi possível verificar as migrações da versão {versao}: {erro}")
+        return False
+    return esquema == 0
+
+
 def definir_atual(versao):
     tmp = ROOT / "current.txt.tmp"
     tmp.write_text(versao, encoding="utf-8")
     os.replace(tmp, CURRENT)
 
 
-def escolher_versao():
+def escolher_versao(esquema=0):
     validas = releases_validas()
     if not validas:
         # último recurso: se tudo foi marcado como ruim, reabilita a mais nova
         for v in reversed(releases_conhecidas()):
             ruim = RELEASES / v / ".ruim"
-            if (RELEASES / v / "main.py").is_file() and ruim.exists():
+            if (
+                (RELEASES / v / "main.py").is_file()
+                and ruim.exists()
+                and suporta_esquema(v, esquema)
+            ):
                 log(f"Nenhuma versão válida; reabilitando {v}.")
                 ruim.unlink()
                 validas = [v]
                 break
-    if not validas:
+    compativeis = [v for v in validas if suporta_esquema(v, esquema)]
+    if not compativeis:
         return None
     atual = CURRENT.read_text(encoding="utf-8").strip() if CURRENT.exists() else ""
-    if atual in validas:
+    if atual in compativeis:
         return atual
-    definir_atual(validas[-1])
-    return validas[-1]
+    definir_atual(compativeis[-1])
+    return compativeis[-1]
 
 
 def confirmada(versao):
@@ -392,14 +463,16 @@ def marcar_ok(versao):
         pass
 
 
-def marcar_ruim_e_voltar(versao):
+def marcar_ruim_e_voltar(versao, esquema=0):
     """Desativa a release e devolve a melhor outra (ou None, sem desativar nada).
 
     Se não houver outra versão válida para onde voltar, a release NÃO é marcada:
     desativar a única versão deixaria o sistema inutilizável por um erro que pode
     ser passageiro (ex.: processo encerrado à força durante a abertura).
     """
-    outras = [v for v in releases_validas() if v != versao]
+    outras = [
+        v for v in releases_validas() if v != versao and suporta_esquema(v, esquema)
+    ]
     if not outras:
         return None
     try:
@@ -418,6 +491,13 @@ def limpar_releases():
     manter = set(validas[-MANTER_RELEASES:])
     if CURRENT.exists():
         manter.add(CURRENT.read_text(encoding="utf-8").strip())
+    if any(v not in manter for v in validas):
+        esquema = esquema_necessario()
+        compativel = next(
+            (v for v in reversed(validas) if suporta_esquema(v, esquema)), None
+        )
+        if compativel is not None:
+            manter.add(compativel)
     for v in validas:
         if v not in manter:
             pasta_release = RELEASES / v
@@ -794,7 +874,7 @@ def atualizar_online(aviso):
             if assinatura_path.exists():
                 mover_zip(assinatura_path, "invalidas")
             mensagem(
-                "MainERP - atualização",
+                "PLUMA - atualização",
                 f"Não foi possível instalar a atualização {versao}. "
                 f"A versão atual será mantida.\n\n{erro}",
             )
@@ -866,7 +946,9 @@ def executar(versao):
         saida_log.replace(LOGS / "sistema.log.1")
 
     env = dict(os.environ)
+    env["MAINERP_DATA"] = str(pasta_dados())
     env["MAINERP_LAUNCHER"] = "1"
+    env["MAINERP_SCHEMA_PROTOCOL"] = "1"
     env["MAINERP_RESTORE_PROTOCOL"] = "1"
     env["MAINERP_OK_FILE"] = str(pasta / ".ok")  # o sistema cria ao abrir a janela
     env["PYTHONIOENCODING"] = "utf-8:backslashreplace"  # prints com emoji no log
@@ -885,6 +967,31 @@ def executar(versao):
     return codigo, time.time() - inicio
 
 
+def verificar_esquema_para_abertura() -> int | None:
+    try:
+        return esquema_necessario()
+    except (OSError, ValueError, TypeError, sqlite3.Error) as erro:
+        log(f"Não foi possível determinar o esquema do banco: {erro}")
+        mensagem(
+            "PLUMA - banco de dados",
+            "Não foi possível verificar a versão do banco ou da restauração pendente. "
+            "O sistema não foi aberto. Não altere os arquivos de dados e procure suporte.",
+        )
+        return None
+
+
+def orientar_recuperacao(esquema: int) -> int:
+    log(f"Nenhuma outra versão disponível para abrir o esquema {esquema}.")
+    mensagem(
+        "PLUMA - recuperação",
+        f"Para abrir o banco no esquema {esquema}, é necessária uma versão compatível.\n\n"
+        "Instale uma atualização compatível ou solicite ao suporte um pacote mais "
+        "recente para a pasta atualizacoes. Depois, abra o PLUMA novamente.\n\n"
+        "Não altere o banco nem restaure um backup antigo para tentar abrir o sistema.",
+    )
+    return EXIT_BANCO_INCOMPATIVEL
+
+
 def main(argv):
     somente_atualizar = "--somente-atualizar" in argv
     aviso = Aviso()
@@ -899,9 +1006,14 @@ def main(argv):
 
     quedas = 0
     while quedas < 3:
-        versao = escolher_versao()
+        esquema = verificar_esquema_para_abertura()
+        if esquema is None:
+            return EXIT_BANCO_INCOMPATIVEL
+        versao = escolher_versao(esquema)
         if not versao:
-            mensagem("MainERP",
+            if releases_conhecidas():
+                return orientar_recuperacao(esquema)
+            mensagem("PLUMA",
                      "Nenhuma versão do sistema está instalada.\n"
                      "Execute o instalador novamente (instalador\\instalar.bat).")
             return 1
@@ -921,14 +1033,19 @@ def main(argv):
 
         if not confirmada(versao):  # nunca chegou a abrir a janela principal
             quedas += 1
-            anterior = marcar_ruim_e_voltar(versao)
+            esquema_atual = verificar_esquema_para_abertura()
+            if esquema_atual is None:
+                return EXIT_BANCO_INCOMPATIVEL
+            anterior = marcar_ruim_e_voltar(versao, esquema_atual)
             if anterior:
-                mensagem("MainERP - atualização",
+                mensagem("PLUMA - atualização",
                          f"A versão {versao} falhou ao iniciar e foi desativada.\n"
                          f"O sistema vai abrir na versão {anterior}.\n\n"
                          f"Detalhes: {LOGS / 'sistema.log'}")
                 continue
-            mensagem("MainERP",
+            if esquema_atual > 0:
+                return orientar_recuperacao(esquema_atual)
+            mensagem("PLUMA",
                      f"O sistema não conseguiu iniciar (código {codigo}).\n\n"
                      f"Detalhes: {LOGS / 'sistema.log'}")
             return codigo

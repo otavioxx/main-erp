@@ -1,71 +1,61 @@
 # PLUMA
 
-Sistema de gestão desktop para Windows, voltado a pequenas empresas: vendas,
-condicionais, pedidos de compra, recebimentos, estoque e relatórios/etiquetas em PDF.
+Sistema de gestão desktop para pequenas empresas, com vendas, condicionais, pedidos de
+compra, recebimentos, estoque e relatórios em PDF. Desenvolvido em Python, PyQt6 e SQLite
+para Windows 10 e 11.
 
-Feito em Python com PyQt6 e SQLite. Distribuído como instalador autocontido com
-atualização online verificada, assinatura Ed25519 dos pacotes e rollback automático
-em caso de falha de inicialização.
+O nome do produto é **PLUMA**. `MainERP` permanece como identificador técnico em caminhos,
+variáveis de ambiente e nomes de pacotes, como `%LOCALAPPDATA%\MainERP` e `MAINERP_DATA`.
+A versão publicada é definida por `APP_VERSION` em `mainerp/core/config.py`.
 
-> Versão atual: veja `APP_VERSION` em `mainerp/core/config.py`.
+## Recursos
 
-O nome do produto é **PLUMA**. Pastas, variáveis de ambiente e pacotes mantêm o
-identificador técnico `MainERP` (por exemplo, `%LOCALAPPDATA%\MainERP` e `MAINERP_DATA`).
+- Registro de vendas à vista ou parceladas, recebimentos e movimentações de estoque.
+- Controle de condicionais e pedidos de compra.
+- Relatórios e etiquetas em PDF.
+- Backups automáticos e manuais, com validação e fluxo de restauração.
+- Temas claro e escuro, com preferência persistida.
+- Atualizações online por launcher, com verificação de assinatura Ed25519 e SHA-256 e
+  rollback automático quando uma nova versão falha ao iniciar.
 
-## O que o PLUMA faz
+O PLUMA foi projetado para uso offline em um único computador. O banco SQLite usa WAL.
+Código e dados ficam separados; atualizações preservam a pasta de dados, embora uma nova
+versão possa executar migrações do banco.
 
-- **Vendas:** registro com pagamento à vista ou parcelado e emissão de PDF.
-- **Condicionais:** controle de mercadorias em condicional e fechamento.
-- **Pedidos de compra:** pedidos a fornecedores com recebimento no estoque.
-- **Recebimentos:** controle de parcelas, saldo em aberto e baixa.
-- **Estoque:** cadastro e movimentação por produto.
-- **Relatórios e etiquetas:** geração de PDFs de vendas, pedidos, condicionais e etiquetas.
-- **Backup:** automático e manual, com verificação de integridade e restauração testável.
-- **Atualização online:** o launcher consulta releases públicas, verifica assinatura e
-  SHA-256 antes de instalar, e mantém as versões anteriores para rollback.
-- **Temas claro e escuro**, com preferência persistida.
+## Instalação
 
-O PLUMA é pensado para operação offline em um único PC, com banco em SQLite (WAL).
-Cada release preserva a pasta `dados\`; a atualização é aplicada apenas ao código.
+Requisitos: Windows 10/11, Python 3.10 ou superior (recomendado 3.12) e o Python Launcher
+(`py`). O acesso à internet é necessário para instalar dependências e receber atualizações
+online. As dependências de execução estão em `requirements.txt`; as de desenvolvimento,
+em `requirements-dev.txt`. Baixe o instalador `.pyz` da release e execute no PowerShell:
 
-## Requisitos
+```powershell
+py -3 MainERP-Instalador-<versão>.pyz
+```
 
-- Windows 10/11
-- Python 3.10 ou superior (recomendado 3.12), com o "py launcher" instalado
-- Dependências de execução em `requirements.txt` (incluindo PyQt6, reportlab e cryptography)
-- Desenvolvimento: `requirements-dev.txt` (dependências de execução, pytest e Ruff)
-- Acesso à internet para instalar dependências e receber atualizações online
+Depois, abra o PLUMA pelo atalho criado. Em uma instalação nova, o banco começa vazio; para
+recuperar dados, use a restauração em **Configurações**. Consulte o [guia de instalação,
+atualização e rollback](docs/instalacao_e_atualizacao.md) antes de migrar uma instalação
+existente.
 
-## Instalação (uso diário)
+## Dados do usuário
 
-1. Baixe o instalador `.pyz` da release e execute `py -3 MainERP-Instalador-<versão>.pyz`
-   no PowerShell.
-2. Abra o **PLUMA** pelo atalho da Área de Trabalho ou do Menu Iniciar.
-3. Se já tiver dados, restaure seu backup em *Configurações*. Uma instalação nova sem
-   dados anteriores começa com o banco vazio.
-
-Instalação pelo ZIP completo, atalhos, atualizações, rollback e diagnóstico:
-[`docs/instalacao_e_atualizacao.md`](docs/instalacao_e_atualizacao.md).
-
-Após uma atualização pelo launcher, as novidades são apresentadas uma vez na primeira
-abertura; o histórico completo continua disponível em **Sobre** e em
-[`CHANGELOG.md`](CHANGELOG.md). O tema claro ou escuro é escolhido em
-**Configurações > Aparência** (veja [identidade visual](docs/identidade_visual.md)).
-
-## Onde ficam as coisas
-
-| O quê | Onde |
+| Conteúdo | Local padrão |
 |---|---|
-| Código instalado e versões | `%LOCALAPPDATA%\MainERP\sistema\releases\<versão>\` |
-| Banco de dados padrão | `%LOCALAPPDATA%\MainERP\dados\erp.db` |
-| Configurações | `%LOCALAPPDATA%\MainERP\dados\` |
-| Backups automáticos, anteriores a migrações e restaurações | `%LOCALAPPDATA%\MainERP\dados\backups\` |
-| Backups manuais | Pasta escolhida no diálogo; por padrão, Área de Trabalho |
-| Relatórios | `%LOCALAPPDATA%\MainERP\dados\relatorios\` |
-| Logs da aplicação | `%LOCALAPPDATA%\MainERP\dados\logs\sistema.log` (rotativo) |
-| Logs do launcher | `%LOCALAPPDATA%\MainERP\sistema\logs\launcher.log` |
+| Banco de dados | `%LOCALAPPDATA%\MainERP\dados\erp.db` |
+| Configurações e backups | `%LOCALAPPDATA%\MainERP\dados\` |
+| Relatórios e logs do aplicativo | `%LOCALAPPDATA%\MainERP\dados\` |
+| Launcher, runtimes e releases | `%LOCALAPPDATA%\MainERP\sistema\` |
+| Log do launcher | `%LOCALAPPDATA%\MainERP\sistema\logs\launcher.log` |
 
-As atualizações de código preservam a pasta `dados\`; ao abrir uma nova versão, migrações
-pendentes podem alterar o esquema do banco. Para usar outra pasta de dados, defina a
-variável de ambiente `MAINERP_DATA`.
+As atualizações não removem a pasta `dados\`. `MAINERP_DATA` permite indicar outro local
+para os dados. Backups automáticos ficam no mesmo computador; mantenha cópias manuais
+externas e teste a restauração periodicamente. Veja [backup e recuperação](docs/backup_recuperacao.md).
+
+## Documentação
+
+Consulte o [índice da documentação](docs/README.md) para guias de uso, desenvolvimento,
+backups, identidade visual e publicação. O histórico de mudanças está no
+[CHANGELOG](CHANGELOG.md); após uma atualização, as novidades também são apresentadas no
+aplicativo.
 

@@ -8,7 +8,7 @@ Estas instruções definem os padrões que devem ser seguidos pelo GitHub Copilo
 - Utilize o `DEVLOG.md` para registrar o progresso técnico do desenvolvimento, decisões de arquitetura, implementações e detalhes relevantes.
 - Registre no DEVLOG funcionalidades, correções, melhorias, refatorações e decisões técnicas relevantes.
 - Registre no CHANGELOG somente alterações relevantes para o usuário final.
-- Organize o CHANGELOG utilizando as categorias: Added, Changed, Fixed, Removed e Security, respeitando o padrão já estabelecido no arquivo.
+- Organize o CHANGELOG utilizando as categorias: Adicionado, Alterado, Descontinuado, Removido, Corrigido e Segurança, respeitando o padrão já estabelecido no arquivo.
 - Utilize a seção `[Unreleased]` para alterações ainda não publicadas.
 - Não remova, reescreva ou modifique registros de versões anteriores sem autorização.
 - Não duplique informações desnecessariamente entre documentos.
@@ -22,6 +22,9 @@ Estas instruções definem os padrões que devem ser seguidos pelo GitHub Copilo
 - `README.md`: apresentação do PLUMA, requisitos, instalação, estrutura e orientações gerais.
 - `CHANGELOG.md`: alterações relevantes para o usuário final.
 - `DEVLOG.md`: histórico técnico do desenvolvimento e decisões de implementação.
+- `docs/README.md`: índice e orientação de leitura da documentação.
+- `docs/banco_e_backups.md` e `docs/backup_recuperacao.md`: funcionamento técnico e procedimentos de backup e recuperação.
+- `docs/identidade_visual.md` e documentos relacionados: princípios, interface, tokens e implementação visual.
 - `docs/instalacao_e_atualizacao.md`: instalação, estrutura de pastas, atualização, rollback e diagnóstico.
 - `docs/publicar_release.md`: publicação de releases, assinaturas, manifesto e política para falhas.
 - `instalador/README.md` e `publicacao/README.md`: função de cada arquivo dessas pastas.
@@ -367,7 +370,7 @@ Toda criação ou exclusão de tags, envio de commits e publicação de releases
 
 ### Identidade do aplicativo
 
-- Preserve a identidade visual estabelecida no MainERP.
+- Preserve a identidade visual estabelecida no PLUMA.
 - Mantenha consistência entre telas, componentes, diálogos e interações.
 - Utilize PyQt6 e Qt Widgets.
 - Não introduza tecnologias web para construir telas.

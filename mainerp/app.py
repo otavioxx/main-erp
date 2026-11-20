@@ -17,7 +17,7 @@ from mainerp.core.app_logging import configurar_logging, registrar_excecao
 from mainerp.core.config import obter_config
 
 # Importações movidas para o topo para evitar problemas
-from mainerp.data.database import obter_database
+from mainerp.data.database import Database, obter_database
 from mainerp.data.restore import aplicar_restauracao_pendente
 from mainerp.ui.dialogs.sobre_atualizacoes_dialog import (
     mostrar_novidades_apos_atualizacao,
@@ -77,7 +77,7 @@ def definir_identidade_windows():
         import ctypes
 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
-            "DigitalSolutions.MainERP"
+            "OTCTecnology.MainERP"
         )
     except (AttributeError, OSError, ctypes.ArgumentError):
         return
@@ -286,6 +286,13 @@ def erro_fatal(titulo, detalhe):
 def main():
     paths.preparar_ambiente()
     configurar_logging()
+    if Database.MIGRACOES[-1][0] >= 4 and os.environ.get("MAINERP_SCHEMA_PROTOCOL") != "1":
+        erro_fatal(
+            "Atualize o launcher do PLUMA",
+            "Execute o instalador atualizado e abra o PLUMA pelo atalho. "
+            "O banco e a restauração pendente não foram alterados.",
+        )
+        sys.exit(EXIT_RESTAURACAO_FALHOU)
     definir_identidade_windows()
     config = obter_config()
 

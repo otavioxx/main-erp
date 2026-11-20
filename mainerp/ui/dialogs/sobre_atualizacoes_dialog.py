@@ -195,7 +195,7 @@ class NovidadesDialog(DialogBase):
 
         layout = QVBoxLayout(self)
 
-        layout.addWidget(QLabel(f"<h2>MainERP atualizado para a versão {versao}</h2>"))
+        layout.addWidget(QLabel(f"<h2>PLUMA atualizado para a versão {versao}</h2>"))
 
         descricao = QLabel("Confira as novidades incluídas nesta atualização.")
         descricao.setWordWrap(True)
@@ -260,7 +260,7 @@ def mostrar_novidades_apos_atualizacao(
 
 
 class SobreAtualizacoesDialog(DialogBase):
-    """Apresenta informações institucionais do MainERP."""
+    """Apresenta informações institucionais do PLUMA."""
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)

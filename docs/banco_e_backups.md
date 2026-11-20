@@ -1,7 +1,7 @@
 # Banco de dados, backups e restauração
 
-Funcionamento técnico do banco SQLite, dos backups e da restauração do PLUMA. Para o passo a
-passo do usuário (cópia externa e teste de restauração em um ambiente isolado), veja
+Funcionamento técnico do banco SQLite, dos backups e da restauração do PLUMA. Para o guia
+prático de cópia externa e teste de restauração em ambiente isolado, veja
 [backup_recuperacao.md](backup_recuperacao.md). Para criar migrações, veja
 [desenvolvimento.md](desenvolvimento.md).
 
@@ -18,7 +18,8 @@ Antes de migrar um banco existente com tabelas, é criado um backup em
   aberto. Se não houver um arquivo recente, ou se o último tiver ao menos 24 horas, tenta criar
   um snapshot SQLite.
 - **Verificação:** um arquivo recente é verificado em segundo plano; se estiver inválido ou
-  inacessível, o sistema avisa e tenta criar outro.
+  inacessível, inclusive por esquema ou referências inconsistentes, o sistema avisa e tenta
+  criar outro. A cópia nova também é validada; a retenção só ocorre após validação bem-sucedida.
 - **Relógio:** arquivos com data mais de um minuto no futuro provocam um alerta para conferir o
   relógio: não contam como recentes e suspendem a retenção, mas não impedem novos backups. Sem
   uma fonte de tempo confiável, não é possível detectar todas as alterações incorretas do
@@ -41,8 +42,10 @@ Um backup manual pode ser iniciado em **Configurações > Criar Backup**.
 
 - **Ao fechar:** o sistema solicita um backup manual se não houver data registrada ou se ela
   tiver pelo menos um dia; o backup automático não substitui essa exigência.
-- **Destino:** o diálogo usa a última pasta válida ou a Área de Trabalho e permite escolher
-  outra.
+- **Destino:** o diálogo usa a última pasta salva ou, se não houver uma, a Área de Trabalho.
+  Se a pasta estiver indisponível, o sistema avisa sem trocar o destino nem registrar um
+  novo backup. Reconecte a unidade, escolha outra pasta ou volte ao sistema para tentar
+  mais tarde. A próxima tentativa de encerrar o PLUMA continua exigindo um backup válido.
 - **Dispensa de backup recente:** antes de dispensar um backup recente, o sistema verifica se o
   ZIP está acessível e íntegro e confere o hash quando disponível; se a verificação falhar,
   avisa e solicita um novo backup. Isso não substitui um teste de restauração.
@@ -75,8 +78,10 @@ antes de abrir o banco; um snapshot anterior é mantido em `dados\backups`.
 ## Validação de um backup
 
 A validação verifica integridade, tabelas, nomes de colunas, valores inteiros em centavos e
-referências estrangeiras declaradas, após migrar uma cópia temporária. Backups com referências
-órfãs ou valores inválidos em centavos são recusados; preserve o original para diagnóstico.
+referências estrangeiras declaradas, após migrar uma cópia temporária. Backups automáticos
+recentes e novos passam por essas verificações; se a cópia nova falhar, a retenção não é
+aplicada. Backups com referências órfãs ou valores inválidos em centavos são recusados;
+preserve o original para diagnóstico.
 
 A validação não garante a correção de todos os dados, tipos, restrições ou regras de negócio,
 nem detecta relacionamentos não declarados no esquema.

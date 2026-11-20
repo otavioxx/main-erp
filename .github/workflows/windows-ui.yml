@@ -1,0 +1,31 @@
+name: Interface Windows
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  windows-ui:
+    name: Interface Windows (125% e 150%)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependências de desenvolvimento
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Configurar tela do runner em 1920 × 1080
+        shell: powershell
+        run: Set-DisplayResolution -Width 1920 -Height 1080 -Force
+
+      - name: Testar geometria da interface nas duas escalas
+        run: python -m pytest -v tests\test_dialogos_tela_windows.py

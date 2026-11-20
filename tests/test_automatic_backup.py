@@ -14,13 +14,19 @@ from mainerp.data.automatic_backup import (
     backup_automatico_vencido,
     criar_backup_automatico,
 )
+from mainerp.data.database import Database
+
+
+def criar_banco_aplicacao(caminho):
+    database = Database(str(caminho))
+    database.close_connection()
 
 
 def test_criar_backup_automatico_produz_snapshot_sqlite_integro(tmp_path):
     banco = tmp_path / "erp.db"
+    criar_banco_aplicacao(banco)
     conn = sqlite3.connect(banco)
     conn.execute("PRAGMA journal_mode = WAL")
-    conn.execute("CREATE TABLE clientes (id INTEGER PRIMARY KEY, nome TEXT)")
     conn.execute("INSERT INTO clientes (nome) VALUES ('Teste')")
     conn.commit()
     agora = datetime(2026, 11, 7, 9, 30)
@@ -84,10 +90,7 @@ def test_servico_inicia_backup_vencido_em_thread(tmp_path):
 
     app = QCoreApplication.instance() or QCoreApplication([])
     banco = tmp_path / "erp.db"
-    conn = sqlite3.connect(banco)
-    conn.execute("CREATE TABLE clientes (id INTEGER PRIMARY KEY)")
-    conn.commit()
-    conn.close()
+    criar_banco_aplicacao(banco)
     service = BackupAutomatico(banco)
     backups_criados = []
     falhas = []
@@ -132,8 +135,7 @@ def test_agendamento_falha_visivelmente_e_tenta_novamente(tmp_path, monkeypatch)
     assert not service.em_execucao
 
     monkeypatch.setattr(automatic_backup, "listar_backups_automaticos", verificar)
-    with sqlite3.connect(service.caminho_banco) as conn:
-        conn.execute("CREATE TABLE teste (id INTEGER)")
+    criar_banco_aplicacao(service.caminho_banco)
     loop = QEventLoop()
     service.operacao_finalizada.connect(loop.quit)
     QTimer.singleShot(5000, loop.quit)
@@ -187,8 +189,7 @@ def test_falha_de_backup_e_nova_tentativa_atualizam_resultado(tmp_path):
     assert service.resultado.startswith("Falha:")
     assert service.ultimo_backup is None
 
-    with sqlite3.connect(banco) as conn:
-        conn.execute("CREATE TABLE teste (id INTEGER)")
+    criar_banco_aplicacao(banco)
     service.verificar_e_executar()
     aguardar()
     service.parar()
@@ -203,8 +204,7 @@ def test_falha_retencao_nao_oculta_backup_criado(tmp_path, monkeypatch):
 
     app = QCoreApplication.instance() or QCoreApplication([])
     banco = tmp_path / "erp.db"
-    with sqlite3.connect(banco) as conn:
-        conn.execute("CREATE TABLE teste (id INTEGER)")
+    criar_banco_aplicacao(banco)
     service = BackupAutomatico(banco)
     concluidos, falhas = [], []
     service.backup_concluido.connect(concluidos.append)
@@ -411,8 +411,7 @@ def test_backup_recente_corrompido_avisa_e_repete_apos_falha(tmp_path, monkeypat
 
     app = QCoreApplication.instance() or QCoreApplication([])
     banco = tmp_path / "erp.db"
-    with sqlite3.connect(banco) as conn:
-        conn.execute("CREATE TABLE teste (id INTEGER)")
+    criar_banco_aplicacao(banco)
     pasta = tmp_path / "backups"
     pasta.mkdir()
     corrompido = pasta / f"{BACKUP_PREFIX}antigo.db"
@@ -423,19 +422,21 @@ def test_backup_recente_corrompido_avisa_e_repete_apos_falha(tmp_path, monkeypat
     service.backup_falhou.connect(falhas.append)
     service.backup_concluido.connect(concluidos.append)
     criar = automatic_backup.criar_backup_automatico
-    verificar = automatic_backup.verificar_integridade_backup
+    verificar = automatic_backup.DatabaseManager._verify_database
     em_segundo_plano = []
 
     def verificar_na_thread(caminho):
         em_segundo_plano.append(QThread.currentThread() != app.thread())
-        verificar(caminho)
+        return verificar(caminho)
 
     def falhar(*_args):
         raise PermissionError("destino indisponível")
 
     monkeypatch.setattr(automatic_backup, "criar_backup_automatico", falhar)
     monkeypatch.setattr(
-        automatic_backup, "verificar_integridade_backup", verificar_na_thread
+        automatic_backup.DatabaseManager,
+        "_verify_database",
+        staticmethod(verificar_na_thread),
     )
     service.iniciar()
     _aguardar_backup(service)
@@ -465,8 +466,7 @@ def test_data_futura_avisa_cria_backup_e_suspende_retencao(tmp_path):
 
     app = QCoreApplication.instance() or QCoreApplication([])
     banco = tmp_path / "erp.db"
-    with sqlite3.connect(banco) as conn:
-        conn.execute("CREATE TABLE teste (id INTEGER)")
+    criar_banco_aplicacao(banco)
     pasta = tmp_path / "backups"
     pasta.mkdir()
     antigo = pasta / f"{BACKUP_PREFIX}antigo.db"
@@ -505,8 +505,7 @@ def test_backups_simultaneos_no_mesmo_segundo_nao_sobrescrevem(tmp_path):
     from concurrent.futures import ThreadPoolExecutor
 
     banco = tmp_path / "erp.db"
-    with sqlite3.connect(banco) as conn:
-        conn.execute("CREATE TABLE teste (id INTEGER)")
+    criar_banco_aplicacao(banco)
     agora = datetime(2026, 11, 7, 9, 30)
     with ThreadPoolExecutor(max_workers=4) as executor:
         resultados = list(
@@ -521,12 +520,61 @@ def test_backups_simultaneos_no_mesmo_segundo_nao_sobrescrevem(tmp_path):
     assert not list((tmp_path / "backups").glob("*.tmp"))
 
 
+def test_backup_recente_com_esquema_incompleto_e_recriado(tmp_path):
+    banco = tmp_path / "erp.db"
+    criar_banco_aplicacao(banco)
+    pasta = tmp_path / "backups"
+    pasta.mkdir()
+    recente = pasta / f"{BACKUP_PREFIX}recente.db"
+    with sqlite3.connect(recente) as conn:
+        conn.execute("CREATE TABLE clientes (id INTEGER)")
+    worker = automatic_backup._BackupWorker(banco, pasta, recente)
+    avisos, criados = [], []
+    worker.aviso.connect(avisos.append)
+    worker.backup_criado.connect(criados.append)
+
+    worker.run()
+
+    assert avisos and "inválido ou inacessível" in avisos[0]
+    assert len(criados) == 1
+    automatic_backup.verificar_backup_automatico(Path(criados[0]))
+    assert recente.exists()
+
+
+@pytest.mark.parametrize("causa", ["esquema", "referencias"])
+def test_backup_novo_invalido_nao_dispara_retencao(tmp_path, causa):
+    banco = tmp_path / "erp.db"
+    if causa == "esquema":
+        with sqlite3.connect(banco) as conn:
+            conn.execute("CREATE TABLE clientes (id INTEGER)")
+    else:
+        criar_banco_aplicacao(banco)
+        with sqlite3.connect(banco) as conn:
+            conn.execute("PRAGMA foreign_keys = OFF")
+            conn.execute("INSERT INTO vendas (cliente_id) VALUES (999)")
+    pasta = tmp_path / "backups"
+    pasta.mkdir()
+    antigo = pasta / f"{BACKUP_PREFIX}antigo.db"
+    antigo.write_bytes(b"backup antigo")
+    timestamp = (datetime.now() - timedelta(days=31)).timestamp()
+    os.utime(antigo, (timestamp, timestamp))
+    worker = automatic_backup._BackupWorker(banco, pasta)
+    falhas = []
+    worker.backup_falhou.connect(falhas.append)
+
+    worker.run()
+
+    assert falhas and "esquema e consistência" in falhas[0]
+    assert antigo.exists()
+    assert list(pasta.glob(f"{BACKUP_PREFIX}*.db")) == [antigo]
+    assert not list(pasta.glob("*.tmp"))
+
+
 def test_colisao_de_nome_nao_sobrescreve_backup_existente(tmp_path, monkeypatch):
     from types import SimpleNamespace
 
     banco = tmp_path / "erp.db"
-    with sqlite3.connect(banco) as conn:
-        conn.execute("CREATE TABLE teste (id INTEGER)")
+    criar_banco_aplicacao(banco)
     pasta = tmp_path / "backups"
     pasta.mkdir()
     existente = pasta / f"{BACKUP_PREFIX}20261107_093000_fixo.db"
@@ -545,8 +593,7 @@ def test_copia_automatica_corrompida_na_publicacao_e_descartada(tmp_path, monkey
     import shutil
 
     banco = tmp_path / "erp.db"
-    with sqlite3.connect(banco) as conn:
-        conn.execute("CREATE TABLE teste (id INTEGER)")
+    criar_banco_aplicacao(banco)
     pasta = tmp_path / "backups"
 
     def publicar_corrompido(origem, destino):
@@ -563,8 +610,7 @@ def test_copia_automatica_corrompida_na_publicacao_e_descartada(tmp_path, monkey
 
 def test_verificacao_inacessivel_avisa_e_cria_backup(tmp_path, monkeypatch):
     banco = tmp_path / "erp.db"
-    with sqlite3.connect(banco) as conn:
-        conn.execute("CREATE TABLE teste (id INTEGER)")
+    criar_banco_aplicacao(banco)
     pasta = tmp_path / "backups"
     pasta.mkdir()
     arquivo = pasta / f"{BACKUP_PREFIX}recente.db"

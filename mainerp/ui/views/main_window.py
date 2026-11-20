@@ -60,7 +60,7 @@ class StatusBarWidget(QWidget):
 
         # Versão da aplicação
         self.label_version = QLabel(
-            f"© OTC Tecnology - MainERP v{obter_config().APP_VERSION}"
+            f"© OTC Tecnology - PLUMA v{obter_config().APP_VERSION}"
         )
         self.label_version.setProperty("class", "version-label")
         layout.addWidget(self.label_version)
@@ -74,7 +74,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self, progress_callback: Callable[[str], None] | None = None):
         super().__init__()
-        self.setWindowTitle("MainERP")
+        self.setWindowTitle("PLUMA")
         self.setGeometry(100, 100, 1200, 800)
 
         self.central_widget = QWidget()
@@ -167,7 +167,7 @@ class MainWindow(QMainWindow):
         nav_layout.setContentsMargins(0, 8, 0, 8)
 
         # Título da aplicação
-        titulo = QLabel("MainERP")
+        titulo = QLabel("PLUMA")
         titulo.setProperty("class", "sidebar-title")
         titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
         # REMOVA O STYLESHEET INLINE

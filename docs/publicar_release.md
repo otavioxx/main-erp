@@ -120,7 +120,7 @@ O resultado esperado é `Tag v0.10.11 válida.`
 ## 6. Criar e enviar a tag
 
 ```powershell
-git tag -a v0.10.11 -m "MainERP 0.10.11"
+git tag -a v0.10.11 -m "PLUMA 0.10.11"
 git push origin v0.10.11
 ```
 
@@ -177,7 +177,7 @@ git push origin :refs/tags/v0.10.11
 Depois de corrigir e enviar os commits, crie e envie a tag novamente:
 
 ```powershell
-git tag -a v0.10.11 -m "MainERP 0.10.11"
+git tag -a v0.10.11 -m "PLUMA 0.10.11"
 git push origin v0.10.11
 ```
 

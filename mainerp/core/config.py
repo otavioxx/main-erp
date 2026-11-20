@@ -15,8 +15,8 @@ class Config:
     """Classe para gerenciar configurações do sistema"""
 
     # Constantes da aplicação
-    APP_NAME = "MainERP"
-    APP_VERSION = "0.12.0"
+    APP_NAME = "PLUMA"
+    APP_VERSION = "0.12.1"
     DEBUG_MODE = False
 
     def __init__(self, config_file: str | None = None):

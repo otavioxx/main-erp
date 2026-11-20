@@ -13,6 +13,19 @@ As alterações são organizadas nas categorias:
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-20
+
+### Alterado
+
+- Padronizado o nome visível do produto como PLUMA na interface, no instalador e nas mensagens.
+
+### Corrigido
+
+- O launcher evita abrir versões incompatíveis com o banco e orienta a recuperação sem descartar lançamentos.
+- Evitada a sobrescrita de arquivos existentes durante o teste de escrita do destino do backup manual.
+- Backups automáticos recentes e novos agora passam por validação de esquema e consistência antes da retenção.
+- O backup manual mantém o destino escolhido se o pendrive for desconectado e permite voltar ao sistema e tentar novamente.
+
 ## [0.12.0] - 2026-11-18
 
 ### Alterado

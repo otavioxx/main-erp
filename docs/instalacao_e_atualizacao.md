@@ -144,10 +144,20 @@ preservada.
 ### Falha ao iniciar uma versão nova
 
 Ao iniciar uma versão recém-instalada, o launcher verifica se a janela principal abriu. Se a
-nova release falhar antes dessa confirmação, ela é marcada como ruim (`.ruim`) e o launcher
-tenta abrir a versão anterior válida. Esse rollback cobre falha de inicialização; não é um
-rollback do banco e não reverte migrações. Se o aplicativo já abriu e falhar depois, o launcher
-não volta automaticamente à versão anterior.
+nova release falhar antes dessa confirmação, o launcher verifica novamente o esquema. Só
+marca a release como ruim (`.ruim`) e volta se houver outra versão válida e compatível. A
+checagem considera o banco configurado e qualquer restauração pendente. Se o aplicativo já
+abriu e falhar depois, o launcher não volta automaticamente à versão anterior.
+
+Se não houver uma versão compatível para abrir o banco, preserve a pasta `dados\` e instale
+uma atualização compatível. Para recuperação offline, solicite ao suporte um ZIP compatível,
+mais recente que as versões instaladas, coloque-o em `sistema\atualizacoes\` e abra pelo atalho.
+O launcher não reverte migrações nem restaura backups automaticamente. Não restaure um
+backup pré-migração só para desbloquear a abertura: ele não contém os lançamentos posteriores.
+
+Esta proteção exige atualizar o launcher pelo instalador antes de distribuir uma migração
+incompatível com versões antigas. Atualizar apenas a release do aplicativo não troca o launcher.
+Versões que registram o esquema 4 exigem o novo launcher antes de abrir ou restaurar o banco.
 
 ### Voltar manualmente para uma versão anterior
 
@@ -155,14 +165,12 @@ não volta automaticamente à versão anterior.
 2. Faça uma cópia do banco atual e dos arquivos importantes em `dados\`.
 3. Edite `%LOCALAPPDATA%\MainERP\sistema\current.txt` e informe a versão anterior, cuja pasta
    ainda exista em `releases\`.
-4. Abra pelo atalho. O launcher usa o código selecionado, mas mantém o banco e as
-   configurações atuais.
+4. Abra pelo atalho. O launcher usa o código selecionado se for compatível com o banco e
+   mantém os dados e as configurações atuais.
 
-O launcher conserva as três releases válidas mais recentes e a versão atual; releases mais
-antigas podem já ter sido removidas. Voltar o código não restaura o banco: se a versão anterior
-não for compatível com o esquema migrado, feche o aplicativo e restaure um backup compatível
-pela rotina de restauração. Não substitua arquivos do banco enquanto o programa estiver aberto.
-Os backups pré-migração ficam em `dados\backups\`.
+O launcher conserva as três releases válidas mais recentes, a versão atual e a versão válida
+compatível mais recente, caso ela esteja fora desse grupo. Releases mais antigas podem já ter
+sido removidas. Os backups pré-migração ficam em `dados\backups\`.
 
 ## Diagnóstico
 
