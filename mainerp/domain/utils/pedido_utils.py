@@ -17,10 +17,9 @@ class PedidoUtils:
         for item in itens:
             query = """
                 INSERT INTO itens_pedido
-                    (pedido_id, produto_id, quantidade, preco_custo, preco_venda,
-                     subtotal, preco_custo_centavos, preco_venda_centavos,
-                     subtotal_centavos)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (pedido_id, produto_id, quantidade, preco_custo_centavos,
+                 preco_venda_centavos, subtotal_centavos)
+                VALUES (?, ?, ?, ?, ?, ?)
             """
             custo_centavos = para_centavos(item["preco_custo"])
             venda_centavos = para_centavos(item["preco_venda"])
@@ -29,9 +28,6 @@ class PedidoUtils:
                 pedido_id,
                 item["id"],
                 item["quantidade"],
-                float(de_centavos(custo_centavos)),
-                float(de_centavos(venda_centavos)),
-                float(de_centavos(subtotal_centavos)),
                 custo_centavos,
                 venda_centavos,
                 subtotal_centavos,
@@ -135,18 +131,13 @@ class PedidoUtils:
                 # Atualizar produto: preço de custo, preço de venda e estoque
                 query_update = """
                     UPDATE produtos
-                    SET preco_custo = ?, preco_venda = ?,
-                        preco_custo_centavos = ?, preco_venda_centavos = ?,
+                    SET preco_custo_centavos = ?, preco_venda_centavos = ?,
                         estoque = estoque + ?
                     WHERE id = ?
                 """
-                preco_custo = float(de_centavos(custo_centavos))
-                preco_venda = float(de_centavos(venda_centavos))
                 DatabaseUtils.executar_query(
                     query_update,
                     (
-                        preco_custo,
-                        preco_venda,
                         custo_centavos,
                         venda_centavos,
                         quantidade,
@@ -158,8 +149,8 @@ class PedidoUtils:
                 logger.debug(
                     "Produto %s atualizado: custo=R$%.2f, venda=R$%.2f, +%s estoque",
                     produto_id,
-                    preco_custo,
-                    preco_venda,
+                    de_centavos(custo_centavos),
+                    de_centavos(venda_centavos),
                     quantidade,
                 )
 
@@ -214,22 +205,17 @@ class PedidoUtils:
         subtotal_centavos = sum(para_centavos(item["subtotal"]) for item in itens)
         frete_centavos = para_centavos(valor_frete)
         total_centavos = subtotal_centavos + frete_centavos
-        total = float(de_centavos(total_centavos))
-        frete = float(de_centavos(frete_centavos))
-
         # Atualizar pedido
         query_pedido = """
             UPDATE pedidos
-            SET fornecedor_id = ?, valor_total = ?, valor_frete = ?,
-                valor_total_centavos = ?, valor_frete_centavos = ?, observacao = ?
+            SET fornecedor_id = ?, valor_total_centavos = ?,
+                valor_frete_centavos = ?, observacao = ?
             WHERE id = ?
         """
         DatabaseUtils.executar_query(
             query_pedido,
             (
                 fornecedor_id,
-                total,
-                frete,
                 total_centavos,
                 frete_centavos,
                 observacao,
@@ -245,10 +231,9 @@ class PedidoUtils:
         for item in itens:
             query_item = """
                 INSERT INTO itens_pedido
-                (pedido_id, produto_id, quantidade, preco_custo, preco_venda,
-                 subtotal, preco_custo_centavos, preco_venda_centavos,
-                 subtotal_centavos)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (pedido_id, produto_id, quantidade, preco_custo_centavos,
+                 preco_venda_centavos, subtotal_centavos)
+                VALUES (?, ?, ?, ?, ?, ?)
             """
             custo_centavos = para_centavos(item["preco_custo"])
             venda_centavos = para_centavos(item["preco_venda"])
@@ -259,9 +244,6 @@ class PedidoUtils:
                     pedido_id,
                     item["id"],
                     item["quantidade"],
-                    float(de_centavos(custo_centavos)),
-                    float(de_centavos(venda_centavos)),
-                    float(de_centavos(subtotal_centavos)),
                     custo_centavos,
                     venda_centavos,
                     subtotal_centavos,

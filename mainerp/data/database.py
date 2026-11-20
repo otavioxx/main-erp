@@ -24,8 +24,8 @@ class Database:
     COMO ADICIONAR UMA ALTERAÇÃO DE ESQUEMA
     1. escreva um método ``_migracao_NNN_descricao(self)``;
     2. registre-o em ``MIGRACOES`` com o próximo número;
-    3. mantenha migrações ADITIVAS (novas tabelas/colunas), assim uma versão
-       anterior do sistema continua funcionando com o banco já migrado.
+    3. prefira migrações aditivas; alterações incompatíveis exigem proteção
+       contra abertura por versões anteriores e procedimento de recuperação.
     """
 
     # (versão, nome do método). Nunca renumere nem apague entradas antigas.
@@ -33,6 +33,7 @@ class Database:
         (1, "_migracao_001_esquema_base"),
         (2, "_migracao_002_indices_consultas_frequentes"),
         (3, "_migracao_003_valores_monetarios_centavos"),
+        (4, "_migracao_004_remover_colunas_reais"),
     ]
 
     MANTER_BACKUPS_MIGRACAO = 10
@@ -267,6 +268,48 @@ class Database:
             cursor.execute(
                 f"CREATE INDEX IF NOT EXISTS {nome} ON {tabela} ({colunas_sql})"
             )
+
+    def _migracao_004_remover_colunas_reais(self):
+        conn = self.get_connection()
+        colunas_reais = {
+            "produtos": ("preco_custo", "preco_venda"),
+            "vendas": ("total", "desconto", "valor_entrada", "valor_financiado"),
+            "itens_venda": ("preco_unitario", "desconto"),
+            "duplicatas": ("valor_parcela",),
+            "duplicatas_pagas": ("valor_original", "valor_recebido"),
+            "condicionais": ("desconto",),
+            "itens_condicional": ("preco_unitario",),
+            "pedidos": ("valor_total", "valor_frete", "desconto"),
+            "itens_pedido": ("preco_custo", "preco_venda", "subtotal"),
+        }
+        for tabela, colunas in colunas_reais.items():
+            existentes = {
+                linha[1] for linha in conn.execute(f'PRAGMA table_info("{tabela}")')
+            }
+            presentes = [coluna for coluna in colunas if coluna in existentes]
+            if not presentes:
+                continue
+            for coluna in presentes:
+                centavos = f"{coluna}_centavos"
+                if centavos not in existentes:
+                    raise sqlite3.DatabaseError(
+                        f"Coluna {tabela}.{centavos} ausente na migração."
+                    )
+                if conn.execute(
+                    f'SELECT 1 FROM "{tabela}" '
+                    f"WHERE typeof(\"{centavos}\") != 'integer' LIMIT 1"
+                ).fetchone():
+                    raise sqlite3.DatabaseError(
+                        f"Valor inválido em {tabela}.{centavos}; migração interrompida."
+                    )
+            for evento in ("insert", "update"):
+                conn.execute(f'DROP TRIGGER "trg_{tabela}_centavos_{evento}"')
+            for coluna in presentes:
+                conn.execute(f'ALTER TABLE "{tabela}" DROP COLUMN "{coluna}"')
+        if conn.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
+            raise sqlite3.DatabaseError("Falha na integridade após a migração.")
+        if conn.execute("PRAGMA foreign_key_check").fetchone() is not None:
+            raise sqlite3.DatabaseError("Referências inválidas após a migração.")
 
     def _migracao_003_valores_monetarios_centavos(self):
         cursor = self.get_connection().cursor()

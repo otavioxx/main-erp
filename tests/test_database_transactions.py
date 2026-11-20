@@ -137,9 +137,9 @@ def test_pedido_e_condicional_usam_transacoes_compartilhadas(monkeypatch, tmp_pa
             )
             cursor.execute("INSERT INTO clientes (nome) VALUES (?)", ("Cliente",))
             cursor.execute(
-                "INSERT INTO produtos (nome, preco_custo, preco_venda) "
+                "INSERT INTO produtos (nome, preco_custo_centavos, preco_venda_centavos) "
                 "VALUES (?, ?, ?)",
-                ("Produto", 10, 20),
+                ("Produto", 1000, 2000),
             )
 
         pedido = pedido_model.Pedido(fornecedor_id=1, valor_total=10)

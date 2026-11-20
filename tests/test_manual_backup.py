@@ -488,6 +488,7 @@ def test_backup_manual_restaurado_na_inicializacao_da_aplicacao(tmp_path):
         QT_QPA_PLATFORM="offscreen",
     )
     env.pop("MAINERP_LAUNCHER", None)
+    env["MAINERP_SCHEMA_PROTOCOL"] = "1"
     codigo = """
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QMessageBox
@@ -568,6 +569,7 @@ def test_backup_externo_restaurado_em_dados_isolados(tmp_path):
         QT_QPA_PLATFORM="offscreen",
     )
     env.pop("MAINERP_LAUNCHER", None)
+    env["MAINERP_SCHEMA_PROTOCOL"] = "1"
     codigo = """
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QMessageBox

@@ -16,8 +16,8 @@ def database(tmp_path, monkeypatch):
             "VALUES (1, 1, '2026-03-01')"
         )
         cursor.execute(
-            "INSERT INTO produtos (id, nome, preco_custo, preco_venda) "
-            "VALUES (1, 'Produto', 1, 2)"
+            "INSERT INTO produtos (id, nome, preco_custo_centavos, preco_venda_centavos) "
+            "VALUES (1, 'Produto', 100, 200)"
         )
     yield database
     database.close_connection()
@@ -62,8 +62,8 @@ def test_recebimento_atualiza_produtos_com_precos_em_centavos(database):
         cursor.execute(
             """
             INSERT INTO itens_pedido
-                (pedido_id, produto_id, quantidade, preco_custo, preco_venda, subtotal)
-            VALUES (1, 1, 2, 10.02, 15.03, 20.04)
+                (pedido_id, produto_id, quantidade, preco_custo_centavos, preco_venda_centavos, subtotal_centavos)
+            VALUES (1, 1, 2, 1002, 1503, 2004)
             """
         )
 

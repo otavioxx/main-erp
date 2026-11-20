@@ -13,6 +13,13 @@ As alterações são organizadas nas categorias:
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-20
+
+### Alterado
+
+- Os valores monetários passam a ser armazenados exclusivamente em centavos, preservando os valores já registrados.
+- A atualização do banco exige o launcher compatível. Versões anteriores do aplicativo não abrem o banco migrado.
+
 ## [0.12.1] - 2026-11-20
 
 ### Alterado

@@ -2,6 +2,12 @@
 
 ## 2026-11-20
 
+### Preparação da release 0.13.0
+
+- Preparada a distribuição da migração 4, incompatível com versões anteriores do aplicativo; o launcher atualizado protege a abertura e a recuperação do banco.
+- Ruff e pytest passaram no Windows: 398 testes aprovados e 1 ignorado. Uma instalação limpa abriu no esquema 4; na atualização isolada de 0.12.1, o launcher abriu a candidata e a cópia do backup de 18/11 preservou 5.335 registros e 9.155 valores em centavos, índices e integridade, com backup pré-migração.
+
+- Integrada no código de desenvolvimento a migração 4, que remove as 19 colunas `REAL` e os gatilhos sem recalcular centavos; as gravações monetárias usam os campos inteiros. A migração permanece não publicada e exige launcher compatível. Em uma cópia do backup de 18/11, foram preservados 5.335 registros e 9.155 valores em centavos, índices e integridade; restaurações dos esquemas 3 e 4 também foram exercitadas.
 ### Preparação da release 0.12.1
 
 - Consolidadas correções de compatibilidade do launcher com o esquema do banco e da validação de backups, além de melhorias de identificação PLUMA, recuperação de destino removível e documentação.

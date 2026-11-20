@@ -178,6 +178,7 @@ def test_inicializacao_mostra_novidades_uma_vez(releases):
         "TESTE_RELEASE": str(atual),
     }
     env.pop("MAINERP_LAUNCHER", None)
+    env["MAINERP_SCHEMA_PROTOCOL"] = "1"
     script = """
 import os
 from pathlib import Path

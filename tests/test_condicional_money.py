@@ -11,8 +11,8 @@ def test_condicional_persiste_e_le_valores_em_centavos(tmp_path, monkeypatch):
             cursor.execute("INSERT INTO clientes (id, nome) VALUES (1, 'Cliente')")
             cursor.execute(
                 """
-                INSERT INTO produtos (id, nome, preco_custo, preco_venda)
-                VALUES (1, 'Produto', 1, 2)
+                INSERT INTO produtos (id, nome, preco_custo_centavos, preco_venda_centavos)
+                VALUES (1, 'Produto', 100, 200)
                 """
             )
 
@@ -41,19 +41,7 @@ def test_condicional_persiste_e_le_valores_em_centavos(tmp_path, monkeypatch):
 
         with database.transacao() as cursor:
             cursor.execute(
-                "UPDATE condicionais SET desconto = 9 WHERE id = ?",
-                (condicional_id,),
-            )
-            cursor.execute(
                 "UPDATE condicionais SET desconto_centavos = 50 WHERE id = ?",
-                (condicional_id,),
-            )
-            cursor.execute(
-                """
-                UPDATE itens_condicional
-                SET preco_unitario = 9
-                WHERE condicional_id = ?
-                """,
                 (condicional_id,),
             )
             cursor.execute(

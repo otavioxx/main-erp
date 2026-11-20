@@ -54,8 +54,9 @@ O esquema é versionado por `PRAGMA user_version`. Para alterar o banco:
 
 1. crie `_migracao_NNN_descricao` em `mainerp/data/database.py`;
 2. registre-a em `Database.MIGRACOES` com o próximo número;
-3. mantenha a mudança **aditiva** (nova tabela ou coluna), para que uma versão anterior do
-   sistema continue funcionando com o banco já migrado.
+3. prefira mudanças **aditivas** (nova tabela ou coluna). Para uma alteração incompatível,
+   como a migração 4, valide a proteção do launcher e o procedimento de recuperação antes de
+   distribuí-la.
 
 Teste migrações em bancos isolados ou temporários. O funcionamento dos backups criados antes da
 migração está em [banco_e_backups.md](banco_e_backups.md).

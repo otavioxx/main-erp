@@ -17,15 +17,15 @@ def database(tmp_path, monkeypatch):
         cursor.executemany(
             """
             INSERT INTO pedidos
-                (id, fornecedor_id, data_pedido, valor_total, status, desconto)
+                (id, fornecedor_id, data_pedido, valor_total_centavos, status, desconto_centavos)
             VALUES (?, ?, ?, ?, ?, ?)
             """,
             [
-                (1, 1, "2026-03-05", 100, "pendente", None),
-                (2, 1, "2026-03-20", 200, "pendente", 5),
-                (3, 1, "2026-04-02", 300, "pendente", 0),
-                (4, 2, "2026-03-15", 400, "pendente", 0),
-                (5, 1, "2026-03-18", 500, "recebido", 0),
+                (1, 1, "2026-03-05", 10000, "pendente", 0),
+                (2, 1, "2026-03-20", 20000, "pendente", 500),
+                (3, 1, "2026-04-02", 30000, "pendente", 0),
+                (4, 2, "2026-03-15", 40000, "pendente", 0),
+                (5, 1, "2026-03-18", 50000, "recebido", 0),
             ],
         )
 
@@ -83,13 +83,13 @@ def test_salvar_e_carregar_pedido_usa_valores_em_centavos(database):
 def test_obter_itens_e_calcular_totais_usa_centavos(database):
     with database.transacao() as cursor:
         cursor.execute(
-            "INSERT INTO produtos (id, nome, preco_custo, preco_venda) VALUES (10, 'Produto', 1, 2)"
+            "INSERT INTO produtos (id, nome, preco_custo_centavos, preco_venda_centavos) VALUES (10, 'Produto', 100, 200)"
         )
         cursor.execute(
             """
             INSERT INTO itens_pedido
-                (pedido_id, produto_id, quantidade, preco_custo, preco_venda, subtotal)
-            VALUES (1, 10, 3, 0.10, 0.20, 0.30)
+                (pedido_id, produto_id, quantidade, preco_custo_centavos, preco_venda_centavos, subtotal_centavos)
+            VALUES (1, 10, 3, 10, 20, 30)
             """
         )
 

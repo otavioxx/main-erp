@@ -38,14 +38,13 @@ def test_criar_parcelas_divide_valor_e_incrementa_vencimentos(database):
     assert all(parcela.status == "aberto" for parcela in parcelas)
     assert database.get_connection().execute(
         """
-            SELECT venda_id, cliente_id, numero_parcela, valor_parcela,
-                   valor_parcela_centavos
+            SELECT venda_id, cliente_id, numero_parcela, valor_parcela_centavos
             FROM duplicatas ORDER BY numero_parcela
             """
     ).fetchall() == [
-        (42, 7, 1, 33.33, 3333),
-        (42, 7, 2, 33.33, 3333),
-        (42, 7, 3, 33.34, 3334),
+        (42, 7, 1, 3333),
+        (42, 7, 2, 3333),
+        (42, 7, 3, 3334),
     ]
 
 
@@ -56,17 +55,17 @@ def test_consultas_de_duplicatas_preservam_tuplas_legadas_em_reais(database):
         cursor.execute(
             """
             INSERT INTO duplicatas
-                (id, venda_id, cliente_id, numero_parcela, valor_parcela,
+                (id, venda_id, cliente_id, numero_parcela, valor_parcela_centavos,
                  data_vencimento, status)
-            VALUES (1, 42, 7, 1, 12.34, '2026-04-01', 'aberto')
+            VALUES (1, 42, 7, 1, 1234, '2026-04-01', 'aberto')
             """
         )
         cursor.execute(
             """
             INSERT INTO duplicatas_pagas
-                (id, venda_id, cliente_id, numero_parcela, valor_original,
-                 valor_recebido, data_vencimento, data_pagamento, forma_pagamento)
-            VALUES (2, 42, 7, 2, 12.34, 12.35, '2026-04-01', '2026-04-02', 'Pix')
+                (id, venda_id, cliente_id, numero_parcela, valor_original_centavos,
+                 valor_recebido_centavos, data_vencimento, data_pagamento, forma_pagamento)
+            VALUES (2, 42, 7, 2, 1234, 1235, '2026-04-01', '2026-04-02', 'Pix')
             """
         )
 
@@ -123,9 +122,9 @@ def test_pagamento_parcial_da_ultima_parcela_cria_nova_parcela_com_saldo(databas
         cursor.execute(
             """
             INSERT INTO duplicatas
-            (id, venda_id, cliente_id, numero_parcela, valor_parcela,
+            (id, venda_id, cliente_id, numero_parcela,
              valor_parcela_centavos, data_vencimento, status)
-            VALUES (5, 42, 7, 3, 100, 10000, ?, 'aberto')
+            VALUES (5, 42, 7, 3, 10000, ?, 'aberto')
             """,
             (vencimento,),
         )
@@ -138,14 +137,14 @@ def test_pagamento_parcial_da_ultima_parcela_cria_nova_parcela_com_saldo(databas
         database.get_connection()
         .execute(
             """
-        SELECT numero_parcela, valor_parcela, valor_parcela_centavos,
+        SELECT numero_parcela, valor_parcela_centavos,
                data_vencimento, status
         FROM duplicatas WHERE venda_id = 42
         """
         )
         .fetchall()
     )
-    assert parcelas == [(4, 20.0, 2000, "2026-02-14", "aberto")]
+    assert parcelas == [(4, 2000, "2026-02-14", "aberto")]
 
     parcela_paga = (
         database.get_connection()
@@ -167,9 +166,9 @@ def test_ajuste_de_ultima_parcela_cria_parcela_para_o_saldo(database):
         cursor.execute(
             """
             INSERT INTO duplicatas
-            (id, venda_id, cliente_id, numero_parcela, valor_parcela,
+            (id, venda_id, cliente_id, numero_parcela,
              valor_parcela_centavos, data_vencimento, status)
-            VALUES (5, 42, 7, 2, 50, 5000, '2026-03-01', 'aberto')
+            VALUES (5, 42, 7, 2, 5000, '2026-03-01', 'aberto')
             """
         )
 
@@ -191,20 +190,22 @@ def test_ajuste_de_ultima_parcela_cria_parcela_para_o_saldo(database):
 def test_buscar_para_recebimento_le_valores_em_centavos(database):
     with database.transacao() as cursor:
         cursor.execute("INSERT INTO clientes (id, nome) VALUES (7, 'Cliente')")
-        cursor.execute("INSERT INTO vendas (id, cliente_id, total) VALUES (42, 7, 25)")
+        cursor.execute(
+            "INSERT INTO vendas (id, cliente_id, total_centavos) VALUES (42, 7, 2500)"
+        )
         cursor.execute(
             """
             INSERT INTO duplicatas
-            (id, venda_id, cliente_id, numero_parcela, valor_parcela, data_vencimento)
-            VALUES (5, 42, 7, 1, 10, '2026-01-15')
+            (id, venda_id, cliente_id, numero_parcela, valor_parcela_centavos, data_vencimento)
+            VALUES (5, 42, 7, 1, 1000, '2026-01-15')
             """
         )
         cursor.execute(
             """
             INSERT INTO duplicatas_pagas
-            (id, venda_id, cliente_id, numero_parcela, valor_original,
-             valor_recebido, data_vencimento, data_pagamento, forma_pagamento)
-            VALUES (6, 42, 7, 2, 8, 7, '2026-02-15', '2026-02-15', 'Dinheiro')
+            (id, venda_id, cliente_id, numero_parcela, valor_original_centavos,
+             valor_recebido_centavos, data_vencimento, data_pagamento, forma_pagamento)
+            VALUES (6, 42, 7, 2, 800, 700, '2026-02-15', '2026-02-15', 'Dinheiro')
             """
         )
         cursor.execute("UPDATE vendas SET total_centavos = 2600 WHERE id = 42")
@@ -234,11 +235,11 @@ def test_ajustar_parcelas_persiste_novo_valor_em_centavos(database):
         cursor.execute(
             """
             INSERT INTO duplicatas
-            (id, venda_id, cliente_id, numero_parcela, valor_parcela,
+            (id, venda_id, cliente_id, numero_parcela,
              valor_parcela_centavos, data_vencimento, status)
             VALUES
-                (5, 42, 7, 1, 100, 10000, '2026-03-01', 'aberto'),
-                (6, 42, 7, 2, 100, 10000, '2026-03-31', 'aberto')
+                (5, 42, 7, 1, 10000, '2026-03-01', 'aberto'),
+                (6, 42, 7, 2, 10000, '2026-03-31', 'aberto')
             """
         )
 
