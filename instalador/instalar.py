@@ -116,7 +116,7 @@ def criar_atalhos(sistema: Path, launcher: Path, icone: Path):
             "-Icone",
             str(icone),
             "-AppId",
-            "DigitalSolutions.MainERP",
+            "OTCTecnology.MainERP",
         ],
         check=True,
     )
@@ -142,7 +142,7 @@ def validar_versao_instalada(sistema: Path, versao_esperada: str) -> None:
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Instala o MainERP sem PyInstaller.")
+    ap = argparse.ArgumentParser(description="Instala o PLUMA sem PyInstaller.")
     ap.add_argument(
         "--destino",
         type=Path,

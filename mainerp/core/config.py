@@ -15,7 +15,7 @@ class Config:
     """Classe para gerenciar configurações do sistema"""
 
     # Constantes da aplicação
-    APP_NAME = "MainERP"
+    APP_NAME = "PLUMA"
     APP_VERSION = "0.12.0"
     DEBUG_MODE = False
 

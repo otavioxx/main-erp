@@ -177,7 +177,7 @@ class Aviso:
         import tkinter as tk
 
         root = tk.Tk()
-        root.title("MainERP")
+        root.title("PLUMA")
         root.overrideredirect(True)  # sem barra de título; borda fina própria
         root.attributes("-topmost", True)
         root.configure(bg=COR_BORDA)
@@ -874,7 +874,7 @@ def atualizar_online(aviso):
             if assinatura_path.exists():
                 mover_zip(assinatura_path, "invalidas")
             mensagem(
-                "MainERP - atualização",
+                "PLUMA - atualização",
                 f"Não foi possível instalar a atualização {versao}. "
                 f"A versão atual será mantida.\n\n{erro}",
             )
@@ -973,7 +973,7 @@ def verificar_esquema_para_abertura() -> int | None:
     except (OSError, ValueError, TypeError, sqlite3.Error) as erro:
         log(f"Não foi possível determinar o esquema do banco: {erro}")
         mensagem(
-            "MainERP - banco de dados",
+            "PLUMA - banco de dados",
             "Não foi possível verificar a versão do banco ou da restauração pendente. "
             "O sistema não foi aberto. Não altere os arquivos de dados e procure suporte.",
         )
@@ -983,7 +983,7 @@ def verificar_esquema_para_abertura() -> int | None:
 def orientar_recuperacao(esquema: int) -> int:
     log(f"Nenhuma outra versão disponível para abrir o esquema {esquema}.")
     mensagem(
-        "MainERP - recuperação",
+        "PLUMA - recuperação",
         f"Para abrir o banco no esquema {esquema}, é necessária uma versão compatível.\n\n"
         "Instale uma atualização compatível ou solicite ao suporte um pacote mais "
         "recente para a pasta atualizacoes. Depois, abra o PLUMA novamente.\n\n"
@@ -1013,7 +1013,7 @@ def main(argv):
         if not versao:
             if releases_conhecidas():
                 return orientar_recuperacao(esquema)
-            mensagem("MainERP",
+            mensagem("PLUMA",
                      "Nenhuma versão do sistema está instalada.\n"
                      "Execute o instalador novamente (instalador\\instalar.bat).")
             return 1
@@ -1038,14 +1038,14 @@ def main(argv):
                 return EXIT_BANCO_INCOMPATIVEL
             anterior = marcar_ruim_e_voltar(versao, esquema_atual)
             if anterior:
-                mensagem("MainERP - atualização",
+                mensagem("PLUMA - atualização",
                          f"A versão {versao} falhou ao iniciar e foi desativada.\n"
                          f"O sistema vai abrir na versão {anterior}.\n\n"
                          f"Detalhes: {LOGS / 'sistema.log'}")
                 continue
             if esquema_atual > 0:
                 return orientar_recuperacao(esquema_atual)
-            mensagem("MainERP",
+            mensagem("PLUMA",
                      f"O sistema não conseguiu iniciar (código {codigo}).\n\n"
                      f"Detalhes: {LOGS / 'sistema.log'}")
             return codigo

@@ -1,4 +1,4 @@
-"""Configuração central de logging do MainERP."""
+"""Configuração central de logging do PLUMA."""
 
 import logging
 from logging.handlers import RotatingFileHandler

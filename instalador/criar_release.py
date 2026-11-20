@@ -1,4 +1,4 @@
-"""Gera o pacote de release do MainERP (um .zip com o código-fonte).
+"""Gera o pacote de release do PLUMA (um .zip com o código-fonte).
 
 Uso (na pasta do projeto):
     python instalador/criar_release.py                # gera dist/MainERP-<versão>.zip
@@ -183,7 +183,7 @@ def main():
         pasta.mkdir(parents=True, exist_ok=True)
         shutil.copy2(zip_path, pasta / zip_path.name)
         print(f"\nCopiado para {pasta}")
-        print("A atualização será aplicada na próxima vez que o MainERP for aberto.")
+        print("A atualização será aplicada na próxima vez que o PLUMA for aberto.")
 
 
 if __name__ == "__main__":

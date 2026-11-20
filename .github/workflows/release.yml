@@ -84,6 +84,6 @@ jobs:
             dist/instalador.sha256 \
             dist/version.json \
             --verify-tag \
-            --title "MainERP ${RELEASE_TAG#v}" \
+            --title "PLUMA ${RELEASE_TAG#v}" \
             --notes-file release-notes.txt \
             --latest

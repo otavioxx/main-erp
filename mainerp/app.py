@@ -77,7 +77,7 @@ def definir_identidade_windows():
         import ctypes
 
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
-            "DigitalSolutions.MainERP"
+            "OTCTecnology.MainERP"
         )
     except (AttributeError, OSError, ctypes.ArgumentError):
         return

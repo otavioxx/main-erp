@@ -166,7 +166,7 @@ def test_windows_shortcut_has_identity_icon_and_launcher(tmp_path):
         "-Icone",
         str(icone),
         "-AppId",
-        "DigitalSolutions.MainERP",
+        "OTCTecnology.MainERP",
         "-Destinos",
         str(pasta),
     ]
@@ -195,7 +195,7 @@ def test_windows_shortcut_has_identity_icon_and_launcher(tmp_path):
         assert propriedades["arguments"] == f'"{launcher}"'
         assert propriedades["directory"] == str(sistema)
         assert propriedades["icon"].rsplit(",", 1)[0] == str(icone)
-        assert propriedades["id"] == "DigitalSolutions.MainERP"
+        assert propriedades["id"] == "OTCTecnology.MainERP"
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Requer Windows Shell")
@@ -218,7 +218,7 @@ def test_windows_shortcut_failure_is_reported(tmp_path):
             "-Icone",
             str(tmp_path / "icon.ico"),
             "-AppId",
-            "DigitalSolutions.MainERP",
+            "OTCTecnology.MainERP",
             "-Destinos",
             str(tmp_path / "inexistente"),
         ],

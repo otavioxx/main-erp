@@ -370,7 +370,7 @@ Toda criação ou exclusão de tags, envio de commits e publicação de releases
 
 ### Identidade do aplicativo
 
-- Preserve a identidade visual estabelecida no MainERP.
+- Preserve a identidade visual estabelecida no PLUMA.
 - Mantenha consistência entre telas, componentes, diálogos e interações.
 - Utilize PyQt6 e Qt Widgets.
 - Não introduza tecnologias web para construir telas.

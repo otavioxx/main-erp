@@ -92,7 +92,7 @@ foreach ($pasta in @($Destinos + $Sistema) | Select-Object -Unique) {
     $lnk.Arguments = '"' + $Launcher + '"'
     $lnk.WorkingDirectory = $Sistema
     $lnk.IconLocation = $Icone
-    $lnk.Description = 'MainERP - Sistema de Gest' + [char]0xE3 + 'o Empresarial'
+    $lnk.Description = 'PLUMA - Sistema de Gest' + [char]0xE3 + 'o Empresarial'
     $lnk.Save()
     [MainErpShortcutIdentity]::SetAppId($caminho, $AppId)
     Write-Output ('Atalho criado: ' + $caminho)

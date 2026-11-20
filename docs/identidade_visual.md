@@ -5,7 +5,7 @@ critérios de validação da identidade visual.
 
 ## 1. Direção visual
 
-O MainERP adota uma identidade visual inspirada em sistemas ERP corporativos, priorizando sobriedade, legibilidade, consistência e densidade de informação.
+O PLUMA adota uma identidade visual inspirada em sistemas ERP corporativos, priorizando sobriedade, legibilidade, consistência e densidade de informação.
 Esta é a direção da Fase 4.3; a implementação e a validação visual são incrementais.
 As referências são de padrão de uso: não copiar logotipos, ícones, textos ou outros
 ativos de terceiros.

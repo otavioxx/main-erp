@@ -14,7 +14,7 @@ def caminho_padrao() -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Gera uma chave Ed25519 para assinar releases do MainERP."
+        description="Gera uma chave Ed25519 para assinar releases do PLUMA."
     )
     parser.add_argument(
         "--saida",

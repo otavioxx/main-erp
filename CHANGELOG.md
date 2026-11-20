@@ -13,6 +13,10 @@ As alterações são organizadas nas categorias:
 
 ## [Unreleased]
 
+### Alterado
+
+- Padronizado o nome visível do produto como PLUMA na interface, no instalador e nas mensagens.
+
 ### Corrigido
 
 - O launcher evita abrir versões incompatíveis com o banco e orienta a recuperação sem descartar lançamentos.
