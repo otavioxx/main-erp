@@ -33,7 +33,7 @@ Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém tarefas 
 
 **Objetivo:** corrigir pendências técnicas que podem comprometer a manutenção, a integridade e a evolução do sistema.
 
-- [ ] Corrigir e incluir no CI o teste de interface Windows que falha nas escalas 1.25 e 1.5.
+- [x] Corrigir e incluir no CI o teste de interface Windows nas escalas de 125% e 150%.
 - [ ] Executar Ruff e pytest em pull requests e exigir esses checks para integrar à `main`.
 - [x] Declarar Pillow em `requirements.txt` e validar instalação limpa.
 - [ ] Recusar publicação de versão igual ou inferior à última release antes de marcar como `latest`.
