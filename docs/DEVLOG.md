@@ -14,6 +14,7 @@
 - Ruff e suíte completa passaram no Windows (396 testes, 1 ignorado) e no Linux com Python 3.12 (393 testes, 4 ignorados).
 - Instalação limpa de 0.12.1 e atualização local de 0.11.2 para 0.12.1 validadas em diretórios isolados; arquivo de dados de teste e release anterior permaneceram intactos.
 - Na validação do PR, o runner Windows iniciou em 683×480 e os diálogos excederam a área disponível. Restaurada a configuração de 1920×1080 do workflow para validar as escalas de interface no ambiente esperado.
+- A release 0.12.1 foi publicada pelo GitHub Actions como `latest`. Os seis artefatos foram baixados anonimamente; manifesto, hashes SHA-256, versão empacotada e assinaturas Ed25519 foram verificados.
 
 - Padronizado o nome público como PLUMA em janelas, launcher, instalador, descrição de atalhos, notas de atualização e documentação de identidade. Contratos técnicos legados, como `%LOCALAPPDATA%\MainERP`, nomes dos pacotes, variáveis `MAINERP_*` e repositório, foram preservados para não quebrar instalações e atualizações.
 - Atualizado o AppUserModelID do Windows de `DigitalSolutions.MainERP` para `OTCTecnology.MainERP`, mantendo o segmento técnico do produto para compatibilidade.
