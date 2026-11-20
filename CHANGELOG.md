@@ -13,6 +13,12 @@ As alterações são organizadas nas categorias:
 
 ## [Unreleased]
 
+## [0.13.1] - 2026-11-20
+
+### Corrigido
+
+- Corrigida a exibição do aviso ao abrir o sistema sem um launcher compatível.
+
 ## [0.13.0] - 2026-11-20
 
 ### Alterado

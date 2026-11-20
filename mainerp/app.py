@@ -275,8 +275,9 @@ def erro_fatal(titulo, detalhe):
     """Registra o erro e avisa o usuário sem exigir console."""
     logger.exception("%s: %s", titulo, detalhe)
     try:
-        if QApplication.instance() is None:
-            QApplication(sys.argv)
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
         QMessageBox.critical(None, titulo, detalhe)
     except Exception:  # noqa: S110 - ultimo recurso ao reportar um erro fatal
         registrar_excecao(__name__, "Exception handled in erro_fatal in main.py")
