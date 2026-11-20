@@ -1,10 +1,12 @@
 import ast
 import base64
+import contextlib
 import hashlib
 import importlib.machinery
 import importlib.util
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import zipfile
@@ -42,7 +44,8 @@ def test_carregar_pyw_sem_suporte_nativo_a_extensao(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def launcher():
+def launcher(tmp_path, monkeypatch):
+    monkeypatch.setenv("MAINERP_DATA", str(tmp_path / "dados"))
     return _carregar_modulo(
         PROJECT_ROOT / "instalador" / "launcher.pyw", "launcher_test"
     )
@@ -602,7 +605,7 @@ def test_resolve_asset_relative_to_github_latest_manifest(launcher):
 
 def test_launcher_nao_faz_rollback_quando_restauracao_falha(launcher, monkeypatch):
     monkeypatch.setattr(launcher, "atualizar", lambda aviso: None)
-    monkeypatch.setattr(launcher, "escolher_versao", lambda: "0.10.0")
+    monkeypatch.setattr(launcher, "escolher_versao", lambda esquema: "0.10.0")
     monkeypatch.setattr(launcher, "executar", lambda versao: (4, 0))
     monkeypatch.setattr(
         launcher,
@@ -761,6 +764,182 @@ def test_runtime_inexistente_causa_rollback(launcher, tmp_path, monkeypatch):
     monkeypatch.setattr(launcher, "executar", executar)
     assert launcher.main([]) == 0
     assert current.read_text(encoding="utf-8") == "1.0.0"
+
+
+def _release_com_esquema(releases, versao, esquema, main=""):
+    pasta = releases / versao
+    codigo = pasta / "mainerp" / "data" / "database.py"
+    codigo.parent.mkdir(parents=True)
+    migracoes = [(numero, f"_migracao_{numero}") for numero in range(1, esquema + 1)]
+    codigo.write_text(f"class Database:\n    MIGRACOES: list = {migracoes!r}\n", encoding="utf-8")
+    (pasta / "main.py").write_text(main, encoding="utf-8")
+    return pasta
+
+
+@pytest.fixture
+def instalacao_para_recuperacao(launcher, tmp_path, monkeypatch):
+    dados = tmp_path / "dados"
+    dados.mkdir()
+    banco = dados / "erp.db"
+    with contextlib.closing(sqlite3.connect(banco)) as conn:
+        conn.executescript(
+            "CREATE TABLE lancamentos (centavos INTEGER);"
+            "INSERT INTO lancamentos VALUES (1234);"
+            "PRAGMA user_version = 3;"
+        )
+    for atributo, caminho in (
+        ("ROOT", tmp_path),
+        ("RELEASES", tmp_path / "releases"),
+        ("CURRENT", tmp_path / "current.txt"),
+        ("LOGS", tmp_path / "logs"),
+    ):
+        monkeypatch.setattr(launcher, atributo, caminho)
+    avisos = []
+    monkeypatch.setattr(launcher, "atualizar", lambda aviso: None)
+    monkeypatch.setattr(launcher, "mensagem", lambda titulo, texto: avisos.append(texto))
+    monkeypatch.setattr(launcher, "python_da_release", lambda versao: sys.executable)
+    return banco, avisos
+
+
+def test_falha_apos_migracao_bloqueia_rollback_e_recupera_com_versao_compativel(
+    launcher, instalacao_para_recuperacao, monkeypatch
+):
+    banco, avisos = instalacao_para_recuperacao
+    legado = _release_com_esquema(
+        launcher.RELEASES, "1.0.0", 3, "from pathlib import Path\nPath('abriu').touch()\n"
+    )
+    candidata = _release_com_esquema(
+        launcher.RELEASES,
+        "2.0.0",
+        4,
+        """import os, sqlite3
+from pathlib import Path
+with sqlite3.connect(Path(os.environ["MAINERP_DATA"]) / "erp.db") as conn:
+    conn.executescript("INSERT INTO lancamentos VALUES (5678); PRAGMA user_version = 4;")
+raise SystemExit(73)
+""",
+    )
+    launcher.definir_atual("2.0.0")
+
+    assert launcher.main([]) == launcher.EXIT_BANCO_INCOMPATIVEL
+    assert "esquema 4" in avisos[-1] and "atualizacoes" in avisos[-1]
+    assert not (legado / "abriu").exists()
+    assert not (candidata / ".ruim").exists()
+    anterior = banco.read_bytes()
+
+    pacote = _release_com_esquema(
+        launcher.ROOT / "pacote",
+        "2.0.1",
+        4,
+        """import os, sqlite3
+from pathlib import Path
+banco = Path(os.environ["MAINERP_DATA"]) / "erp.db"
+with sqlite3.connect(banco.as_uri() + "?mode=ro", uri=True) as conn:
+    assert conn.execute("SELECT centavos FROM lancamentos ORDER BY rowid").fetchall() == [
+        (1234,), (5678,),
+    ]
+""",
+    )
+    atualizacoes = launcher.ROOT / "atualizacoes"
+    atualizacoes.mkdir()
+    monkeypatch.setattr(launcher, "ATUALIZACOES", atualizacoes)
+    with zipfile.ZipFile(atualizacoes / "recuperacao.zip", "w") as zip_:
+        zip_.writestr("release.json", json.dumps({"version": "2.0.1"}))
+        for arquivo in pacote.rglob("*.py"):
+            zip_.write(arquivo, arquivo.relative_to(pacote))
+    monkeypatch.setattr(launcher, "garantir_dependencias", lambda *_: None)
+    monkeypatch.setattr(launcher, "atualizar", launcher.aplicar_atualizacoes_locais)
+
+    assert launcher.main([]) == 0
+    assert (atualizacoes / "aplicadas" / "recuperacao.zip").exists()
+    assert banco.read_bytes() == anterior
+
+
+def test_fallback_seleciona_releases_compativeis_com_config_e_restauracao_pendente(
+    launcher, instalacao_para_recuperacao
+):
+    banco, _ = instalacao_para_recuperacao
+    personalizado = banco.with_name("caixa #1.db")
+    banco.rename(personalizado)
+    (banco.parent / "config.json").write_text(
+        json.dumps({"database": {"name": str(personalizado)}}), encoding="utf-8"
+    )
+    pendente = personalizado.with_name(personalizado.name + ".restauracao-pendente.db")
+    with contextlib.closing(sqlite3.connect(pendente)) as conn:
+        conn.execute("PRAGMA user_version = 4")
+    _release_com_esquema(launcher.RELEASES, "1.0.0", 4)
+    _release_com_esquema(launcher.RELEASES, "2.0.0", 3, "raise SystemExit(97)\n")
+    candidata = _release_com_esquema(
+        launcher.RELEASES, "3.0.0", 4, "raise SystemExit(73)\n"
+    )
+    launcher.definir_atual("3.0.0")
+
+    assert launcher.main([]) == 0
+    assert (candidata / ".ruim").exists()
+    assert launcher.CURRENT.read_text(encoding="utf-8") == "1.0.0"
+    assert pendente.exists()
+
+
+def test_banco_ilegivel_bloqueia_abertura_sem_alterar_arquivo(
+    launcher, instalacao_para_recuperacao
+):
+    banco, avisos = instalacao_para_recuperacao
+    banco.write_bytes(b"arquivo invalido")
+    _release_com_esquema(launcher.RELEASES, "1.0.0", 4)
+    assert launcher.main([]) == launcher.EXIT_BANCO_INCOMPATIVEL
+    assert "Não foi possível verificar" in avisos[-1]
+    assert banco.read_bytes() == b"arquivo invalido"
+    assert not launcher.CURRENT.exists()
+
+
+def test_app_com_migracao_4_recusa_launcher_antigo(tmp_path):
+    env = dict(os.environ, MAINERP_DATA=str(tmp_path), MAINERP_LAUNCHER="1")
+    env.pop("MAINERP_SCHEMA_PROTOCOL", None)
+    programa = """
+from mainerp import app
+from pathlib import Path
+
+def erro(titulo, texto):
+    assert "launcher" in titulo
+    print(titulo)
+
+def restaurar(*args):
+    raise AssertionError("A restauração não deveria ser chamada")
+
+app.erro_fatal = erro
+app.aplicar_restauracao_pendente = restaurar
+app.Database.MIGRACOES = [*app.Database.MIGRACOES, (4, "_migracao_teste")]
+app.main()
+"""
+    banco = tmp_path / "erp.db"
+    banco.write_bytes(b"banco de teste")
+    resultado = subprocess.run(
+        [sys.executable, "-c", programa],
+        cwd=PROJECT_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=20,
+        check=False,
+    )
+    assert resultado.returncode == 4, resultado.stderr
+    assert "launcher" in resultado.stdout
+    assert banco.read_bytes() == b"banco de teste"
+
+
+def test_retencao_preserva_ultima_release_compativel(
+    launcher, instalacao_para_recuperacao
+):
+    antiga = _release_com_esquema(launcher.RELEASES, "1.0.0", 3)
+    moderna = _release_com_esquema(launcher.RELEASES, "2.0.0", 3)
+    for versao in ("3.0.0", "4.0.0", "5.0.0"):
+        _release_com_esquema(launcher.RELEASES, versao, 2)
+
+    launcher.limpar_releases()
+
+    assert not antiga.exists()
+    assert moderna.exists()
 
 
 def test_atualizacao_usa_runtime_isolado(launcher, tmp_path, monkeypatch):
@@ -1000,7 +1179,7 @@ def test_reinicio_nao_atualiza_antes_de_aplicar_restauracao(launcher, monkeypatc
     atualizacoes = []
     resultados = iter([(100, 0), (0, 0)])
     monkeypatch.setattr(launcher, "atualizar", lambda aviso: atualizacoes.append(True))
-    monkeypatch.setattr(launcher, "escolher_versao", lambda: "1.0.0")
+    monkeypatch.setattr(launcher, "escolher_versao", lambda esquema: "1.0.0")
     monkeypatch.setattr(launcher, "executar", lambda versao: next(resultados))
     monkeypatch.setattr(launcher, "log", lambda texto: None)
     assert launcher.main([]) == 0

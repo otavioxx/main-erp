@@ -15,6 +15,7 @@ As alterações são organizadas nas categorias:
 
 ### Corrigido
 
+- O launcher evita abrir versões incompatíveis com o banco e orienta a recuperação sem descartar lançamentos.
 - Evitada a sobrescrita de arquivos existentes durante o teste de escrita do destino do backup manual.
 - Backups automáticos recentes e novos agora passam por validação de esquema e consistência antes da retenção.
 - O backup manual mantém o destino escolhido se o pendrive for desconectado e permite voltar ao sistema e tentar novamente.

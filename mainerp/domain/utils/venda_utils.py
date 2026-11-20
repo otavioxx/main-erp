@@ -197,9 +197,16 @@ class VendaRepository:
         data_fim: str | None = None,
         cliente_id: int | None = None,
     ) -> list[tuple]:
-        """Busca vendas com filtros aplicados"""
+        """Busca vendas mantendo a ordem e os valores em reais da tupla legada."""
         query = """
-            SELECT v.*, c.nome as cliente_nome
+            SELECT v.id, v.cliente_id, v.data_venda, v.total_centavos / 100.0 AS total,
+                   v.forma_pagamento, v.status, v.parcelas,
+                   v.desconto_centavos / 100.0 AS desconto,
+                   v.valor_entrada_centavos / 100.0 AS valor_entrada,
+                   v.valor_financiado_centavos / 100.0 AS valor_financiado,
+                   v.observacao, v.total_centavos, v.desconto_centavos,
+                   v.valor_entrada_centavos, v.valor_financiado_centavos,
+                   c.nome AS cliente_nome
             FROM vendas v
             LEFT JOIN clientes c ON v.cliente_id = c.id
             WHERE 1=1

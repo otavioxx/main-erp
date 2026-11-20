@@ -392,8 +392,7 @@ class VendaView(TableScrollNavigationMixin, QWidget):
             item_id.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.tabela_vendas.setItem(row, 0, item_id)
 
-            # CORREÇÃO: Cliente - usar o último índice que contém o nome do cliente
-            # A query retorna v.* seguido de c.nome as cliente_nome
+            # O nome do cliente é o último campo da consulta.
             cliente_nome = (
                 str(venda[-1])
                 if len(venda) > 0 and venda[-1]

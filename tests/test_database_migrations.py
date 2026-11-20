@@ -1,6 +1,98 @@
 import sqlite3
 
+import pytest
+
 from mainerp.data.database import Database
+from mainerp.data.models import base_model
+from mainerp.data.models.produto import Produto
+
+COLUNAS_REAIS = {
+    "produtos": ("preco_custo", "preco_venda"),
+    "vendas": ("total", "desconto", "valor_entrada", "valor_financiado"),
+    "itens_venda": ("preco_unitario", "desconto"),
+    "duplicatas": ("valor_parcela",),
+    "duplicatas_pagas": ("valor_original", "valor_recebido"),
+    "condicionais": ("desconto",),
+    "itens_condicional": ("preco_unitario",),
+    "pedidos": ("valor_total", "valor_frete", "desconto"),
+    "itens_pedido": ("preco_custo", "preco_venda", "subtotal"),
+}
+
+
+def remover_colunas_reais_em_memoria(origem: sqlite3.Connection) -> sqlite3.Connection:
+    """Ensaio de migração: executa DDL somente em uma nova conexão em memória."""
+    copia = sqlite3.connect(":memory:")
+    try:
+        origem.backup(copia)
+        if copia.execute("PRAGMA user_version").fetchone() != (3,):
+            raise ValueError("O ensaio requer uma cópia no esquema 3.")
+        copia.execute("PRAGMA foreign_keys = ON")
+        copia.execute("BEGIN")
+        for tabela, campos in COLUNAS_REAIS.items():
+            copia.execute(f'DROP TRIGGER "trg_{tabela}_centavos_insert"')
+            copia.execute(f'DROP TRIGGER "trg_{tabela}_centavos_update"')
+            for campo in campos:
+                copia.execute(f'ALTER TABLE "{tabela}" DROP COLUMN "{campo}"')
+        if (
+            copia.execute("PRAGMA integrity_check").fetchall() != [("ok",)]
+            or copia.execute("PRAGMA foreign_key_check").fetchone() is not None
+        ):
+            raise sqlite3.DatabaseError("A cópia migrada falhou na validação.")
+        copia.execute("PRAGMA user_version = 4")
+        copia.commit()
+        return copia
+    except BaseException:
+        copia.close()
+        raise
+
+
+def test_ensaio_remocao_real_preserva_centavos_sem_recalcular(tmp_path, monkeypatch):
+    banco = Database(str(tmp_path / "schema3.db"))
+    try:
+        origem = banco.get_connection()
+        with banco.transacao() as cursor:
+            cursor.execute(
+                "INSERT INTO produtos (nome, preco_custo, preco_venda) "
+                "VALUES ('Teste', 1.25, 2.50)"
+            )
+            cursor.execute(
+                "INSERT INTO duplicatas (valor_parcela) VALUES (?)", (1.004999999999,)
+            )
+            cursor.execute("UPDATE duplicatas SET valor_parcela_centavos = 100")
+        copia = remover_colunas_reais_em_memoria(origem)
+        try:
+            assert copia.execute("PRAGMA user_version").fetchone() == (4,)
+            assert copia.execute(
+                "SELECT valor_parcela_centavos FROM duplicatas"
+            ).fetchone() == (100,)
+            assert copia.execute(
+                "SELECT preco_custo_centavos, preco_venda_centavos FROM produtos"
+            ).fetchone() == (125, 250)
+            copia.execute(
+                "INSERT INTO produtos (nome, preco_custo_centavos, preco_venda_centavos) "
+                "VALUES ('Novo', 301, 502)"
+            )
+            assert copia.execute(
+                "SELECT preco_custo_centavos, preco_venda_centavos "
+                "FROM produtos WHERE nome = 'Novo'"
+            ).fetchone() == (301, 502)
+            copia.commit()
+            with monkeypatch.context() as ajustes:
+                ajustes.setattr(banco, "get_connection", lambda: copia)
+                ajustes.setattr(base_model, "obter_database", lambda: banco)
+                produto = Produto.buscar_por_id(1)
+                assert produto is not None
+                assert (produto.preco_custo, produto.preco_venda) == (1.25, 2.50)
+                with pytest.raises(sqlite3.OperationalError, match="preco_custo"):
+                    Produto(nome="Legado", preco_custo=1, preco_venda=2).salvar()
+        finally:
+            copia.close()
+        assert banco.versao_esquema() == 3
+        assert origem.execute(
+            "SELECT valor_parcela, valor_parcela_centavos FROM duplicatas"
+        ).fetchone() == (1.004999999999, 100)
+    finally:
+        banco.close_connection()
 
 
 def test_migracao_inicial_cria_esquema_base_e_aplica_apenas_uma_vez(tmp_path):
