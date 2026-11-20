@@ -42,8 +42,10 @@ Um backup manual pode ser iniciado em **Configurações > Criar Backup**.
 
 - **Ao fechar:** o sistema solicita um backup manual se não houver data registrada ou se ela
   tiver pelo menos um dia; o backup automático não substitui essa exigência.
-- **Destino:** o diálogo usa a última pasta válida ou a Área de Trabalho e permite escolher
-  outra.
+- **Destino:** o diálogo usa a última pasta salva ou, se não houver uma, a Área de Trabalho.
+  Se a pasta estiver indisponível, o sistema avisa sem trocar o destino nem registrar um
+  novo backup. Reconecte a unidade, escolha outra pasta ou volte ao sistema para tentar
+  mais tarde. A próxima tentativa de encerrar o PLUMA continua exigindo um backup válido.
 - **Dispensa de backup recente:** antes de dispensar um backup recente, o sistema verifica se o
   ZIP está acessível e íntegro e confere o hash quando disponível; se a verificação falhar,
   avisa e solicita um novo backup. Isso não substitui um teste de restauração.

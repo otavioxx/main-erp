@@ -1,6 +1,5 @@
 """
 Diálogo de Backup - Exibido ao fechar o sistema
-VERSÃO MODIFICADA: Apenas botão de backup, não permite fechar sem salvar
 COM VALIDAÇÃO DE INTEGRIDADE DO BACKUP
 """
 
@@ -84,13 +83,13 @@ class BackupConfig:
 
     @classmethod
     def get_last_path(cls):
-        """Retorna o último caminho salvo ou Desktop por padrão"""
+        """Retorna o último destino escolhido, mesmo se estiver indisponível."""
         if os.path.exists(cls.CONFIG_FILE):
             try:
                 with open(cls.CONFIG_FILE, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     last_path = data.get("last_backup_path", "")
-                    if last_path and os.path.exists(last_path):
+                    if isinstance(last_path, str) and last_path:
                         return last_path
             except (OSError, json.JSONDecodeError, UnicodeDecodeError, AttributeError):
                 return os.path.join(os.path.expanduser("~"), "Desktop")
@@ -265,6 +264,16 @@ class BackupThread(QThread):
                 self.backup_error.emit(f"Arquivo não encontrado: {self.source_db}")
                 return
 
+            try:
+                _testar_escrita_destino(self.destination_path)
+            except OSError as erro:
+                logger.warning("Destino de backup manual indisponível: %s", erro)
+                self.backup_error.emit(
+                    "Destino indisponível ou sem permissão de gravação:\n"
+                    f"{self.destination_path}"
+                )
+                return
+
             # Criar nome do arquivo com timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_filename = f"backup_erp_{timestamp}_{uuid.uuid4().hex}.zip"
@@ -426,7 +435,7 @@ class BackupDialog(QDialog):
         if aviso_validacao:
             self._mostrar_status(
                 f"O último backup não pôde ser validado: {aviso_validacao}\n"
-                "Crie um novo backup para continuar.",
+                "Reconecte a unidade ou selecione outra pasta para criar um novo backup.",
                 "erro",
             )
 
@@ -547,7 +556,6 @@ class BackupDialog(QDialog):
 
         layout.addStretch()
 
-        # Botões - APENAS O BOTÃO DE BACKUP
         button_layout = QHBoxLayout()
 
         # Botão Realizar Backup (centralizado)
@@ -555,7 +563,11 @@ class BackupDialog(QDialog):
         self.btn_backup.clicked.connect(self._iniciar_backup)
         self.btn_backup.setProperty("class", "primary")
 
+        btn_voltar = QPushButton("Voltar ao sistema")
+        btn_voltar.clicked.connect(self.reject)
+
         button_layout.addStretch()
+        button_layout.addWidget(btn_voltar)
         button_layout.addWidget(self.btn_backup)
         button_layout.addStretch()
 
@@ -587,6 +599,10 @@ class BackupDialog(QDialog):
 
     def _selecionar_pasta(self):
         """Abre diálogo para selecionar pasta de destino"""
+        if self.backup_verificado or (
+            self.backup_thread and self.backup_thread.isRunning()
+        ):
+            return
         folder = QFileDialog.getExistingDirectory(
             self,
             "Selecionar Pasta para Backup",
@@ -595,68 +611,19 @@ class BackupDialog(QDialog):
         )
 
         if folder:
-            # Verificar se a pasta tem permissão de escrita
-            try:
-                _testar_escrita_destino(folder)
-
-                self.destination_folder = folder
-                self.caminho_label.setText(
-                    f"Pasta selecionada: {self.destination_folder}"
-                )
-                # Salvar o novo caminho
-                if not BackupConfig.save_last_path(folder):
-                    self.aviso_preferencia = (
-                        "A pasta foi selecionada, mas não será lembrada na próxima vez."
-                    )
-                    self._mostrar_status(self.aviso_preferencia, "erro")
-                else:
-                    self.aviso_preferencia = ""
-                    self._mostrar_status("Pasta de destino atualizada.", "acento")
-            except Exception as e:
-                self._mostrar_status(
-                    f"A pasta selecionada não tem permissão de escrita:\n{e!s}",
-                    "erro",
-                )
+            self.destination_folder = folder
+            self.caminho_label.setText(f"Pasta selecionada: {folder}")
+            self._mostrar_status("Pasta de destino atualizada.", "acento")
 
     def _iniciar_backup(self):
         """Inicia o processo de backup"""
+        if self.backup_thread and self.backup_thread.isRunning():
+            return
         if self.backup_verificado:
             self.accept()
             return
 
-        # Validar se o arquivo do banco existe
-        if not os.path.exists(self.db_path):
-            self._mostrar_status(
-                f"Arquivo do banco de dados não encontrado:\n{self.db_path}\n\n"
-                "O sistema não pode ser fechado sem fazer backup.",
-                "erro",
-            )
-            return
-
-        # Validar pasta de destino
-        if not os.path.exists(self.destination_folder):
-            try:
-                os.makedirs(self.destination_folder)
-            except Exception as e:
-                self._mostrar_status(
-                    f"Não foi possível criar a pasta de destino:\n{e!s}\n"
-                    "Selecione outra pasta.",
-                    "erro",
-                )
-                return
-
-        # Verificar permissão de escrita na pasta
-        try:
-            _testar_escrita_destino(self.destination_folder)
-        except Exception as e:
-            self._mostrar_status(
-                f"A pasta selecionada não tem permissão de escrita:\n{e!s}\n"
-                "Selecione outra pasta.",
-                "erro",
-            )
-            return
-
-        # Salvar o caminho atual (caso tenha sido alterado mas não salvo)
+        self.aviso_preferencia = ""
         if not BackupConfig.save_last_path(self.destination_folder):
             self.aviso_preferencia = (
                 "O backup continuará, mas a pasta escolhida não será lembrada."
@@ -695,17 +662,11 @@ class BackupDialog(QDialog):
 
     def _backup_concluido(self, backup_path):
         """Chamado quando o backup é concluído com sucesso"""
-        # Verificação adicional do arquivo criado
-        if not os.path.exists(backup_path):
-            self._backup_erro("Arquivo de backup não foi encontrado após a criação")
-            return
-
-        if os.path.getsize(backup_path) == 0:
-            self._backup_erro("Arquivo de backup está vazio")
-            return
-
-        # Tentar abrir o zip para verificar integridade
         try:
+            tamanho = os.path.getsize(backup_path)
+            if tamanho == 0:
+                self._backup_erro("Arquivo de backup está vazio")
+                return
             with zipfile.ZipFile(backup_path, "r") as test_zip:
                 # Verificar se o zip está corrompido
                 corrupt_file = test_zip.testzip()
@@ -736,7 +697,7 @@ class BackupDialog(QDialog):
         # Marcar que o backup foi verificado
         self.backup_verificado = True
 
-        tamanho_mb = os.path.getsize(backup_path) / (1024 * 1024)
+        tamanho_mb = tamanho / (1024 * 1024)
         mensagem = (
             "Backup criado e verificado com sucesso.\n"
             f"Arquivo: {os.path.basename(backup_path)}\n"
@@ -764,8 +725,9 @@ class BackupDialog(QDialog):
 
         self._mostrar_status(
             f"Não foi possível concluir o backup:\n{mensagem_erro}\n\n"
-            "O sistema permanece aberto. Verifique o espaço e a permissão "
-            "de gravação, ou selecione outra pasta e tente novamente.",
+            "Reconecte a unidade, verifique o espaço e a permissão de gravação "
+            "ou selecione outra pasta. Você também pode voltar ao sistema e "
+            "tentar novamente depois.",
             "erro",
         )
 
@@ -787,22 +749,10 @@ class BackupDialog(QDialog):
                 f"Não foi possível abrir a pasta do backup:\n{e!s}", "erro"
             )
 
-    def closeEvent(self, event):
-        """Intercepta o fechamento da janela - NÃO PERMITE FECHAR SEM BACKUP"""
+    def reject(self):
         if self.backup_thread and self.backup_thread.isRunning():
             self._mostrar_status(
-                "O backup está em andamento. Aguarde a conclusão para fechar.",
-                "acento",
+                "O backup está em andamento. Aguarde a conclusão para voltar.", "acento"
             )
-            event.ignore()
-
-        elif not self.backup_verificado:
-            self._mostrar_status(
-                "Para encerrar o sistema, crie e verifique um backup usando "
-                "o botão abaixo.",
-                "acento",
-            )
-            event.ignore()
-
-        else:
-            event.accept()
+            return
+        super().reject()

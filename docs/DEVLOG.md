@@ -1,5 +1,9 @@
 # Histórico de Desenvolvimento
 
+## 2026-11-20
+
+- O backup manual preserva o destino indisponível, verifica a escrita em segundo plano e permite cancelar a tentativa sem encerrar o PLUMA. O teste simula indisponibilidade e reconexão em pasta isolada.
+
 ## 2026-11-19
 
 ### Validação de backups automáticos

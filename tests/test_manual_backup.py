@@ -12,7 +12,7 @@ from types import SimpleNamespace
 from typing import cast
 
 import pytest
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtWidgets import QApplication, QDialog
 
 from mainerp.data.automatic_backup import criar_snapshot_sqlite
 from mainerp.data.database import Database
@@ -41,6 +41,44 @@ def test_teste_de_escrita_preserva_arquivo_existente_no_destino(tmp_path):
     _testar_escrita_destino(str(tmp_path))
 
     assert existente.read_text(encoding="utf-8") == "dados existentes"
+
+
+def test_destino_ausente_avisa_e_pode_ser_reutilizado(tmp_path, monkeypatch, aplicacao_qt):
+    banco = tmp_path / "erp.db"
+    database = Database(str(banco))
+    database.close_connection()
+    destino = tmp_path / "unidade" / "backups"
+    preferencias = tmp_path / "backup_settings.json"
+    monkeypatch.setattr(BackupConfig, "CONFIG_FILE", str(preferencias))
+    assert BackupConfig.save_last_path(str(destino))
+
+    def abrir_dialogo():
+        dialogo = BackupDialog(force_show=True)
+        dialogo.db_path = str(banco)
+        assert dialogo.destination_folder == str(destino)
+        return dialogo
+
+    def tentar_backup(dialogo):
+        dialogo._iniciar_backup()
+        assert dialogo.backup_thread.wait(10_000)
+        aplicacao_qt.processEvents()
+
+    dialogo = abrir_dialogo()
+    tentar_backup(dialogo)
+    assert "Destino indisponível" in dialogo.status_label.text()
+    assert "Reconecte" in dialogo.status_label.text()
+    assert dialogo.btn_backup.isEnabled()
+    assert not destino.exists()
+    assert BackupConfig.get_last_backup_date() is None
+    dialogo.reject()
+    assert dialogo.result() == QDialog.DialogCode.Rejected
+
+    destino.mkdir(parents=True)
+    dialogo = abrir_dialogo()
+    tentar_backup(dialogo)
+    assert dialogo.backup_verificado
+    assert len(list(destino.glob("backup_erp_*.zip"))) == 1
+    assert BackupConfig.get_last_backup_date() is not None
 
 
 def test_backup_manual_inclui_transacoes_do_wal(tmp_path):

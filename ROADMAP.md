@@ -26,7 +26,7 @@ está no [CHANGELOG](CHANGELOG.md); os guias estão no
 - [x] Verificar a cópia depois de gravar (tamanho e hash) e avisar na interface se falhar.
 - [x] Evitar sobrescrever arquivos existentes ao testar a escrita no destino do backup manual.
 - [x] Validar esquema e consistência dos backups automáticos recentes e dos novos antes da retenção.
-- [ ] Tratar destino ausente (pendrive desconectado, pasta indisponível): avisar sem travar o sistema e tentar de novo na próxima oportunidade.
+- [x] Tratar destino ausente (pendrive desconectado, pasta indisponível): avisar sem travar o sistema e tentar de novo na próxima oportunidade.
 - [ ] Validar uma restauração a partir da cópia externa em instalação isolada, conferindo registros e totais.
 - [x] Documentar a rotina de cópia externa e teste periódico de restauração em `docs/backup_recuperacao.md`.
 
