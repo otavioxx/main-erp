@@ -48,7 +48,7 @@ está no [CHANGELOG](CHANGELOG.md); os guias estão no
 - [ ] Recusar publicação de versão igual ou inferior à última release antes de marcar como `latest`.
 - [ ] `--destino` do instalador: corrigir (definir `MAINERP_DATA`) ou restringir explicitamente. Até lá, usar o destino padrão.
 - [ ] Definir procedimento seguro para a trava legada `.update.lock`, sem apagar trava em uso.
-- [ ] Decidir sobre as colunas `REAL` antigas, que hoje são preenchidas junto com `*_centavos`. Opção: migração 4 que remove as colunas antigas depois de confirmar que nenhuma leitura depende delas. Testar em cópia do banco.
+- [x] Adotar centavos como fonte única e remover as colunas `REAL` pela migração 4, validada em cópia do banco.
   - [x] Validar pelo instalador o launcher compatível e o bloqueio da migração 4 com launcher antigo.
   - [x] Atualizar o launcher das instalações em uso antes de distribuir a migração 4.
 - [ ] SQLite: o adaptador de datas padrão está obsoleto desde o Python 3.12. Hoje funciona, mas pode ser removido numa versão futura. Vale registrar adaptadores de data explicitamente.
