@@ -2,6 +2,7 @@
 
 ## 2026-11-20
 
+- Restaurado um backup do pendrive na inicialização do PLUMA com dados isolados. Os registros das 13 tabelas e as 19 somas em centavos conferiram com o ZIP, que permaneceu inalterado. O banco anterior foi preservado.
 - O backup manual preserva o destino indisponível, verifica a escrita em segundo plano e permite cancelar a tentativa sem encerrar o PLUMA. O teste simula indisponibilidade e reconexão em pasta isolada.
 
 ## 2026-11-19
