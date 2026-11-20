@@ -1,5 +1,9 @@
 # Histórico de Desenvolvimento
 
+## 2026-11-20
+
+- Adicionado um workflow independente da publicação para testar a interface no Windows em pull requests para `main`, nas escalas de 125% e 150%. Os dois casos passaram localmente com Python 3.12.0rc3; falta confirmar no GitHub Actions.
+
 ## 2026-11-18
 
 ### Preparação da release 0.12.0
