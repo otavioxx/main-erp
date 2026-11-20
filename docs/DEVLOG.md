@@ -6,6 +6,7 @@
 
 - Corrigida a exibição de erros antes da criação da aplicação Qt: a instância temporária permanece ativa enquanto o aviso é exibido. A proteção contra launcher incompatível permanece inalterada.
 - Ruff e pytest passaram no Windows: 400 testes aprovados e 1 ignorado. Instalação limpa e atualização de 0.13.0 foram testadas em ambientes isolados; o aviso da candidata foi exibido e o bloqueio preservou o banco de teste.
+- A release 0.13.1 foi publicada como `latest` pelo GitHub Actions. Os seis artefatos foram baixados anonimamente; manifesto, hashes e assinaturas Ed25519 conferiram. Em instalação isolada, o atalho iniciou a atualização online de 0.13.0 e abriu a 0.13.1 preservando os dados de teste.
 
 ### Preparação da release 0.13.0
 
