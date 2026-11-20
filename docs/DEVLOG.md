@@ -2,7 +2,7 @@
 
 ## 2026-11-20
 
-- Adicionado um workflow independente da publicação para testar a interface no Windows em pull requests para `main`, nas escalas de 125% e 150%. Os dois casos passaram localmente com Python 3.12.0rc3; falta confirmar no GitHub Actions.
+- Adicionado um workflow independente da publicação para testar a interface no Windows em pull requests para `main`. Os casos de 125% e 150% passaram no GitHub Actions com Python 3.12.10 após configurar a tela do runner em 1920 × 1080, sem alterar as asserções.
 
 ## 2026-11-18
 
