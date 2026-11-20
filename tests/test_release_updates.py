@@ -168,7 +168,7 @@ def test_windows_shortcut_has_identity_icon_and_launcher(tmp_path):
         str(pasta),
     ]
     for _ in range(2):
-        subprocess.run(args, check=True, capture_output=True, text=True)
+        subprocess.run(args, check=True, capture_output=True)
     verificar = (
         "$ErrorActionPreference='Stop';"
         "[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;"
@@ -221,9 +221,8 @@ def test_windows_shortcut_failure_is_reported(tmp_path):
         ],
         check=False,
         capture_output=True,
-        text=True,
     )
-    assert result.returncode != 0
+    assert result.returncode != 0, (result.stdout, result.stderr)
 
 
 @pytest.mark.parametrize("atual", ["0.10.0", "0.10.1", "0.11.0", "1.0.0"])

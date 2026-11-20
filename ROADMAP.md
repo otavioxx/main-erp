@@ -36,6 +36,7 @@ Versão reorganizada a partir da análise do projeto (v0.10.5). Mantém tarefas 
 - [ ] Corrigir e incluir no CI o teste de interface Windows que falha nas escalas 1.25 e 1.5.
 - [ ] Executar Ruff e pytest em pull requests e exigir esses checks para integrar à `main`.
 - [x] Declarar Pillow em `requirements.txt` e validar instalação limpa.
+- [x] Corrigir o teste `test_release_updates` para não depender da codificação do PowerShell no Windows.
 - [ ] Recusar publicação de versão igual ou inferior à última release antes de marcar como `latest`.
 - [ ] `--destino` do instalador: corrigir (definir `MAINERP_DATA`) ou restringir explicitamente. Até lá, usar o destino padrão.
 - [ ] Definir procedimento seguro para a trava legada `.update.lock`, sem apagar trava em uso.

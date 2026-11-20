@@ -1,5 +1,9 @@
 # Histórico de Desenvolvimento
 
+## 2026-11-20
+
+- Os testes de atalhos do Windows capturam a saída do PowerShell em bytes quando só verificam o código de saída; a leitura de JSON continua usando UTF-8 explícito. Os 63 testes de atualização passaram no Windows.
+
 ## 2026-11-18
 
 ### Preparação da release 0.12.0
