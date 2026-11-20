@@ -54,15 +54,14 @@ class Produto(BaseModel):
 
         if self.id:
             query = """
-                UPDATE produtos SET nome=?, preco_custo=?, preco_venda=?,
-                preco_custo_centavos=?, preco_venda_centavos=?, estoque=?,
-                fornecedor_id=?, ativo=?, tamanho=?, cor=?, ea=?, referencia=?
+                UPDATE produtos
+                SET nome=?, preco_custo_centavos=?, preco_venda_centavos=?,
+                    estoque=?, fornecedor_id=?, ativo=?, tamanho=?, cor=?, ea=?,
+                    referencia=?
                 WHERE id=?
             """
             params = (
                 self.nome,
-                self.preco_custo,
-                self.preco_venda,
                 custo_centavos,
                 venda_centavos,
                 self.estoque,
@@ -77,15 +76,12 @@ class Produto(BaseModel):
         else:
             query = """
                 INSERT INTO produtos
-                (nome, preco_custo, preco_venda, preco_custo_centavos,
-                 preco_venda_centavos, estoque, fornecedor_id, ativo, tamanho,
-                 cor, ea, referencia)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (nome, preco_custo_centavos, preco_venda_centavos, estoque,
+                 fornecedor_id, ativo, tamanho, cor, ea, referencia)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             params = (
                 self.nome,
-                self.preco_custo,
-                self.preco_venda,
                 custo_centavos,
                 venda_centavos,
                 self.estoque,

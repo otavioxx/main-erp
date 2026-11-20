@@ -43,7 +43,7 @@ class Condicional:
                     """
                     UPDATE condicionais
                     SET cliente_id=?, data_condicional=?, data_prevista_devolucao=?,
-                        status=?, observacao=?, desconto=?, desconto_centavos=?
+                        status=?, observacao=?, desconto_centavos=?
                     WHERE id=?
                 """,
                     (
@@ -52,7 +52,6 @@ class Condicional:
                         data_prevista_devolucao,
                         status,
                         observacao,
-                        desconto,
                         desconto_centavos,
                         self.id,
                     ),
@@ -62,8 +61,8 @@ class Condicional:
                     """
                     INSERT INTO condicionais
                     (cliente_id, data_condicional, data_prevista_devolucao, status,
-                     observacao, desconto, desconto_centavos)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                     observacao, desconto_centavos)
+                    VALUES (?, ?, ?, ?, ?, ?)
                 """,
                     (
                         cliente_id,
@@ -71,7 +70,6 @@ class Condicional:
                         data_prevista_devolucao,
                         status,
                         observacao,
-                        desconto,
                         desconto_centavos,
                     ),
                 )
@@ -89,15 +87,13 @@ class Condicional:
             cursor.execute(
                 """
                 INSERT INTO itens_condicional
-                (condicional_id, produto_id, quantidade, preco_unitario,
-                 preco_unitario_centavos)
-                VALUES (?, ?, ?, ?, ?)
+                (condicional_id, produto_id, quantidade, preco_unitario_centavos)
+                VALUES (?, ?, ?, ?)
             """,
                 (
                     self.id,
                     item["produto_id"],
                     item["quantidade"],
-                    item["preco_unitario"],
                     para_centavos(item["preco_unitario"]),
                 ),
             )

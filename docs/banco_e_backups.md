@@ -7,7 +7,9 @@ prático de cópia externa e teste de restauração em ambiente isolado, veja
 
 ## Esquema e migrações
 
-O esquema é versionado por `PRAGMA user_version`. As migrações do projeto são aditivas.
+O esquema é versionado por `PRAGMA user_version`. A migração 4 remove as colunas
+monetárias `REAL` e seus gatilhos, preservando os valores em centavos existentes.
+Versões anteriores não são compatíveis com o banco migrado.
 
 Antes de migrar um banco existente com tabelas, é criado um backup em
 `dados\backups\pre_migracao_*.db`.
@@ -70,7 +72,7 @@ antes de abrir o banco; um snapshot anterior é mantido em `dados\backups`.
 - **Pendência:** a publicação da pendência exige suporte a hard links no volume de dados; se não
   houver suporte, a preparação falha sem substituir uma pendência.
 - **Launcher:** o launcher precisa ser atualizado pelo instalador para usar esse fluxo. Em
-  execução direta de `main.py`, abra o sistema novamente após solicitar a restauração.
+  esquema 4, a aplicação exige o launcher compatível também para aplicar a restauração.
 - **Falha:** se ocorrer falha na restauração, o sistema não abre e o estado do banco pode ter
   sido alterado; não se presume que houve reversão. Preserve o banco, o backup anterior e os
   arquivos pendentes e procure suporte antes de tentar novamente.

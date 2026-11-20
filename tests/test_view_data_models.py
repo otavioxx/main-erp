@@ -16,43 +16,43 @@ def database(tmp_path, monkeypatch):
             "INSERT INTO clientes (id, nome, cpf_cnpj, endereco) VALUES (1, 'Cliente', '123', 'Rua A')"
         )
         cursor.execute(
-            "INSERT INTO vendas (id, cliente_id, total, data_venda) "
-            "VALUES (1, 1, 150, '2026-03-01')"
+            "INSERT INTO vendas (id, cliente_id, total_centavos, data_venda) "
+            "VALUES (1, 1, 15000, '2026-03-01')"
         )
         cursor.execute(
             """
             INSERT INTO duplicatas
-                (id, venda_id, cliente_id, numero_parcela, valor_parcela,
+                (id, venda_id, cliente_id, numero_parcela, valor_parcela_centavos,
                  data_vencimento, status)
-            VALUES (1, 1, 1, 1, 50, '2026-04-01', 'aberto')
+            VALUES (1, 1, 1, 1, 5000, '2026-04-01', 'aberto')
             """
         )
         cursor.execute(
             """
             INSERT INTO duplicatas_pagas
-                (id, venda_id, cliente_id, numero_parcela, valor_original,
-                 valor_recebido, data_vencimento, data_pagamento, forma_pagamento)
-            VALUES (1, 1, 1, 2, 50, 50, '2026-05-01', '2026-05-01', 'Dinheiro')
+                (id, venda_id, cliente_id, numero_parcela, valor_original_centavos,
+                 valor_recebido_centavos, data_vencimento, data_pagamento, forma_pagamento)
+            VALUES (1, 1, 1, 2, 5000, 5000, '2026-05-01', '2026-05-01', 'Dinheiro')
             """
         )
         cursor.execute(
             """
-            INSERT INTO produtos (id, nome, preco_custo, preco_venda)
-            VALUES (1, 'Produto', 10, 20)
+            INSERT INTO produtos (id, nome, preco_custo_centavos, preco_venda_centavos)
+            VALUES (1, 'Produto', 1000, 2000)
             """
         )
         cursor.execute(
             """
             INSERT INTO condicionais
-                (id, cliente_id, data_condicional, status, observacao, desconto)
+                (id, cliente_id, data_condicional, status, observacao, desconto_centavos)
             VALUES (1, 1, '2026-03-01', 'ativa', '', 0)
             """
         )
         cursor.execute(
             """
             INSERT INTO itens_condicional
-                (condicional_id, produto_id, quantidade, preco_unitario)
-            VALUES (1, 1, 1, 20)
+                (condicional_id, produto_id, quantidade, preco_unitario_centavos)
+            VALUES (1, 1, 1, 2000)
             """
         )
 

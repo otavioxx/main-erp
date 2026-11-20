@@ -77,22 +77,18 @@ class Venda(BaseModel):
         """Insere nova venda"""
         query = """
             INSERT INTO vendas
-            (cliente_id, data_venda, total, forma_pagamento, status, parcelas,
-             desconto, observacao, valor_entrada, valor_financiado, total_centavos,
-             desconto_centavos, valor_entrada_centavos, valor_financiado_centavos)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (cliente_id, data_venda, forma_pagamento, status, parcelas,
+             observacao, total_centavos, desconto_centavos,
+             valor_entrada_centavos, valor_financiado_centavos)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
         params = (
             self.cliente_id,
             self.data_venda,
-            self.total,
             self.forma_pagamento,
             self.status,
             self.parcelas,
-            self.desconto,
             self.observacao,
-            self.valor_entrada,
-            self.valor_financiado,
             para_centavos(self.total),
             para_centavos(self.desconto),
             para_centavos(self.valor_entrada),
@@ -110,23 +106,18 @@ class Venda(BaseModel):
         venda_id = self._obter_id()
         query = """
             UPDATE vendas
-            SET cliente_id=?, data_venda=?, total=?, forma_pagamento=?,
-                status=?, parcelas=?, desconto=?, observacao=?, valor_entrada=?,
-                valor_financiado=?, total_centavos=?, desconto_centavos=?,
+            SET cliente_id=?, data_venda=?, forma_pagamento=?, status=?,
+                parcelas=?, observacao=?, total_centavos=?, desconto_centavos=?,
                 valor_entrada_centavos=?, valor_financiado_centavos=?
             WHERE id=?
         """
         params = (
             self.cliente_id,
             self.data_venda,
-            self.total,
             self.forma_pagamento,
             self.status,
             self.parcelas,
-            self.desconto,
             self.observacao,
-            self.valor_entrada,
-            self.valor_financiado,
             para_centavos(self.total),
             para_centavos(self.desconto),
             para_centavos(self.valor_entrada),

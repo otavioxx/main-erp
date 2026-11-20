@@ -115,8 +115,9 @@ também é suprimido enquanto existir uma release mais nova, mesmo marcada como 
 ### Atualizações que alteram o banco
 
 Quando uma release inclui migração, o aplicativo cria automaticamente um backup
-`dados\backups\pre_migracao_*.db` antes de atualizar o esquema. As migrações do projeto são
-aditivas e executadas uma vez. Mesmo assim, faça um backup próprio antes de atualizar um
+`dados\backups\pre_migracao_*.db` antes de atualizar o esquema. As migrações são executadas
+uma vez; a migração 4 remove colunas monetárias antigas e não é compatível com versões
+anteriores do aplicativo. Mesmo assim, faça um backup próprio antes de atualizar um
 banco importante e confirme que ele pode ser restaurado; não confie em uma release de código
 anterior para desfazer uma migração. Detalhes dos backups em
 [banco_e_backups.md](banco_e_backups.md); para criar migrações, veja

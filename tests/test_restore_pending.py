@@ -726,6 +726,7 @@ def test_inicializacao_aplica_restauracao_antes_da_interface(tmp_path):
     env = dict(os.environ, MAINERP_DATA=str(dados), MAINERP_OK_FILE=str(sinal))
     env["QT_QPA_PLATFORM"] = "offscreen"
     env.pop("MAINERP_LAUNCHER", None)
+    env["MAINERP_SCHEMA_PROTOCOL"] = "1"
     codigo = """
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication, QMessageBox
@@ -762,6 +763,7 @@ def test_inicializacao_bloqueia_interface_se_pendencia_esta_corrompida(tmp_path)
     sinal = tmp_path / "aberto"
     env = dict(os.environ, MAINERP_DATA=str(dados), MAINERP_OK_FILE=str(sinal))
     env["QT_QPA_PLATFORM"] = "offscreen"
+    env["MAINERP_SCHEMA_PROTOCOL"] = "1"
     codigo = """
 from PyQt6.QtWidgets import QMessageBox
 import mainerp.app as app
@@ -791,6 +793,7 @@ def test_inicializacao_bloqueia_interface_se_copia_falhar(tmp_path):
     sinal = tmp_path / "aberto"
     env = dict(os.environ, MAINERP_DATA=str(dados), MAINERP_OK_FILE=str(sinal),
                QT_QPA_PLATFORM="offscreen")
+    env["MAINERP_SCHEMA_PROTOCOL"] = "1"
     codigo = """
 from PyQt6.QtWidgets import QMessageBox
 import mainerp.app as app
@@ -829,6 +832,7 @@ def test_falha_ambigua_na_copia_bloqueia_abertura_e_preserva_recuperacao(
     sinal = tmp_path / "aberto"
     env = dict(os.environ, MAINERP_DATA=str(dados), MAINERP_OK_FILE=str(sinal),
                QT_QPA_PLATFORM="offscreen")
+    env["MAINERP_SCHEMA_PROTOCOL"] = "1"
     codigo = """
 import sqlite3, sys
 from PyQt6.QtWidgets import QMessageBox

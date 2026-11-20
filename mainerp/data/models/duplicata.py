@@ -43,19 +43,17 @@ class Duplicata:
             (venda_id, venda_id),
         )
         proximo_numero = max(numero_parcela + 1, cursor.fetchone()[0])
-        valor_parcela = float(de_centavos(valor_centavos))
         cursor.execute(
             """
             INSERT INTO duplicatas
-            (venda_id, cliente_id, numero_parcela, valor_parcela,
-             valor_parcela_centavos, data_vencimento, status)
-            VALUES (?, ?, ?, ?, ?, date(?, '+30 days'), 'aberto')
+            (venda_id, cliente_id, numero_parcela, valor_parcela_centavos,
+             data_vencimento, status)
+            VALUES (?, ?, ?, ?, date(?, '+30 days'), 'aberto')
             """,
             (
                 venda_id,
                 cliente_id,
                 proximo_numero,
-                valor_parcela,
                 valor_centavos,
                 data_vencimento,
             ),
@@ -87,7 +85,7 @@ class Duplicata:
                 cursor.execute(
                     """
                     UPDATE duplicatas SET venda_id=?, cliente_id=?, numero_parcela=?,
-                    valor_parcela=?, valor_parcela_centavos=?,
+                    valor_parcela_centavos=?,
                     data_vencimento=?, data_pagamento=?, status=?
                     WHERE id=?
                 """,
@@ -95,7 +93,6 @@ class Duplicata:
                         self.venda_id,
                         self.cliente_id,
                         self.numero_parcela,
-                        self.valor_parcela,
                         para_centavos(self.valor_parcela),
                         self.data_vencimento,
                         self.data_pagamento,
@@ -107,15 +104,14 @@ class Duplicata:
                 cursor.execute(
                     """
                     INSERT INTO duplicatas (venda_id, cliente_id, numero_parcela,
-                    valor_parcela, valor_parcela_centavos, data_vencimento,
+                    valor_parcela_centavos, data_vencimento,
                     data_pagamento, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
                         self.venda_id,
                         self.cliente_id,
                         self.numero_parcela,
-                        self.valor_parcela,
                         para_centavos(self.valor_parcela),
                         self.data_vencimento,
                         self.data_pagamento,
@@ -148,15 +144,14 @@ class Duplicata:
                 cursor.execute(
                     """
                 INSERT INTO duplicatas
-                (venda_id, cliente_id, numero_parcela, valor_parcela,
-                 valor_parcela_centavos, data_vencimento, status)
-                VALUES (?, ?, ?, ?, ?, ?, 'aberto')
+                (venda_id, cliente_id, numero_parcela, valor_parcela_centavos,
+                 data_vencimento, status)
+                VALUES (?, ?, ?, ?, ?, 'aberto')
                 """,
                     (
                         venda_id,
                         cliente_id,
                         i + 1,
-                        valor_parcela,
                         valor_parcela_centavos,
                         data_vencimento,
                     ),
@@ -226,17 +221,15 @@ class Duplicata:
         cursor.execute(
             """
             INSERT INTO duplicatas_pagas
-            (venda_id, cliente_id, numero_parcela, valor_original, valor_recebido,
+            (venda_id, cliente_id, numero_parcela,
              valor_original_centavos, valor_recebido_centavos, data_vencimento,
              data_pagamento, forma_pagamento)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 venda_id,
                 cliente_id,
                 numero_parcela,
-                float(de_centavos(valor_original_centavos)),
-                float(de_centavos(valor_recebido_centavos)),
                 valor_original_centavos,
                 valor_recebido_centavos,
                 data_vencimento,
@@ -517,11 +510,10 @@ class Duplicata:
                                 cursor.execute(
                                     """
                                     UPDATE duplicatas
-                                    SET valor_parcela = ?, valor_parcela_centavos = ?
+                                    SET valor_parcela_centavos = ?
                                     WHERE id = ?
                                     """,
                                     (
-                                        novo_valor,
                                         para_centavos(novo_valor),
                                         parcela_id,
                                     ),
@@ -535,10 +527,10 @@ class Duplicata:
                         cursor.execute(
                             """
                             UPDATE duplicatas
-                            SET valor_parcela = ?, valor_parcela_centavos = ?
+                            SET valor_parcela_centavos = ?
                             WHERE id = ?
                             """,
-                            (novo_valor, para_centavos(novo_valor), parcela_id),
+                            (para_centavos(novo_valor), parcela_id),
                         )
 
             # Inserir a parcela atual em duplicatas_pagas
@@ -700,10 +692,10 @@ class Duplicata:
                     cursor.execute(
                         """
                         UPDATE duplicatas
-                        SET valor_parcela = ?, valor_parcela_centavos = ?
+                        SET valor_parcela_centavos = ?
                         WHERE id = ? AND status = 'aberto'
                     """,
-                        (novo_valor, para_centavos(novo_valor), parcela_id),
+                        (para_centavos(novo_valor), parcela_id),
                     )
                     logger.debug(
                         "Parcela %s ajustada para R$ %.2f",

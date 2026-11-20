@@ -241,9 +241,9 @@ class VendaRepository:
             for produto in produtos:
                 query = """
                     INSERT INTO itens_venda
-                    (venda_id, produto_id, quantidade, preco_unitario, desconto,
-                     preco_unitario_centavos, desconto_centavos)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    (venda_id, produto_id, quantidade, preco_unitario_centavos,
+                     desconto_centavos)
+                    VALUES (?, ?, ?, ?, ?)
                 """
                 desconto_produto = produto.get("desconto", 0)
                 preco_centavos = para_centavos(produto["preco"])
@@ -252,8 +252,6 @@ class VendaRepository:
                     venda_id,
                     produto["id"],
                     produto["quantidade"],
-                    produto["preco"],
-                    desconto_produto,
                     preco_centavos,
                     desconto_centavos,
                 )

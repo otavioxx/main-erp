@@ -2,9 +2,14 @@ import sqlite3
 
 import pytest
 
-from mainerp.data.database import Database
+from mainerp.data.database import Database, MigracaoError
 from mainerp.data.models import base_model
 from mainerp.data.models.produto import Produto
+
+
+class DatabaseEsquema3(Database):
+    MIGRACOES = Database.MIGRACOES[:3]
+
 
 COLUNAS_REAIS = {
     "produtos": ("preco_custo", "preco_venda"),
@@ -46,8 +51,9 @@ def remover_colunas_reais_em_memoria(origem: sqlite3.Connection) -> sqlite3.Conn
         raise
 
 
-def test_ensaio_remocao_real_preserva_centavos_sem_recalcular(tmp_path, monkeypatch):
-    banco = Database(str(tmp_path / "schema3.db"))
+def test_migracao_4_preserva_centavos_sem_recalcular(tmp_path, monkeypatch):
+    caminho = tmp_path / "schema3.db"
+    banco = DatabaseEsquema3(str(caminho))
     try:
         origem = banco.get_connection()
         with banco.transacao() as cursor:
@@ -59,40 +65,106 @@ def test_ensaio_remocao_real_preserva_centavos_sem_recalcular(tmp_path, monkeypa
                 "INSERT INTO duplicatas (valor_parcela) VALUES (?)", (1.004999999999,)
             )
             cursor.execute("UPDATE duplicatas SET valor_parcela_centavos = 100")
-        copia = remover_colunas_reais_em_memoria(origem)
-        try:
-            assert copia.execute("PRAGMA user_version").fetchone() == (4,)
-            assert copia.execute(
-                "SELECT valor_parcela_centavos FROM duplicatas"
-            ).fetchone() == (100,)
-            assert copia.execute(
-                "SELECT preco_custo_centavos, preco_venda_centavos FROM produtos"
-            ).fetchone() == (125, 250)
-            copia.execute(
-                "INSERT INTO produtos (nome, preco_custo_centavos, preco_venda_centavos) "
-                "VALUES ('Novo', 301, 502)"
-            )
-            assert copia.execute(
-                "SELECT preco_custo_centavos, preco_venda_centavos "
-                "FROM produtos WHERE nome = 'Novo'"
-            ).fetchone() == (301, 502)
-            copia.commit()
-            with monkeypatch.context() as ajustes:
-                ajustes.setattr(banco, "get_connection", lambda: copia)
-                ajustes.setattr(base_model, "obter_database", lambda: banco)
-                produto = Produto.buscar_por_id(1)
-                assert produto is not None
-                assert (produto.preco_custo, produto.preco_venda) == (1.25, 2.50)
-                with pytest.raises(sqlite3.OperationalError, match="preco_custo"):
-                    Produto(nome="Legado", preco_custo=1, preco_venda=2).salvar()
-        finally:
-            copia.close()
         assert banco.versao_esquema() == 3
         assert origem.execute(
             "SELECT valor_parcela, valor_parcela_centavos FROM duplicatas"
         ).fetchone() == (1.004999999999, 100)
     finally:
         banco.close_connection()
+    banco = Database(str(caminho))
+    try:
+        conn = banco.get_connection()
+        assert banco.versao_esquema() == 4
+        assert conn.execute(
+            "SELECT valor_parcela_centavos FROM duplicatas"
+        ).fetchone() == (100,)
+        assert conn.execute(
+            "SELECT preco_custo_centavos, preco_venda_centavos FROM produtos"
+        ).fetchone() == (125, 250)
+        assert conn.execute("PRAGMA integrity_check").fetchall() == [("ok",)]
+        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+        for tabela, campos in COLUNAS_REAIS.items():
+            colunas = {
+                coluna[1] for coluna in conn.execute(f'PRAGMA table_info("{tabela}")')
+            }
+            assert not set(campos) & colunas
+            assert {f"{campo}_centavos" for campo in campos} <= colunas
+        assert conn.execute(
+            "SELECT count(*) FROM sqlite_master WHERE type = 'trigger' "
+            "AND name LIKE 'trg_%_centavos_%'"
+        ).fetchone() == (0,)
+        monkeypatch.setattr(base_model, "obter_database", lambda: banco)
+        produto = Produto.buscar_por_id(1)
+        assert produto is not None
+        assert (produto.preco_custo, produto.preco_venda) == (1.25, 2.50)
+        assert Produto(nome="Novo", preco_custo=3.01, preco_venda=5.02).salvar()
+        assert conn.execute(
+            "SELECT preco_custo_centavos, preco_venda_centavos FROM produtos WHERE nome = 'Novo'"
+        ).fetchone() == (301, 502)
+    finally:
+        banco.close_connection()
+    (backup,) = (tmp_path / "backups").glob("pre_migracao_v3_para_v4_*.db")
+    with sqlite3.connect(backup) as anterior:
+        assert anterior.execute("PRAGMA user_version").fetchone() == (3,)
+        assert anterior.execute(
+            "SELECT valor_parcela, valor_parcela_centavos FROM duplicatas"
+        ).fetchone() == (1.004999999999, 100)
+
+
+def test_migracao_4_reverte_ddl_e_preserva_backup_se_falhar(tmp_path):
+    caminho = tmp_path / "schema3.db"
+    banco = DatabaseEsquema3(str(caminho))
+    conn = banco.get_connection()
+    conn.execute(
+        "INSERT INTO produtos (nome, preco_custo, preco_venda) VALUES ('Teste', 1, 2)"
+    )
+    conn.execute('DROP TRIGGER "trg_itens_venda_centavos_update"')
+    conn.commit()
+    esquema = conn.execute(
+        "SELECT type, name, sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY type, name"
+    ).fetchall()
+    banco.close_connection()
+
+    with pytest.raises(MigracaoError, match="versão 4"):
+        Database(str(caminho))
+
+    with sqlite3.connect(caminho) as conn:
+        assert conn.execute("PRAGMA user_version").fetchone() == (3,)
+        assert (
+            conn.execute(
+                "SELECT type, name, sql FROM sqlite_master WHERE sql IS NOT NULL ORDER BY type, name"
+            ).fetchall()
+            == esquema
+        )
+        assert conn.execute(
+            "SELECT preco_custo_centavos, preco_venda_centavos FROM produtos"
+        ).fetchone() == (100, 200)
+    (backup,) = (tmp_path / "backups").glob("pre_migracao_v3_para_v4_*.db")
+    with sqlite3.connect(backup) as conn:
+        assert conn.execute("PRAGMA user_version").fetchone() == (3,)
+
+
+def test_migracao_4_recusa_centavos_invalidos_sem_remover_dados(tmp_path):
+    caminho = tmp_path / "schema3.db"
+    banco = DatabaseEsquema3(str(caminho))
+    conn = banco.get_connection()
+    conn.execute(
+        "INSERT INTO produtos (nome, preco_custo, preco_venda) VALUES ('Teste', 1, 2)"
+    )
+    conn.execute("UPDATE produtos SET preco_custo_centavos = 1.5")
+    conn.commit()
+    banco.close_connection()
+
+    with pytest.raises(MigracaoError, match="produtos.preco_custo_centavos"):
+        Database(str(caminho))
+
+    with sqlite3.connect(caminho) as conn:
+        assert conn.execute("PRAGMA user_version").fetchone() == (3,)
+        assert conn.execute(
+            "SELECT preco_custo, preco_custo_centavos FROM produtos"
+        ).fetchone() == (1, 1.5)
+        assert conn.execute("PRAGMA integrity_check").fetchall() == [("ok",)]
+    assert list((tmp_path / "backups").glob("pre_migracao_v3_para_v4_*.db"))
 
 
 def test_migracao_inicial_cria_esquema_base_e_aplica_apenas_uma_vez(tmp_path):
@@ -180,7 +252,7 @@ def test_migracao_monetaria_cria_centavos_preserva_valores_e_sincroniza_escritas
     tmp_path,
 ):
     caminho_banco = tmp_path / "centavos.db"
-    banco = Database(str(caminho_banco))
+    banco = DatabaseEsquema3(str(caminho_banco))
     try:
         conn = banco.get_connection()
         conn.execute("INSERT INTO clientes (id, nome) VALUES (1, 'Cliente de teste')")
@@ -283,19 +355,16 @@ def test_migracao_adiciona_colunas_ausentes_e_preserva_dados_anteriores(tmp_path
 
         assert banco.versao_esquema() == Database.MIGRACOES[-1][0]
         assert conn.execute(
-            "SELECT preco_venda FROM itens_pedido WHERE id = 1"
-        ).fetchone() == (13.0,)
-        assert conn.execute(
-            "SELECT valor_financiado FROM vendas WHERE id = 1"
-        ).fetchone() == (80.0,)
+            "SELECT preco_venda_centavos FROM itens_pedido WHERE id = 1"
+        ).fetchone() == (1300,)
         assert conn.execute(
             "SELECT valor_financiado_centavos FROM vendas WHERE id = 1"
         ).fetchone() == (8000,)
 
         colunas_condicionais = banco._colunas(conn.cursor(), "condicionais")
         colunas_pedidos = banco._colunas(conn.cursor(), "pedidos")
-        assert "desconto" in colunas_condicionais
-        assert "desconto" in colunas_pedidos
+        assert "desconto_centavos" in colunas_condicionais
+        assert "desconto_centavos" in colunas_pedidos
     finally:
         banco.close_connection()
 

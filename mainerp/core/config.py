@@ -16,7 +16,7 @@ class Config:
 
     # Constantes da aplicação
     APP_NAME = "PLUMA"
-    APP_VERSION = "0.12.1"
+    APP_VERSION = "0.13.0"
     DEBUG_MODE = False
 
     def __init__(self, config_file: str | None = None):

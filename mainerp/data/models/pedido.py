@@ -48,7 +48,6 @@ class Pedido(BaseModel):
                 query = """
                     UPDATE pedidos
                     SET fornecedor_id=?, data_pedido=?, data_recebimento=?,
-                        valor_total=?, valor_frete=?, desconto=?,
                         valor_total_centavos=?, valor_frete_centavos=?,
                         desconto_centavos=?, observacao=?, status=?
                     WHERE id=?
@@ -57,9 +56,6 @@ class Pedido(BaseModel):
                     self.fornecedor_id,
                     self.data_pedido,
                     self.data_recebimento,
-                    self.valor_total,
-                    self.valor_frete,
-                    self.desconto,
                     total_centavos,
                     frete_centavos,
                     desconto_centavos,
@@ -70,18 +66,14 @@ class Pedido(BaseModel):
             else:
                 query = """
                     INSERT INTO pedidos
-                    (fornecedor_id, data_pedido, data_recebimento, valor_total,
-                     valor_frete, desconto, valor_total_centavos,
+                    (fornecedor_id, data_pedido, data_recebimento, valor_total_centavos,
                      valor_frete_centavos, desconto_centavos, observacao, status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """
                 params = (
                     self.fornecedor_id,
                     self.data_pedido,
                     self.data_recebimento,
-                    self.valor_total,
-                    self.valor_frete,
-                    self.desconto,
                     total_centavos,
                     frete_centavos,
                     desconto_centavos,

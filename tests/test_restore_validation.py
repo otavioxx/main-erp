@@ -127,7 +127,7 @@ def test_rejeita_valor_monetario_nao_inteiro(tmp_path, valor):
     arquivo = tmp_path / "invalido.db"
     database = Database(str(arquivo))
     conn = database.get_connection()
-    conn.execute("INSERT INTO vendas (id, total) VALUES (1, 10)")
+    conn.execute("INSERT INTO vendas (id, total_centavos) VALUES (1, 1000)")
     conn.execute("UPDATE vendas SET total_centavos = ? WHERE id = 1", (valor,))
     conn.commit()
     database.close_connection()
@@ -143,7 +143,7 @@ def test_zip_invalido_nao_altera_banco_ou_cria_pendencia(tmp_path):
     origem = tmp_path / "origem.db"
     database = Database(str(origem))
     conn = database.get_connection()
-    conn.execute("INSERT INTO vendas (id, total) VALUES (1, 10)")
+    conn.execute("INSERT INTO vendas (id, total_centavos) VALUES (1, 1000)")
     conn.execute("UPDATE vendas SET total_centavos = 1.5 WHERE id = 1")
     conn.commit()
     database.close_connection()

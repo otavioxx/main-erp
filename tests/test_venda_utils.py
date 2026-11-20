@@ -129,7 +129,7 @@ def test_repository_itens_venda_grava_centavos_e_retorna_reais(tmp_path, monkeyp
         with database.transacao() as cursor:
             cursor.execute(
                 """
-                INSERT INTO produtos (id, nome, preco_custo, preco_venda)
+                INSERT INTO produtos (id, nome, preco_custo_centavos, preco_venda_centavos)
                 VALUES (1, 'Produto', 0, 0)
                 """
             )
@@ -138,7 +138,7 @@ def test_repository_itens_venda_grava_centavos_e_retorna_reais(tmp_path, monkeyp
             for coluna in ("codigo_barras", "referencia", "cor", "tamanho"):
                 if coluna not in colunas_produto:
                     cursor.execute(f"ALTER TABLE produtos ADD COLUMN {coluna} TEXT")
-            cursor.execute("INSERT INTO vendas (id, total) VALUES (1, 10.01)")
+            cursor.execute("INSERT INTO vendas (id, total_centavos) VALUES (1, 1001)")
 
         assert VendaRepository.salvar_itens_venda(
             1,

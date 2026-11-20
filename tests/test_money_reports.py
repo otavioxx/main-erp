@@ -3,10 +3,9 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from test_database_migrations import remover_colunas_reais_em_memoria
+from test_database_migrations import DatabaseEsquema3, remover_colunas_reais_em_memoria
 
 from mainerp.data import database_utils
-from mainerp.data.database import Database
 from mainerp.data.models import empresa as empresa_model
 from mainerp.domain.utils.venda_utils import VendaUtils
 from mainerp.reports import (
@@ -22,7 +21,7 @@ from mainerp.reports import (
 
 @pytest.fixture
 def database(tmp_path, monkeypatch):
-    database = Database(str(tmp_path / "money-reports.db"))
+    database = DatabaseEsquema3(str(tmp_path / "money-reports.db"))
     for module in (
         print_condicional,
         print_pedido,
