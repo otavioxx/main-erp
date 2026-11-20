@@ -3,6 +3,8 @@
 ## 2026-11-20
 
 - Os testes de atalhos do Windows capturam a saída do PowerShell em bytes quando só verificam o código de saída; a leitura de JSON continua usando UTF-8 explícito. Os 63 testes de atualização passaram no Windows.
+- Integrado o workflow Qualidade no PR #2. Ruff e pytest passaram no GitHub Actions (379 testes aprovados, 5 ignorados). Confirmado o ruleset ativo que exige pull request e os dois checks para integrar à `main`.
+- Adicionado um workflow independente da publicação para testar a interface no Windows em pull requests para `main`, nas escalas de 125% e 150%. Os dois casos passaram localmente com Python 3.12.0rc3; falta confirmar no GitHub Actions.
 - Restaurado um backup do pendrive na inicialização do PLUMA com dados isolados. Os registros das 13 tabelas e as 19 somas em centavos conferiram com o ZIP, que permaneceu inalterado. O banco anterior foi preservado.
 - O backup manual preserva o destino indisponível, verifica a escrita em segundo plano e permite cancelar a tentativa sem encerrar o PLUMA. O teste simula indisponibilidade e reconexão em pasta isolada.
 

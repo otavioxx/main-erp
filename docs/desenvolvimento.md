@@ -44,6 +44,10 @@ python -m pytest
 
 Testes sempre com dados e instalações isolados, nunca com dados de produção.
 
+O workflow **Qualidade** roda os checks **Ruff** e **pytest** em pull requests para
+`main`. O ruleset **Qualidade da main** exige um pull request e a aprovação dos
+dois checks pelo GitHub Actions. Isso não aciona a publicação de releases.
+
 ## Criar uma migração do banco
 
 O esquema é versionado por `PRAGMA user_version`. Para alterar o banco:

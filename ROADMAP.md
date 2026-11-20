@@ -38,8 +38,8 @@ está no [CHANGELOG](CHANGELOG.md); os guias estão no
 
 ### Verificação e CI
 
-- [ ] Corrigir e incluir no CI o teste de interface Windows que falha nas escalas 1.25 e 1.5.
-- [ ] Executar Ruff e pytest em pull requests e exigir esses checks para integrar à `main`.
+- [x] Corrigir e incluir no CI o teste de interface Windows que falha nas escalas 1.25 e 1.5.
+- [x] Executar Ruff e pytest em pull requests e exigir esses checks para integrar à `main`.
 - [x] Declarar Pillow em `requirements.txt` e validar instalação limpa.
 - [x] Corrigir o teste `test_release_updates` para não depender da codificação do PowerShell no Windows.
 
