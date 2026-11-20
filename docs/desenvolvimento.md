@@ -14,17 +14,26 @@ pip install -r requirements-dev.txt
 
 :: IMPORTANTE: use uma pasta de dados separada, senão o desenvolvimento
 :: mexe no mesmo banco que você usa no dia a dia.
-set MAINERP_DATA=C:\dev\mainerp-dados
+set MAINERP_DATA=%LOCALAPPDATA%\PLUMA-dev-dados
 
 pytest
+:: Somente para testes em dados isolados, simula o protocolo do launcher.
+set MAINERP_SCHEMA_PROTOCOL=1
 python main.py
+set MAINERP_SCHEMA_PROTOCOL=
 ```
 
 No PowerShell, ative o ambiente com `.\.venv\Scripts\Activate.ps1` e defina a pasta de dados
-com `$env:MAINERP_DATA = 'C:\dev\mainerp-dados'`.
+com `$env:MAINERP_DATA = Join-Path $env:LOCALAPPDATA 'PLUMA-dev-dados'`. Para executar diretamente com dados
+isolados, mantenha o protocolo apenas no processo de teste:
+
+```powershell
+cmd /c "set MAINERP_DATA=%LOCALAPPDATA%\PLUMA-dev-dados&&set MAINERP_SCHEMA_PROTOCOL=1&&python main.py"
+```
 
 A execução direta de `main.py` não consulta atualizações: essa verificação é feita pelo
-launcher do atalho instalado.
+launcher do atalho instalado. O protocolo acima não substitui as proteções do launcher e
+nunca deve ser usado com os dados de produção.
 
 As dependências de execução ficam em `requirements.txt` e as de desenvolvimento (execução,
 pytest e Ruff) em `requirements-dev.txt`.

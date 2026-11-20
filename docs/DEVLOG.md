@@ -2,6 +2,11 @@
 
 ## 2026-11-20
 
+### Preparação da release 0.13.1
+
+- Corrigida a exibição de erros antes da criação da aplicação Qt: a instância temporária permanece ativa enquanto o aviso é exibido. A proteção contra launcher incompatível permanece inalterada.
+- Ruff e pytest passaram no Windows: 400 testes aprovados e 1 ignorado. Instalação limpa e atualização de 0.13.0 foram testadas em ambientes isolados; o aviso da candidata foi exibido e o bloqueio preservou o banco de teste.
+
 ### Preparação da release 0.13.0
 
 - Preparada a distribuição da migração 4, incompatível com versões anteriores do aplicativo; o launcher atualizado protege a abertura e a recuperação do banco.

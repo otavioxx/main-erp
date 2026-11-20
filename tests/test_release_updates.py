@@ -928,6 +928,47 @@ app.main()
     assert banco.read_bytes() == b"banco de teste"
 
 
+@pytest.mark.parametrize("usa_launcher", [False, True])
+def test_app_sem_protocolo_mostra_aviso_sem_alterar_banco(tmp_path, usa_launcher):
+    banco = tmp_path / "erp.db"
+    banco.write_bytes(b"banco de teste")
+    env = dict(os.environ, MAINERP_DATA=str(tmp_path), QT_QPA_PLATFORM="offscreen")
+    env.pop("MAINERP_SCHEMA_PROTOCOL", None)
+    if usa_launcher:
+        env["MAINERP_LAUNCHER"] = "1"
+    else:
+        env.pop("MAINERP_LAUNCHER", None)
+    programa = """
+import runpy
+from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QApplication, QMessageBox
+
+original = QMessageBox.critical
+def mostrar(parent, titulo, texto):
+    assert QApplication.instance() is not None
+    print("AVISO:", titulo, texto, flush=True)
+    QTimer.singleShot(0, lambda: QApplication.activeModalWidget().accept())
+    return original(parent, titulo, texto)
+QMessageBox.critical = mostrar
+runpy.run_path("main.py", run_name="__main__")
+"""
+    resultado = subprocess.run(
+        [sys.executable, "-c", programa],
+        cwd=PROJECT_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=30,
+        check=False,
+    )
+    assert resultado.returncode == 4, resultado.stdout + resultado.stderr
+    assert "AVISO: Atualize o launcher do PLUMA" in resultado.stdout
+    assert "O banco e a restauração pendente não foram alterados." in resultado.stdout
+    assert banco.read_bytes() == b"banco de teste"
+
+
 def test_retencao_preserva_ultima_release_compativel(
     launcher, instalacao_para_recuperacao
 ):
