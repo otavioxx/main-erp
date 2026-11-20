@@ -13,6 +13,8 @@ As alterações são organizadas nas categorias:
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-20
+
 ### Alterado
 
 - Padronizado o nome visível do produto como PLUMA na interface, no instalador e nas mensagens.

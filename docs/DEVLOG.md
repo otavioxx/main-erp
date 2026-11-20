@@ -2,6 +2,12 @@
 
 ## 2026-11-20
 
+### Preparação da release 0.12.1
+
+- Consolidadas correções de compatibilidade do launcher com o esquema do banco e da validação de backups, além de melhorias de identificação PLUMA, recuperação de destino removível e documentação.
+- Ruff e suíte completa passaram no Windows (396 testes, 1 ignorado) e no Linux com Python 3.12 (393 testes, 4 ignorados).
+- Instalação limpa de 0.12.1 e atualização local de 0.11.2 para 0.12.1 validadas em diretórios isolados; arquivo de dados de teste e release anterior permaneceram intactos.
+
 - Padronizado o nome público como PLUMA em janelas, launcher, instalador, descrição de atalhos, notas de atualização e documentação de identidade. Contratos técnicos legados, como `%LOCALAPPDATA%\MainERP`, nomes dos pacotes, variáveis `MAINERP_*` e repositório, foram preservados para não quebrar instalações e atualizações.
 - Atualizado o AppUserModelID do Windows de `DigitalSolutions.MainERP` para `OTCTecnology.MainERP`, mantendo o segmento técnico do produto para compatibilidade.
 - O instalador `.pyz` atualizou o launcher numa cópia isolada da instalação. Com o backup de 18/11, a candidata recusou a abertura sem o novo protocolo e deixou o banco intacto. Pelo novo launcher, a migração preservou 5.335 registros e 9.155 valores em centavos, gerou o backup pré-migração e impediu a seleção de uma versão antiga incompatível. A instalação em uso não foi atualizada.
